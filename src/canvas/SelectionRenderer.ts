@@ -80,6 +80,8 @@ export function renderSelectionFrame(
 
 /**
  * Draws a semi-transparent ghost preview of a floating selection.
+ * Computes adaptive corner radii per element based on neighbor lookups
+ * within the float data, matching the main grid's RadiusCalculator logic.
  */
 export function renderSelectionGhost(
   ctx: CanvasRenderingContext2D,
@@ -90,43 +92,102 @@ export function renderSelectionGhost(
   const pad = config.padding;
   const cs = config.cellSize;
   const gs = config.gapSize;
+  const r = Math.min(config.cellRadius, Math.floor(cs / 2));
+  const rGap = Math.min(r, Math.floor(gs / 2));
+
+  // Build Set lookups from float data for neighbor queries
+  const cellSet = new Set<string>();
+  const gHSet = new Set<string>();
+  const gVSet = new Set<string>();
+  const gDSet = new Set<string>();
+  for (const { lx, ly } of data.cells) cellSet.add(`${lx},${ly}`);
+  for (const { lx, ly } of data.gH) gHSet.add(`${lx},${ly}`);
+  for (const { lx, ly } of data.gV) gVSet.add(`${lx},${ly}`);
+  for (const { lx, ly } of data.gD) gDSet.add(`${lx},${ly}`);
 
   ctx.save();
   ctx.globalAlpha = 0.55;
 
-  // Draw cells with rounded corners matching the grid appearance
-  const r = Math.min(config.cellRadius, Math.floor(cs / 2));
-  const cellRadii: [number, number, number, number] = [r, r, r, r];
-  for (const { lx, ly, c } of data.cells) {
-    const x = pad + (data.ox + lx) * total;
-    const y = pad + (data.oy + ly) * total;
-    ctx.fillStyle = c || config.drawColor;
-    drawRoundedRect(ctx, x, y, cs, cs, cellRadii);
-    ctx.fill();
+  // Draw cells with adaptive rounded corners
+  if (r > 0) {
+    for (const { lx, ly, c } of data.cells) {
+      const px = pad + (data.ox + lx) * total;
+      const py = pad + (data.oy + ly) * total;
+      ctx.fillStyle = c || config.drawColor;
+
+      // Same logic as computeCellRadius: corner blocked by adjacent gap/diagonal
+      const tl = (gVSet.has(`${lx - 1},${ly}`) || gHSet.has(`${lx},${ly - 1}`) || gDSet.has(`${lx - 1},${ly - 1}`)) ? 0 : r;
+      const tr = (gVSet.has(`${lx},${ly}`)     || gHSet.has(`${lx},${ly - 1}`) || gDSet.has(`${lx},${ly - 1}`))     ? 0 : r;
+      const br = (gVSet.has(`${lx},${ly}`)     || gHSet.has(`${lx},${ly}`)     || gDSet.has(`${lx},${ly}`))         ? 0 : r;
+      const bl = (gVSet.has(`${lx - 1},${ly}`) || gHSet.has(`${lx},${ly}`)     || gDSet.has(`${lx - 1},${ly}`))     ? 0 : r;
+
+      drawRoundedRect(ctx, px, py, cs, cs, [tl, tr, br, bl]);
+      ctx.fill();
+    }
+  } else {
+    for (const { lx, ly, c } of data.cells) {
+      const px = pad + (data.ox + lx) * total;
+      const py = pad + (data.oy + ly) * total;
+      ctx.fillStyle = c || config.drawColor;
+      ctx.fillRect(px, py, cs, cs);
+    }
   }
 
-  // Draw gap-H
+  // Draw gap-H with adaptive rounded corners
   for (const { lx, ly, c } of data.gH) {
-    const x = pad + (data.ox + lx) * total;
-    const y = pad + (data.oy + ly + 1) * total - gs;
+    const px = pad + (data.ox + lx) * total;
+    const py = pad + (data.oy + ly + 1) * total - gs;
     ctx.fillStyle = c || config.drawColor;
-    ctx.fillRect(x, y, cs, gs);
+
+    if (rGap > 0) {
+      // Same logic as computeGapHRadius
+      const tl = (cellSet.has(`${lx},${ly}`)     || gVSet.has(`${lx - 1},${ly}`) || gDSet.has(`${lx - 1},${ly}`)) ? 0 : rGap;
+      const tr = (cellSet.has(`${lx},${ly}`)     || gVSet.has(`${lx},${ly}`)     || gDSet.has(`${lx},${ly}`))     ? 0 : rGap;
+      const br = (cellSet.has(`${lx},${ly + 1}`) || gVSet.has(`${lx},${ly + 1}`) || gDSet.has(`${lx},${ly}`))     ? 0 : rGap;
+      const bl = (cellSet.has(`${lx},${ly + 1}`) || gVSet.has(`${lx - 1},${ly + 1}`) || gDSet.has(`${lx - 1},${ly}`)) ? 0 : rGap;
+      drawRoundedRect(ctx, px, py, cs, gs, [tl, tr, br, bl]);
+      ctx.fill();
+    } else {
+      ctx.fillRect(px, py, cs, gs);
+    }
   }
 
-  // Draw gap-V
+  // Draw gap-V with adaptive rounded corners
   for (const { lx, ly, c } of data.gV) {
-    const x = pad + (data.ox + lx + 1) * total - gs;
-    const y = pad + (data.oy + ly) * total;
+    const px = pad + (data.ox + lx + 1) * total - gs;
+    const py = pad + (data.oy + ly) * total;
     ctx.fillStyle = c || config.drawColor;
-    ctx.fillRect(x, y, gs, cs);
+
+    if (rGap > 0) {
+      // Same logic as computeGapVRadius
+      const tl = (cellSet.has(`${lx},${ly}`)     || gHSet.has(`${lx},${ly - 1}`)     || gDSet.has(`${lx},${ly - 1}`)) ? 0 : rGap;
+      const tr = (cellSet.has(`${lx + 1},${ly}`) || gHSet.has(`${lx + 1},${ly - 1}`) || gDSet.has(`${lx},${ly - 1}`)) ? 0 : rGap;
+      const br = (cellSet.has(`${lx + 1},${ly}`) || gHSet.has(`${lx + 1},${ly}`)     || gDSet.has(`${lx},${ly}`))     ? 0 : rGap;
+      const bl = (cellSet.has(`${lx},${ly}`)     || gHSet.has(`${lx},${ly}`)         || gDSet.has(`${lx},${ly}`))     ? 0 : rGap;
+      drawRoundedRect(ctx, px, py, gs, cs, [tl, tr, br, bl]);
+      ctx.fill();
+    } else {
+      ctx.fillRect(px, py, gs, cs);
+    }
   }
 
-  // Draw gap-D
+  // Draw gap-D with adaptive rounded corners
   for (const { lx, ly, c } of data.gD) {
-    const x = pad + (data.ox + lx + 1) * total - gs;
-    const y = pad + (data.oy + ly + 1) * total - gs;
+    const px = pad + (data.ox + lx + 1) * total - gs;
+    const py = pad + (data.oy + ly + 1) * total - gs;
     ctx.fillStyle = c || config.drawColor;
-    ctx.fillRect(x, y, gs, gs);
+
+    if (rGap > 0) {
+      // Same logic as computeGapDRadius
+      const tl = (cellSet.has(`${lx},${ly}`)     || gHSet.has(`${lx},${ly}`)     || gVSet.has(`${lx},${ly}`))     ? 0 : rGap;
+      const tr = (cellSet.has(`${lx + 1},${ly}`) || gHSet.has(`${lx + 1},${ly}`) || gVSet.has(`${lx},${ly}`))     ? 0 : rGap;
+      const br = (cellSet.has(`${lx + 1},${ly + 1}`) || gHSet.has(`${lx + 1},${ly}`) || gVSet.has(`${lx},${ly + 1}`)) ? 0 : rGap;
+      const bl = (cellSet.has(`${lx},${ly + 1}`) || gHSet.has(`${lx},${ly}`)     || gVSet.has(`${lx},${ly + 1}`)) ? 0 : rGap;
+      drawRoundedRect(ctx, px, py, gs, gs, [tl, tr, br, bl]);
+      ctx.fill();
+    } else {
+      ctx.fillRect(px, py, gs, gs);
+    }
   }
 
   // Border outline
