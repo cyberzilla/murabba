@@ -2,7 +2,7 @@
  * ExportRenderer — Offscreen canvas rendering for PNG export.
  */
 import type { GridModel } from '../core/GridModel';
-import type { RenderConfig, BgProps, BoundingBox } from '../types/grid';
+import type { RenderConfig, BgProps } from '../types/grid';
 import { computeCellRadius, computeGapHRadius, computeGapVRadius, computeGapDRadius } from '../core/RadiusCalculator';
 import { drawRoundedRect } from './GridRenderer';
 
@@ -13,13 +13,13 @@ export interface ExportOptions {
 }
 
 /**
- * Exports the grid to a PNG data URL.
- * Calculates tight bounding box of filled content and renders to an offscreen canvas.
+ * Renders the grid content to an offscreen canvas and returns a data URL.
  */
-export function exportToPNG(
+function renderToOffscreen(
   model: GridModel,
   config: RenderConfig,
-  options: ExportOptions = {}
+  options: ExportOptions = {},
+  format: 'png' | 'webp'
 ): string {
   const total = config.cellSize + config.gapSize;
   const pad = config.padding;
@@ -43,9 +43,11 @@ export function exportToPNG(
   canvas.height = ch;
   const ctx = canvas.getContext('2d')!;
 
-  // Background color
-  ctx.fillStyle = config.canvasBgColor;
-  ctx.fillRect(0, 0, cw, ch);
+  // Background color (only when exporting with background, otherwise transparent)
+  if (options.withBackground) {
+    ctx.fillStyle = config.canvasBgColor;
+    ctx.fillRect(0, 0, cw, ch);
+  }
 
   // Background image
   if (options.withBackground && options.bgImage && options.bgProps) {
@@ -56,8 +58,11 @@ export function exportToPNG(
     ctx.save();
     ctx.globalAlpha = bp.opacity;
     const blendMap: Record<string, GlobalCompositeOperation> = {
-      normal: 'source-over', multiply: 'multiply', screen: 'screen',
-      overlay: 'overlay', lighten: 'lighter',
+      normal: 'source-over',
+      multiply: 'multiply',
+      screen: 'screen',
+      overlay: 'overlay',
+      lighten: 'lighten',
     };
     ctx.globalCompositeOperation = blendMap[bp.blend] || 'source-over';
 
@@ -132,7 +137,22 @@ export function exportToPNG(
     }
   }
 
+  if (format === 'webp') {
+    return canvas.toDataURL('image/webp', 0.92);
+  }
   return canvas.toDataURL('image/png');
+}
+
+/**
+ * Exports the grid to a PNG data URL.
+ * Calculates tight bounding box of filled content and renders to an offscreen canvas.
+ */
+export function exportToPNG(
+  model: GridModel,
+  config: RenderConfig,
+  options: ExportOptions = {}
+): string {
+  return renderToOffscreen(model, config, options, 'png');
 }
 
 /**
@@ -144,94 +164,7 @@ export function exportToWebP(
   config: RenderConfig,
   options: ExportOptions = {}
 ): string {
-  // Render to canvas using same logic as PNG
-  const total = config.cellSize + config.gapSize;
-  const pad = config.padding;
-  const cs = config.cellSize;
-  const gs = config.gapSize;
-
-  let bb = model.getBoundingBox();
-  if (!bb) {
-    bb = { minX: 0, minY: 0, maxX: model.cols - 1, maxY: model.rows - 1 };
-  }
-
-  const cw = (bb.maxX - bb.minX + 1) * total + pad * 2;
-  const ch = (bb.maxY - bb.minY + 1) * total + pad * 2;
-  const offX = pad - bb.minX * total;
-  const offY = pad - bb.minY * total;
-
-  const canvas = document.createElement('canvas');
-  canvas.width = cw;
-  canvas.height = ch;
-  const ctx = canvas.getContext('2d')!;
-
-  ctx.fillStyle = config.canvasBgColor;
-  ctx.fillRect(0, 0, cw, ch);
-
-  if (options.withBackground && options.bgImage && options.bgProps) {
-    const bp = options.bgProps;
-    const img = options.bgImage;
-    const crop = bp.crop || { x: 0, y: 0, w: 1, h: 1 };
-    ctx.save();
-    ctx.globalAlpha = bp.opacity;
-    const blendMap: Record<string, GlobalCompositeOperation> = {
-      normal: 'source-over', multiply: 'multiply', screen: 'screen',
-      overlay: 'overlay', lighten: 'lighter',
-    };
-    ctx.globalCompositeOperation = blendMap[bp.blend] || 'source-over';
-    const bx = offX + bp.x;
-    const by = offY + bp.y;
-    ctx.translate(bx + bp.w / 2, by + bp.h / 2);
-    ctx.rotate((bp.rotate * Math.PI) / 180);
-    try {
-      ctx.drawImage(img, crop.x * img.naturalWidth, crop.y * img.naturalHeight,
-        crop.w * img.naturalWidth, crop.h * img.naturalHeight, -bp.w / 2, -bp.h / 2, bp.w, bp.h);
-    } catch { /* image not ready */ }
-    ctx.restore();
-  }
-
-  ctx.globalCompositeOperation = 'source-over';
-  ctx.globalAlpha = 1;
-
-  // Gaps and cells
-  for (let gy = 0; gy < model.rows - 1; gy++) {
-    for (let gx = 0; gx < model.cols; gx++) {
-      if (!model.isFilledGapH(gx, gy)) continue;
-      ctx.fillStyle = model.getGapHColor(gx, gy) || config.drawColor;
-      const radii = computeGapHRadius(model, gx, gy, config.cellRadius);
-      drawRoundedRect(ctx, offX + gx * total, offY + (gy + 1) * total - gs, cs, gs, radii);
-      ctx.fill();
-    }
-  }
-  for (let gy = 0; gy < model.rows; gy++) {
-    for (let gx = 0; gx < model.cols - 1; gx++) {
-      if (!model.isFilledGapV(gx, gy)) continue;
-      ctx.fillStyle = model.getGapVColor(gx, gy) || config.drawColor;
-      const radii = computeGapVRadius(model, gx, gy, config.cellRadius);
-      drawRoundedRect(ctx, offX + (gx + 1) * total - gs, offY + gy * total, gs, cs, radii);
-      ctx.fill();
-    }
-  }
-  for (let gy = 0; gy < model.rows - 1; gy++) {
-    for (let gx = 0; gx < model.cols - 1; gx++) {
-      if (!model.isFilledGapD(gx, gy)) continue;
-      ctx.fillStyle = model.getGapDColor(gx, gy) || config.drawColor;
-      const radii = computeGapDRadius(model, gx, gy, config.cellRadius, gs);
-      drawRoundedRect(ctx, offX + (gx + 1) * total - gs, offY + (gy + 1) * total - gs, gs, gs, radii);
-      ctx.fill();
-    }
-  }
-  for (let y = 0; y < model.rows; y++) {
-    for (let x = 0; x < model.cols; x++) {
-      if (!model.isFilledCell(x, y)) continue;
-      ctx.fillStyle = model.getCellColor(x, y) || config.drawColor;
-      const radii = computeCellRadius(model, x, y, config.cellRadius);
-      drawRoundedRect(ctx, offX + x * total, offY + y * total, cs, cs, radii);
-      ctx.fill();
-    }
-  }
-
-  return canvas.toDataURL('image/webp', 0.92);
+  return renderToOffscreen(model, config, options, 'webp');
 }
 
 /**
@@ -240,7 +173,8 @@ export function exportToWebP(
  */
 export function exportToSVG(
   model: GridModel,
-  config: RenderConfig
+  config: RenderConfig,
+  options: ExportOptions = {}
 ): string {
   const total = config.cellSize + config.gapSize;
   const pad = config.padding;
@@ -257,32 +191,64 @@ export function exportToSVG(
   const offX = pad - bb.minX * total;
   const offY = pad - bb.minY * total;
 
-  const rects: string[] = [];
+  const elements: string[] = [];
+
+  // Background color + image
+  if (options.withBackground) {
+    elements.push(`<rect width="${svgW}" height="${svgH}" fill="${config.canvasBgColor}"/>`);
+
+    if (options.bgImage && options.bgProps) {
+      const bp = options.bgProps;
+      const img = options.bgImage;
+      try {
+        const crop = bp.crop || { x: 0, y: 0, w: 1, h: 1 };
+        const srcX = crop.x * img.naturalWidth;
+        const srcY = crop.y * img.naturalHeight;
+        const srcW = crop.w * img.naturalWidth;
+        const srcH = crop.h * img.naturalHeight;
+        const tmpCanvas = document.createElement('canvas');
+        tmpCanvas.width = srcW;
+        tmpCanvas.height = srcH;
+        const tmpCtx = tmpCanvas.getContext('2d')!;
+        tmpCtx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, srcW, srcH);
+        const dataUrl = tmpCanvas.toDataURL('image/png');
+
+        const bx = offX + bp.x;
+        const by = offY + bp.y;
+        const cx = bx + bp.w / 2;
+        const cy = by + bp.h / 2;
+        const transforms: string[] = [];
+        if (bp.rotate) transforms.push(`rotate(${bp.rotate} ${cx} ${cy})`);
+        const tfAttr = transforms.length ? ` transform="${transforms.join(' ')}"` : '';
+
+        elements.push(
+          `<image href="${dataUrl}" x="${bx}" y="${by}" width="${bp.w}" height="${bp.h}" opacity="${bp.opacity}"${tfAttr} preserveAspectRatio="none"/>`
+        );
+      } catch { /* image not ready or tainted */ }
+    }
+  }
 
   // Helper to create SVG rect with individual corner radii
   function svgRect(x: number, y: number, w: number, h: number, color: string, r: [number, number, number, number]) {
     const maxR = Math.min(w, h) / 2;
-    const rx = Math.min(Math.max(r[0], r[1], r[2], r[3]), maxR);
-    // Use uniform rx for simplicity; for precise per-corner radius use path
     if (r[0] === r[1] && r[1] === r[2] && r[2] === r[3]) {
-      rects.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${Math.min(r[0], maxR)}" fill="${color}"/>`);
+      elements.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${Math.min(r[0], maxR)}" fill="${color}"/>`);
     } else {
-      // Generate path for individual corner radii
       const tl = Math.min(r[0], maxR);
       const tr = Math.min(r[1], maxR);
       const br = Math.min(r[2], maxR);
       const bl = Math.min(r[3], maxR);
       const d = `M${x + tl},${y}`
         + `H${x + w - tr}`
-        + `Q${x + w},${y},${x + w},${y + tr}`
+        + `A${tr},${tr},0,0,1,${x + w},${y + tr}`
         + `V${y + h - br}`
-        + `Q${x + w},${y + h},${x + w - br},${y + h}`
+        + `A${br},${br},0,0,1,${x + w - br},${y + h}`
         + `H${x + bl}`
-        + `Q${x},${y + h},${x},${y + h - bl}`
+        + `A${bl},${bl},0,0,1,${x},${y + h - bl}`
         + `V${y + tl}`
-        + `Q${x},${y},${x + tl},${y}`
+        + `A${tl},${tl},0,0,1,${x + tl},${y}`
         + `Z`;
-      rects.push(`<path d="${d}" fill="${color}"/>`);
+      elements.push(`<path d="${d}" fill="${color}"/>`);
     }
   }
 
@@ -327,8 +293,7 @@ export function exportToSVG(
   }
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${svgW} ${svgH}" width="${svgW}" height="${svgH}">
-<rect width="${svgW}" height="${svgH}" fill="${config.canvasBgColor}"/>
-${rects.join('\n')}
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${svgW} ${svgH}" width="${svgW}" height="${svgH}">
+${elements.join('\n')}
 </svg>`;
 }

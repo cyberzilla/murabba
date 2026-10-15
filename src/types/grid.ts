@@ -87,6 +87,8 @@ export interface GridState {
  * Snapshot for undo/redo history stack.
  */
 export interface HistorySnapshot {
+  cols: number;
+  rows: number;
   cells: Uint8Array;
   gapH: Uint8Array;
   gapV: Uint8Array;

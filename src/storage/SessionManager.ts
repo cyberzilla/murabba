@@ -16,22 +16,6 @@ export const IDB_BG_KEY = '__kufi_bgimg__';
 
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
-/**
- * Converts a Map or Record of colors to a plain Record<number, string>
- */
-function serializeColorMap(
-  colors: Map<number, string> | Record<number, string> | undefined
-): Record<number, string> {
-  if (!colors) return {};
-  if (colors instanceof Map) {
-    const obj: Record<number, string> = {};
-    for (const [key, val] of colors.entries()) {
-      obj[key] = val;
-    }
-    return obj;
-  }
-  return { ...colors };
-}
 
 /**
  * Converts a Map<number, string> to a Record<string, string> for JSON serialization.
@@ -44,13 +28,6 @@ function mapToRecord(map: Map<number, string>): Record<string, string> {
   return result;
 }
 
-/**
- * Converts Uint8Array or number array to number[]
- */
-function serializeArray(arr: Uint8Array | number[] | undefined, defaultLength = 0): number[] {
-  if (!arr) return new Array(defaultLength).fill(0);
-  return Array.from(arr);
-}
 
 /**
  * Saves current grid model, config, background, and drawing state to localStorage.
@@ -75,7 +52,8 @@ export function saveSession(
     rotate: 0,
     crop: { x: 0, y: 0, w: 1, h: 1 },
   },
-  drawColor = '#22C55E'
+  drawColor = '#22C55E',
+  bgImg: string | null = null
 ): void {
   if (typeof localStorage === 'undefined') return;
 
@@ -109,6 +87,7 @@ export function saveSession(
         crop: bgProps.crop ? { ...bgProps.crop } : { x: 0, y: 0, w: 1, h: 1 },
       },
       bgVisible: true,
+      bgImg: bgImg || undefined,
       ts: Date.now(),
     };
 
@@ -217,30 +196,6 @@ export function loadSession(): SessionData | null {
       gapD = new Array((rows - 1) * (cols - 1)).fill(0);
     }
 
-    // Convert colors: if key is "x,y", map to flat index
-    const parseColorMap = (
-      rawColors: Record<string | number, string> | undefined,
-      width: number
-    ): Record<number, string> => {
-      const result: Record<number, string> = {};
-      if (!rawColors) return result;
-      for (const [key, color] of Object.entries(rawColors)) {
-        if (typeof key === 'string' && key.includes(',')) {
-          const [xStr, yStr] = key.split(',');
-          const x = Number(xStr);
-          const y = Number(yStr);
-          result[y * width + x] = color;
-        } else {
-          result[Number(key)] = color;
-        }
-      }
-      return result;
-    };
-
-    const cellColors = parseColorMap(parsed.cellColors, cols);
-    const gapHColors = parseColorMap(parsed.gapHColors, cols);
-    const gapVColors = parseColorMap(parsed.gapVColors, cols - 1);
-    const gapDColors = parseColorMap(parsed.gapDColors, cols - 1);
 
     const bgProps: BgProps = {
       x: parsed.bgProps?.x ?? 0,
@@ -278,6 +233,7 @@ export function loadSession(): SessionData | null {
       config: parsed.config,
       bgProps,
       bgVisible: parsed.bgVisible !== undefined ? parsed.bgVisible : true,
+      bgImg: parsed.bgImg || undefined,
       ts: Number(parsed.ts) || Date.now(),
     };
 

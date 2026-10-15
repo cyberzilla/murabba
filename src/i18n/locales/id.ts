@@ -110,8 +110,7 @@ export const id: Record<string, string> = {
   'tools.quickColors': 'Warna Cepat',
   'tools.addColor': 'Tambah warna baru',
   'tools.export': 'Ekspor',
-  'tools.exportCleanPNG': 'Ekspor PNG Bersih',
-  'tools.exportWithBg': 'Ekspor dengan Latar',
+  'tools.exportPNG': 'Ekspor PNG',
   'tools.exportSVG': 'Ekspor SVG',
   'tools.exportWebP': 'Ekspor WebP',
   'tools.addBgImage': 'Tambahkan gambar sebagai latar',
@@ -195,6 +194,7 @@ export const id: Record<string, string> = {
   'modal.cancel': 'Batal',
 
   /* ── JS Dynamic Strings & Confirmations ── */
+  'confirm.newProject': 'Mulai proyek baru? Pekerjaan saat ini akan hilang.',
   'confirm.clearAll': 'Hapus semua konten?',
   'confirm.fullReset': 'Reset penuh? Semua data dan pengaturan akan dihapus.',
   'confirm.resizeGrid': 'Mengubah ukuran akan menghapus konten?',
@@ -249,6 +249,13 @@ export const id: Record<string, string> = {
   /* ── Background ── */
   'bg.hide': 'Sembunyikan',
   'bg.show': 'Tampilkan',
+  'bg.rotation': 'Rotasi',
+  'bg.remove': '✕ Hapus',
+
+  /* ── Mode Kuas ── */
+  'brush.line': 'Garis',
+  'brush.connect': 'Sambung',
+  'brush.bold': 'Tebal',
 
   /* ── Crop Editor ── */
   'crop.title': '✂️ Pilih bagian yang ingin ditampilkan',

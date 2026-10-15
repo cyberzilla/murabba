@@ -110,8 +110,7 @@ export const ar: Record<string, string> = {
   'tools.quickColors': 'ألوان سريعة',
   'tools.addColor': 'إضافة لون جديد',
   'tools.export': 'تصدير',
-  'tools.exportCleanPNG': 'تصدير PNG نظيف',
-  'tools.exportWithBg': 'تصدير مع خلفية',
+  'tools.exportPNG': 'تصدير PNG',
   'tools.exportSVG': 'تصدير SVG',
   'tools.exportWebP': 'تصدير WebP',
   'tools.addBgImage': 'اضافة صورة كخلفية رسم',
@@ -195,6 +194,7 @@ export const ar: Record<string, string> = {
   'modal.cancel': 'إلغاء',
 
   /* ── JS Dynamic Strings & Confirmations (رسائل الجافاسكريبت التفاعلية) ── */
+  'confirm.newProject': 'بدء مشروع جديد؟ سيتم فقدان عملك الحالي.',
   'confirm.clearAll': 'مسح كل المحتوى؟',
   'confirm.fullReset': 'إعادة تهيئة شاملة؟ سيتم مسح كل البيانات والإعدادات.',
   'confirm.resizeGrid': 'تغيير الحجم سيمسح المحتوى؟',
@@ -249,6 +249,13 @@ export const ar: Record<string, string> = {
   /* ── Background (الخلفية) ── */
   'bg.hide': 'إخفاء',
   'bg.show': 'إظهار',
+  'bg.rotation': 'التدوير',
+  'bg.remove': '✕ إزالة',
+
+  /* ── أوضاع الفرشاة ── */
+  'brush.line': 'خط',
+  'brush.connect': 'ربط',
+  'brush.bold': 'عريض',
 
   /* ── Crop Editor (محرر القص) ── */
   'crop.title': '✂️ حدد الجزء الذي تريد إظهاره',

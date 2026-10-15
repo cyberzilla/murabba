@@ -2,7 +2,7 @@
  * Murabba - Mathematical and Color Utilities
  */
 
-import { RGBColor, RGBAColor } from '../types/grid';
+import { RGBColor } from '../types/grid';
 
 /**
  * Clamps a numerical value between a minimum and maximum bound.
@@ -69,6 +69,10 @@ export function hexToRgb(hex: string): RGBColor | null {
   }
 
   if (cleanHex.length !== 6) {
+    return null;
+  }
+
+  if (!/^[0-9A-Fa-f]{6}$/.test(cleanHex)) {
     return null;
   }
 

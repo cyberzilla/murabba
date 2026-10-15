@@ -12,21 +12,22 @@ A free, open-source browser tool for designing Square Kufic (الخط الكوف
 
 ## Features
 
-- 🎨 **Canvas-based editor** — HTML5 Canvas 2D rendering for smooth performance
+- 🎨 **Canvas-based editor** — HTML5 Canvas 2D rendering with viewport frustum culling
 - 📐 **Customizable grid** — cell size, gap size, corner radius, axis guides
 - ✍️ **Multiple drawing tools** — Draw, Fill, Brush (3 modes), Select, Pan
-- 🔤 **Letter library** — save and reuse letter/glyph designs
-- 🖼️ **Reference image** — overlay any image for tracing
-- 📦 **Multi-format export** — PNG, SVG (vector), and WebP
-- 💾 **Save & Load** — JSON project files with auto-save
-- 🔄 **Undo / Redo** — up to 60 history states
-- 🌍 **Multilingual** — English, العربية, Indonesia
-- 📱 **Responsive** — works on desktop and mobile
-- 🎨 **Dark theme** — modern dark UI with customizable color palette
+- ✂️ **Selection tool** — marquee select, drag-to-move content, shift+drag to reposition frame, right-click to stamp, arrow keys to nudge
+- 🔤 **Letter library** — letters appear as floating preview for positioning before commit
+- 🖼️ **Reference image** — overlay any image for tracing with rotation, crop, opacity, blend modes
+- 📦 **Smart export** — PNG (transparent when no background), SVG (with embedded background image), WebP — auto-includes background when present
+- 💾 **Save & Load** — JSON project files with auto-save and session restore on refresh
+- 🔄 **Undo / Redo** — up to 60 history states, synced toolbar & keyboard shortcuts
+- 🌍 **Multilingual** — English, العربية, Indonesia — no flash on page load
+- 🏠 **Welcome screen** — new project, open file, continue last session — with state persistence
+- 🎨 **Dark theme** — modern dark UI with customizable color palette and quick swatches
 
 ## Tech Stack
 
-- **TypeScript** — fully typed codebase
+- **TypeScript** — fully typed codebase, zero errors
 - **Vite** — fast build and HMR development
 - **HTML5 Canvas 2D** — hardware-accelerated rendering
 - **IndexedDB + localStorage** — persistent storage
@@ -67,8 +68,28 @@ Output will be in the `dist/` directory.
 3. Select a drawing tool (Draw, Fill, Brush, Select, Pan)
 4. Pick a color from the **palette**
 5. Draw by clicking/dragging on the canvas
-6. Add letters from the **Letters** panel
-7. Export your work as **PNG**, **SVG**, or **WebP**
+6. Add letters from the **Letters** panel — they appear as a floating preview you can position before committing
+7. Use **Select** tool to move content: drag inside selection to cut & move, Shift+drag to reposition frame only
+8. Export your work as **PNG**, **SVG**, or **WebP** — background is automatically included when present
+9. Click the **✦ Murabba** logo to return to the welcome screen
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `B` | Draw tool |
+| `E` | Erase tool |
+| `F` | Fill tool |
+| `W` | Brush tool |
+| `S` | Select tool |
+| `H` | Pan tool |
+| `Ctrl+Z` | Undo |
+| `Ctrl+Y` | Redo |
+| `Ctrl+S` | Export PNG |
+| `Arrow keys` | Nudge selection |
+| `Enter` | Commit/stamp selection |
+| `Escape` | Cancel selection |
+| `Delete` | Erase selection content |
 
 ## Project Structure
 

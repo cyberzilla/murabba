@@ -7,6 +7,7 @@
 import { BaseTool, type ToolContext } from './BaseTool';
 import { CoordinateMapper } from '../core/CoordinateMapper';
 import type { HitResult, ToolType } from '../types/grid';
+import { bresenhamLine } from '../utils/bresenham';
 
 /**
  * Operating mode for the DrawTool: either drawing with the active color or erasing.
@@ -21,6 +22,7 @@ export class DrawTool extends BaseTool {
   private _isDrawing: boolean = false;
   private _lastAppliedKey: string | null = null;
   private _hasSavedHistoryForStroke: boolean = false;
+  private _lastCell: { x: number; y: number } | null = null;
 
   /**
    * Initializes a new DrawTool instance.
@@ -57,18 +59,23 @@ export class DrawTool extends BaseTool {
     this._isDrawing = true;
     this._lastAppliedKey = null;
     this._hasSavedHistoryForStroke = false;
+    this._lastCell = null;
 
     const hit = CoordinateMapper.hitTest(x, y, ctx.config, ctx.model);
     if (hit) {
       this.ensureHistorySaved(ctx);
       this.applyHit(hit, ctx);
       this._lastAppliedKey = `${hit.type}:${hit.x},${hit.y}`;
+      if (hit.type === 'cell') {
+        this._lastCell = { x: hit.x, y: hit.y };
+      }
       ctx.requestRender();
     }
   }
 
   /**
    * Handles pointer movement to continue drawing along a dragged path.
+   * Interpolates cells using Bresenham line algorithm to prevent skipped cells on fast drag.
    *
    * @param x Screen X position
    * @param y Screen Y position
@@ -84,12 +91,36 @@ export class DrawTool extends BaseTool {
       return;
     }
 
-    const key = `${hit.type}:${hit.x},${hit.y}`;
-    if (key !== this._lastAppliedKey) {
-      this.ensureHistorySaved(ctx);
-      this.applyHit(hit, ctx);
-      this._lastAppliedKey = key;
-      ctx.requestRender();
+    if (hit.type === 'cell') {
+      if (this._lastCell && (this._lastCell.x !== hit.x || this._lastCell.y !== hit.y)) {
+        this.ensureHistorySaved(ctx);
+        const points = bresenhamLine(this._lastCell.x, this._lastCell.y, hit.x, hit.y);
+        for (const pt of points) {
+          if (ctx.model.isCellInBounds(pt.x, pt.y)) {
+            this.applyHit({ type: 'cell', x: pt.x, y: pt.y }, ctx);
+          }
+        }
+        this._lastCell = { x: hit.x, y: hit.y };
+        this._lastAppliedKey = `cell:${hit.x},${hit.y}`;
+        ctx.requestRender();
+      } else if (!this._lastCell) {
+        const key = `cell:${hit.x},${hit.y}`;
+        if (key !== this._lastAppliedKey) {
+          this.ensureHistorySaved(ctx);
+          this.applyHit(hit, ctx);
+          this._lastAppliedKey = key;
+          this._lastCell = { x: hit.x, y: hit.y };
+          ctx.requestRender();
+        }
+      }
+    } else {
+      const key = `${hit.type}:${hit.x},${hit.y}`;
+      if (key !== this._lastAppliedKey) {
+        this.ensureHistorySaved(ctx);
+        this.applyHit(hit, ctx);
+        this._lastAppliedKey = key;
+        ctx.requestRender();
+      }
     }
   }
 
@@ -98,10 +129,11 @@ export class DrawTool extends BaseTool {
    *
    * @param ctx Tool execution context
    */
-  public onPointerUp(ctx: ToolContext): void {
+  public onPointerUp(_ctx: ToolContext): void {
     this._isDrawing = false;
     this._lastAppliedKey = null;
     this._hasSavedHistoryForStroke = false;
+    this._lastCell = null;
   }
 
   /**
@@ -109,10 +141,11 @@ export class DrawTool extends BaseTool {
    *
    * @param ctx Tool execution context
    */
-  public onDeactivate(ctx: ToolContext): void {
+  public onDeactivate(_ctx: ToolContext): void {
     this._isDrawing = false;
     this._lastAppliedKey = null;
     this._hasSavedHistoryForStroke = false;
+    this._lastCell = null;
   }
 
   /**
@@ -141,7 +174,6 @@ export class DrawTool extends BaseTool {
   private applyHit(hit: HitResult, ctx: ToolContext): void {
     const isErase = this.mode === 'erase';
     const color = isErase ? undefined : ctx.config.drawColor;
-    const value = isErase ? 0 : 1;
 
     switch (hit.type) {
       case 'cell': {

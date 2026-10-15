@@ -35,6 +35,7 @@ export class CanvasRenderer {
   private dirty = true;
   private rafId: number | null = null;
   private dpr = 1;
+  private cachedRect: DOMRect | null = null;
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -44,6 +45,14 @@ export class CanvasRenderer {
     this.ctx = this.canvas.getContext('2d')!;
     this.dpr = Math.min(window.devicePixelRatio || 1, 2);
     this.resize();
+
+    // Update cached rect on resize/scroll
+    window.addEventListener('resize', () => this.updateCachedRect());
+    window.addEventListener('scroll', () => this.updateCachedRect());
+  }
+
+  private updateCachedRect(): void {
+    this.cachedRect = this.canvas.getBoundingClientRect();
   }
 
   /** Get the underlying canvas element. */
@@ -59,17 +68,19 @@ export class CanvasRenderer {
     this.canvas.height = rect.height * this.dpr;
     this.canvas.style.width = rect.width + 'px';
     this.canvas.style.height = rect.height + 'px';
+    this.updateCachedRect();
     this.dirty = true;
   }
 
   /** Mark as needing a re-render. */
   markDirty(): void {
     this.dirty = true;
+    this._scheduleFrame();
   }
 
   /** Convert client coordinates to canvas-relative pixel coordinates. */
   screenToCanvas(clientX: number, clientY: number, _config: RenderConfig): { x: number; y: number } {
-    const rect = this.canvas.getBoundingClientRect();
+    const rect = this.cachedRect || this.canvas.getBoundingClientRect();
     const canvasX = clientX - rect.left;
     const canvasY = clientY - rect.top;
     return { x: canvasX, y: canvasY };
@@ -92,13 +103,21 @@ export class CanvasRenderer {
     ctx.translate(config.panX, config.panY);
     ctx.scale(config.zoom, config.zoom);
 
+    const hasBgImage = !!(overlay.bgVisible && overlay.bgImage && overlay.bgProps);
+
     // 2. Background image
-    if (overlay.bgVisible && overlay.bgImage && overlay.bgProps) {
-      renderBackground(ctx, overlay.bgImage, overlay.bgProps, config);
+    if (hasBgImage) {
+      renderBackground(ctx, overlay.bgImage!, overlay.bgProps!, config);
     }
 
-    // 3. Empty cells (subtle grid pattern)
+    // 3. Empty cells (reduce opacity when background is active so image is visible)
+    if (hasBgImage) {
+      ctx.globalAlpha = 0.3;
+    }
     renderEmptyCells(ctx, model, config);
+    if (hasBgImage) {
+      ctx.globalAlpha = 1;
+    }
 
     // 4. Axis guide lines
     if (config.showAxis) {
@@ -141,19 +160,22 @@ export class CanvasRenderer {
     this.dirty = false;
   }
 
+  // Saved references for on-demand RAF loop
+  private _getModel: (() => GridModel) | null = null;
+  private _config: RenderConfig | null = null;
+  private _getOverlay: (() => OverlayState) | null = null;
+
   /** Start a continuous render loop (returns cancel function). */
   startLoop(
     getModel: () => GridModel,
     config: RenderConfig,
     getOverlay: () => OverlayState
   ): () => void {
-    const loop = () => {
-      if (this.dirty) {
-        this.render(getModel(), config, getOverlay());
-      }
-      this.rafId = requestAnimationFrame(loop);
-    };
-    this.rafId = requestAnimationFrame(loop);
+    this._getModel = getModel;
+    this._config = config;
+    this._getOverlay = getOverlay;
+
+    this._scheduleFrame();
 
     return () => {
       if (this.rafId !== null) {
@@ -163,10 +185,38 @@ export class CanvasRenderer {
     };
   }
 
+  /** Schedule a single RAF frame; the callback decides whether to continue. */
+  private _scheduleFrame(): void {
+    if (this.rafId !== null) return; // already scheduled
+    this.rafId = requestAnimationFrame(() => this._tick());
+  }
+
+  /** One tick of the render loop. */
+  private _tick(): void {
+    this.rafId = null;
+
+    if (!this._getModel || !this._config || !this._getOverlay) return;
+
+    const overlay = this._getOverlay();
+    const hasActiveSelection = !!(overlay.selectionFrame || overlay.selectionGhost);
+
+    if (this.dirty || hasActiveSelection) {
+      this.render(this._getModel(), this._config, overlay);
+    }
+
+    // Keep looping only if there's an active marching-ants selection
+    if (hasActiveSelection) {
+      this.rafId = requestAnimationFrame(() => this._tick());
+    }
+    // Otherwise, stop — requestRender()/markDirty() will restart
+  }
+
   /** Request a single re-render on next animation frame. */
   requestRender(): void {
     this.dirty = true;
+    this._scheduleFrame();
   }
+
 
   /** Clean up. */
   destroy(): void {
@@ -176,3 +226,4 @@ export class CanvasRenderer {
     this.canvas.remove();
   }
 }
+

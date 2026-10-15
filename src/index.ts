@@ -2,24 +2,27 @@
  * Murabba — Entry Point
  */
 import { App } from './ui/App';
-import { initI18n, setLang, getLang, updateDOM, t } from './i18n/I18n';
+import { initI18n, setLang, getLang, t } from './i18n/I18n';
 import type { SupportedLang } from './types';
 import { initConfirmModal, confirmDialog } from './ui/ConfirmModal';
 import { loadSession } from './storage/SessionManager';
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Disable right-click context menu
-  document.addEventListener('contextmenu', (e) => e.preventDefault());
+  // Disable right-click context menu on canvas only
+  const canvasArea = document.getElementById('canvasArea');
+  if (canvasArea) {
+    canvasArea.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
 
-  // Migrate: clear old session with stale orange color
+  // Migrate: update old orange color instead of deleting session
   try {
     const raw = localStorage.getItem('kufi_session_v2');
     if (raw) {
       const sess = JSON.parse(raw);
       if (sess.drawColor === '#F5A623') {
-        localStorage.removeItem('kufi_session_v2');
-        localStorage.removeItem('kufi_settings_v2');
-        console.log('[Murabba] Cleared stale v1 session (old color scheme)');
+        sess.drawColor = '#22C55E';
+        localStorage.setItem('kufi_session_v2', JSON.stringify(sess));
+        console.log('[Murabba] Migrated v1 session color scheme');
       }
     }
   } catch { /* ignore */ }
@@ -51,6 +54,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   app.init().then(() => {
     wireLetterPanel(app);
+    // Sync color UI with loaded settings (drawColor from localStorage)
+    syncColorUI(app);
   }).catch(console.error);
 
   // Language switcher
@@ -92,8 +97,7 @@ function wireBrushModes(app: App): void {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const mode = Number(btn.dataset.brushMode) as 1 | 2 | 3;
-      const brushTool = (app as any).tools.get('brush') as any;
-      if (brushTool) brushTool.mode = mode;
+      app.setBrushMode(mode);
       // Update flyout active state
       document.querySelectorAll('[data-brush-mode]').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
@@ -107,14 +111,23 @@ function wireActionButtons(app: App): void {
   document.getElementById('btnUndo')?.addEventListener('click', () => app.undo());
   document.getElementById('btnRedo')?.addEventListener('click', () => app.redo());
   document.getElementById('btnClear')?.addEventListener('click', async () => {
-    const ok = await confirmDialog('Clear the entire canvas?');
+    const ok = await confirmDialog(t('confirm.clearAll'));
     if (ok) app.clearGrid();
   });
-  document.getElementById('btnExport')?.addEventListener('click', () => app.exportPNG(true));
-  document.getElementById('exportPNG')?.addEventListener('click', () => app.exportPNG(false));
-  document.getElementById('exportWithBg')?.addEventListener('click', () => app.exportPNG(true));
+  document.getElementById('btnExport')?.addEventListener('click', () => app.exportPNG());
+  document.getElementById('exportPNG')?.addEventListener('click', () => app.exportPNG());
   document.getElementById('exportSVG')?.addEventListener('click', () => app.exportSVG());
-  document.getElementById('exportWebP')?.addEventListener('click', () => app.exportWebP(false));
+  document.getElementById('exportWebP')?.addEventListener('click', () => app.exportWebP());
+
+  // Home button (logo) — return to welcome screen
+  document.getElementById('btnHome')?.addEventListener('click', () => {
+    try { localStorage.removeItem('kufi_in_editor'); } catch { /* ok */ }
+    document.documentElement.classList.remove('restore-editor');
+    const screen = document.getElementById('welcomeScreen');
+    const editor = document.getElementById('editor');
+    if (screen) screen.classList.remove('hidden');
+    if (editor) editor.style.display = 'none';
+  });
 
   // Sidebar panel toggle
   const panelToggle = document.getElementById('tbPanelToggle');
@@ -126,6 +139,28 @@ function wireActionButtons(app: App): void {
       panelToggle.classList.toggle('active', isHidden);
     });
   }
+
+  // Mobile panel drawer toggle
+  const mobileToggle = document.getElementById('mobilePanelToggle');
+  const mobileOverlay = document.getElementById('mobilePanelOverlay');
+  if (mobileToggle && rightPanel) {
+    const closeDrawer = () => {
+      rightPanel.classList.remove('open');
+      mobileOverlay?.classList.remove('visible');
+    };
+    const openDrawer = () => {
+      rightPanel.classList.add('open');
+      mobileOverlay?.classList.add('visible');
+    };
+    mobileToggle.addEventListener('click', () => {
+      if (rightPanel.classList.contains('open')) {
+        closeDrawer();
+      } else {
+        openDrawer();
+      }
+    });
+    mobileOverlay?.addEventListener('click', closeDrawer);
+  }
 }
 
 function wireGridControls(app: App): void {
@@ -135,7 +170,7 @@ function wireGridControls(app: App): void {
   const applyGridSize = () => {
     const cols = parseInt(colsInput?.value || '24');
     const rows = parseInt(rowsInput?.value || '24');
-    app.initGrid(cols, rows);
+    app.resizeGrid(cols, rows);
   };
 
   colsInput?.addEventListener('change', applyGridSize);
@@ -177,17 +212,61 @@ function wireGridControls(app: App): void {
 
 function wireColorControls(app: App): void {
   const fillColor = document.getElementById('fillColor') as HTMLInputElement | null;
-  fillColor?.addEventListener('input', () => app.setDrawColor(fillColor.value));
+  fillColor?.addEventListener('input', () => {
+    app.setDrawColor(fillColor.value);
+    // Sync swatch highlight when color picker changes
+    const picked = fillColor.value.toUpperCase();
+    document.querySelectorAll<HTMLElement>('.swatch').forEach(s => {
+      if (s.dataset.color?.toUpperCase() === picked) {
+        s.classList.add('selected');
+      } else {
+        s.classList.remove('selected');
+      }
+    });
+  });
 
   // Swatches
   document.querySelectorAll<HTMLElement>('.swatch').forEach(s => {
     s.addEventListener('click', () => {
       const color = s.dataset.color;
-      if (color) app.setDrawColor(color);
+      if (color) {
+        app.setDrawColor(color);
+        // Sync toolbar color picker
+        if (fillColor) fillColor.value = color;
+      }
       document.querySelectorAll('.swatch').forEach(el => el.classList.remove('selected'));
       s.classList.add('selected');
     });
   });
+}
+
+/**
+ * Syncs the color picker (#fillColor) and quick-color swatches with
+ * the current app.config.drawColor. Call after restoring a session,
+ * loading a project, or any programmatic color change.
+ */
+function syncColorUI(app: App): void {
+  const color = app.getDrawColor();
+
+  // 1. Toolbar color picker
+  const fillColor = document.getElementById('fillColor') as HTMLInputElement | null;
+  if (fillColor) fillColor.value = color;
+
+  // 2. Quick-color swatches: highlight matching swatch
+  const swatches = document.querySelectorAll<HTMLElement>('.swatch');
+  let found = false;
+  swatches.forEach(s => {
+    if (s.dataset.color?.toUpperCase() === color.toUpperCase()) {
+      s.classList.add('selected');
+      found = true;
+    } else {
+      s.classList.remove('selected');
+    }
+  });
+  // If no swatch matches (custom color), clear all selections
+  if (!found) {
+    swatches.forEach(s => s.classList.remove('selected'));
+  }
 }
 
 function wireZoomControls(app: App): void {
@@ -210,6 +289,8 @@ function wireFileIO(app: App): void {
     const reader = new FileReader();
     reader.onload = (ev) => {
       app.loadJSON(ev.target?.result as string);
+      // Sync color picker & swatches with loaded project color
+      syncColorUI(app);
     };
     reader.readAsText(file);
     (e.target as HTMLInputElement).value = '';
@@ -303,16 +384,33 @@ function wireBgControls(app: App): void {
 function wireWelcomeScreen(app: App): void {
   const screen = document.getElementById('welcomeScreen');
   const editor = document.getElementById('editor');
+  const PAGE_STATE_KEY = 'kufi_in_editor';
 
   const enter = () => {
     screen?.classList.add('hidden');
     if (editor) editor.style.display = 'flex';
+    try { localStorage.setItem(PAGE_STATE_KEY, '1'); } catch { /* ok */ }
     app.requestRender();
   };
 
   // Check saved session
   const sessionData = loadSession();
   const wlContinue = document.getElementById('wlContinue');
+
+  // Auto-restore: if user was previously in editor and session exists, skip welcome
+  let wasInEditor = false;
+  try { wasInEditor = localStorage.getItem(PAGE_STATE_KEY) === '1'; } catch { /* ok */ }
+  if (wasInEditor && sessionData) {
+    app.restoreSession(sessionData);
+    const colsInput = document.getElementById('gridCols') as HTMLInputElement | null;
+    const rowsInput = document.getElementById('gridRows') as HTMLInputElement | null;
+    if (colsInput) colsInput.value = String(sessionData.cols);
+    if (rowsInput) rowsInput.value = String(sessionData.rows);
+    syncColorUI(app);
+    enter();
+    return; // skip welcome screen setup
+  }
+
   if (sessionData && wlContinue) {
     wlContinue.style.display = 'flex';
     const timeEl = document.getElementById('wlContinueTime');
@@ -338,11 +436,18 @@ function wireWelcomeScreen(app: App): void {
       const rowsInput = document.getElementById('gridRows') as HTMLInputElement | null;
       if (colsInput) colsInput.value = String(sessionData.cols);
       if (rowsInput) rowsInput.value = String(sessionData.rows);
+      // Sync color picker & swatches with restored session color
+      syncColorUI(app);
       enter();
     });
   }
 
-  document.getElementById('wlNew')?.addEventListener('click', () => {
+  document.getElementById('wlNew')?.addEventListener('click', async () => {
+    // Warn if there's an existing session that will be overwritten
+    if (sessionData) {
+      const ok = await confirmDialog(t('confirm.newProject'));
+      if (!ok) return;
+    }
     app.initGrid(24, 24);
     enter();
   });
@@ -411,12 +516,5 @@ function wireLangSwitcher(): void {
     const idx = langs.indexOf(current);
     const next = langs[(idx + 1) % langs.length];
     setLang(next);
-  });
-
-  document.querySelectorAll<HTMLElement>('[data-wl-lang]').forEach((wlBtn) => {
-    wlBtn.addEventListener('click', () => {
-      const l = wlBtn.getAttribute('data-wl-lang') as SupportedLang;
-      if (l) setLang(l);
-    });
   });
 }

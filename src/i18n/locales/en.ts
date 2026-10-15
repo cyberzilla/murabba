@@ -110,8 +110,7 @@ export const en: Record<string, string> = {
   'tools.quickColors': 'Quick Colors',
   'tools.addColor': 'Add new color',
   'tools.export': 'Export',
-  'tools.exportCleanPNG': 'Export Clean PNG',
-  'tools.exportWithBg': 'Export with Background',
+  'tools.exportPNG': 'Export PNG',
   'tools.exportSVG': 'Export SVG',
   'tools.exportWebP': 'Export WebP',
   'tools.addBgImage': 'Add image as drawing background',
@@ -195,6 +194,7 @@ export const en: Record<string, string> = {
   'modal.cancel': 'Cancel',
 
   /* ── JS Dynamic Strings & Confirmations ── */
+  'confirm.newProject': 'Start a new project? Your current work will be lost.',
   'confirm.clearAll': 'Clear all content?',
   'confirm.fullReset': 'Full reset? All data and settings will be deleted.',
   'confirm.resizeGrid': 'Resizing will clear content?',
@@ -249,6 +249,13 @@ export const en: Record<string, string> = {
   /* ── Background ── */
   'bg.hide': 'Hide',
   'bg.show': 'Show',
+  'bg.rotation': 'Rotation',
+  'bg.remove': '✕ Remove',
+
+  /* ── Brush Modes ── */
+  'brush.line': 'Line',
+  'brush.connect': 'Connect',
+  'brush.bold': 'Bold',
 
   /* ── Crop Editor ── */
   'crop.title': '✂️ Select the part to show',

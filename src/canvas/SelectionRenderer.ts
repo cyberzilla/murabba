@@ -2,6 +2,7 @@
  * SelectionRenderer — Draw selection overlays, ghost previews, and brush previews.
  */
 import type { RenderConfig, SelectionData, CellCoord, GapCoord } from '../types/grid';
+import { drawRoundedRect } from './GridRenderer';
 
 /**
  * Draws a dashed marquee selection frame.
@@ -63,7 +64,11 @@ export function renderSelectionFrame(
   const badgeX = left + width / 2 - textW / 2;
   const badgeY = top + height + 6;
   ctx.beginPath();
-  ctx.roundRect(badgeX, badgeY, textW, 20, 4);
+  if (ctx.roundRect) {
+    ctx.roundRect(badgeX, badgeY, textW, 20, 4);
+  } else {
+    ctx.rect(badgeX, badgeY, textW, 20);
+  }
   ctx.fill();
   ctx.fillStyle = '#fff';
   ctx.textAlign = 'center';
@@ -89,12 +94,15 @@ export function renderSelectionGhost(
   ctx.save();
   ctx.globalAlpha = 0.55;
 
-  // Draw cells
+  // Draw cells with rounded corners matching the grid appearance
+  const r = Math.min(config.cellRadius, Math.floor(cs / 2));
+  const cellRadii: [number, number, number, number] = [r, r, r, r];
   for (const { lx, ly, c } of data.cells) {
     const x = pad + (data.ox + lx) * total;
     const y = pad + (data.oy + ly) * total;
     ctx.fillStyle = c || config.drawColor;
-    ctx.fillRect(x, y, cs, cs);
+    drawRoundedRect(ctx, x, y, cs, cs, cellRadii);
+    ctx.fill();
   }
 
   // Draw gap-H

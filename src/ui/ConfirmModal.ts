@@ -9,34 +9,47 @@ export function initConfirmModal(): void {
   const okBtn = document.getElementById('modalOk');
   const cancelBtn = document.getElementById('modalCancel');
 
-  okBtn?.addEventListener('click', () => {
+  const closeModal = (value: boolean) => {
     modal?.classList.remove('visible');
-    resolvePromise?.(true);
-    resolvePromise = null;
-  });
+    if (resolvePromise) {
+      resolvePromise(value);
+      resolvePromise = null;
+    }
+  };
 
-  cancelBtn?.addEventListener('click', () => {
-    modal?.classList.remove('visible');
-    resolvePromise?.(false);
-    resolvePromise = null;
-  });
+  okBtn?.addEventListener('click', () => closeModal(true));
+  cancelBtn?.addEventListener('click', () => closeModal(false));
 
   // Close on backdrop click
   modal?.addEventListener('click', (e) => {
     if (e.target === modal) {
-      modal.classList.remove('visible');
-      resolvePromise?.(false);
-      resolvePromise = null;
+      closeModal(false);
+    }
+  });
+
+  // Close on Escape key
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && resolvePromise && modal?.classList.contains('visible')) {
+      e.preventDefault();
+      closeModal(false);
     }
   });
 }
 
 export function confirmDialog(message: string): Promise<boolean> {
   return new Promise((resolve) => {
+    // Resolve any pending promise before creating new one
+    if (resolvePromise) {
+      resolvePromise(false);
+    }
     resolvePromise = resolve;
     const modal = document.getElementById('confirmModal');
     const msg = document.getElementById('modalMsg');
     if (msg) msg.textContent = message;
     modal?.classList.add('visible');
+
+    // Focus the OK button for keyboard accessibility
+    const okBtn = document.getElementById('modalOk');
+    okBtn?.focus();
   });
 }

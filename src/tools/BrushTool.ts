@@ -81,38 +81,138 @@ function fillSingleGap(model: GridModel, gap: GapCoord, color: string): void {
 }
 
 /**
- * Compute all gap coords forming a straight line between two same-type gaps.
- * gapV: same gx, iterate gy. gapH: same gy, iterate gx. gapD: same row or col.
+ * Compute all gap coords forming a line between two gaps.
+ * Fast-path for same row/col; general case uses a greedy walk on the
+ * gap adjacency graph for arbitrary angles (diagonal, cross-type, etc.).
  */
 function computeGapLine(from: GapCoord, to: GapCoord): GapCoord[] {
-  if (from.type !== to.type) return [];
-  const result: GapCoord[] = [];
-  const t = from.type;
+  if (from.gx === to.gx && from.gy === to.gy && from.type === to.type) {
+    return [from];
+  }
 
-  if (t === 'v' && from.gx === to.gx) {
-    // Vertical line of gapV — include gapD connectors between consecutive gapV
-    const min = Math.min(from.gy, to.gy), max = Math.max(from.gy, to.gy);
-    for (let y = min; y <= max; y++) {
-      result.push({ gx: from.gx, gy: y, type: 'v' });
-      if (y < max) result.push({ gx: from.gx, gy: y, type: 'd' }); // dot below gapV
-    }
-  } else if (t === 'h' && from.gy === to.gy) {
-    // Horizontal line of gapH — include gapD connectors between consecutive gapH
-    const min = Math.min(from.gx, to.gx), max = Math.max(from.gx, to.gx);
-    for (let x = min; x <= max; x++) {
-      result.push({ gx: x, gy: from.gy, type: 'h' });
-      if (x < max) result.push({ gx: x, gy: from.gy, type: 'd' }); // dot right of gapH
-    }
-  } else if (t === 'd') {
-    if (from.gx === to.gx) {
+  // Fast-path: same type + same axis → straight line
+  if (from.type === to.type) {
+    const t = from.type;
+    if (t === 'v' && from.gx === to.gx) {
+      const result: GapCoord[] = [];
       const min = Math.min(from.gy, to.gy), max = Math.max(from.gy, to.gy);
-      for (let y = min; y <= max; y++) result.push({ gx: from.gx, gy: y, type: 'd' });
-    } else if (from.gy === to.gy) {
+      for (let y = min; y <= max; y++) {
+        result.push({ gx: from.gx, gy: y, type: 'v' });
+        if (y < max) result.push({ gx: from.gx, gy: y, type: 'd' });
+      }
+      return result;
+    } else if (t === 'h' && from.gy === to.gy) {
+      const result: GapCoord[] = [];
       const min = Math.min(from.gx, to.gx), max = Math.max(from.gx, to.gx);
-      for (let x = min; x <= max; x++) result.push({ gx: x, gy: from.gy, type: 'd' });
+      for (let x = min; x <= max; x++) {
+        result.push({ gx: x, gy: from.gy, type: 'h' });
+        if (x < max) result.push({ gx: x, gy: from.gy, type: 'd' });
+      }
+      return result;
+    } else if (t === 'd') {
+      if (from.gx === to.gx) {
+        const result: GapCoord[] = [];
+        const min = Math.min(from.gy, to.gy), max = Math.max(from.gy, to.gy);
+        for (let y = min; y <= max; y++) {
+          result.push({ gx: from.gx, gy: y, type: 'd' });
+          if (y < max) result.push({ gx: from.gx, gy: y + 1, type: 'v' });
+        }
+        return result;
+      } else if (from.gy === to.gy) {
+        const result: GapCoord[] = [];
+        const min = Math.min(from.gx, to.gx), max = Math.max(from.gx, to.gx);
+        for (let x = min; x <= max; x++) {
+          result.push({ gx: x, gy: from.gy, type: 'd' });
+          if (x < max) result.push({ gx: x + 1, gy: from.gy, type: 'h' });
+        }
+        return result;
+      }
     }
   }
+
+  // ── General case: greedy walk on gap adjacency graph ──
+  // The gap graph is bipartite: gapV/gapH ↔ gapD ↔ gapV/gapH.
+  // At each step, we move to the adjacent gap closest (Euclidean²)
+  // to the target. This guarantees a continuous, visually connected path
+  // that naturally produces the gapV→gapD→gapH staircase pattern.
+  const tx = gapHalfX(to), ty = gapHalfY(to);
+  const result: GapCoord[] = [from];
+  let cur = from;
+  const maxSteps = (Math.abs(tx - gapHalfX(from)) + Math.abs(ty - gapHalfY(from)) + 4) * 2;
+
+  for (let s = 0; s < maxSteps; s++) {
+    if (cur.gx === to.gx && cur.gy === to.gy && cur.type === to.type) break;
+
+    const neighbors = gapNeighbors(cur);
+    let best: GapCoord | null = null;
+    let bestDist = Infinity;
+
+    for (const n of neighbors) {
+      const ndx = gapHalfX(n) - tx;
+      const ndy = gapHalfY(n) - ty;
+      const d = ndx * ndx + ndy * ndy;
+      if (d < bestDist) { bestDist = d; best = n; }
+    }
+
+    if (!best) break;
+    cur = best;
+    result.push(cur);
+  }
+
+  // Ensure 'to' is included at end
+  const last = result[result.length - 1];
+  if (last.gx !== to.gx || last.gy !== to.gy || last.type !== to.type) {
+    result.push(to);
+  }
+
   return result;
+}
+
+/** Half-grid X coordinate for a gap */
+function gapHalfX(g: GapCoord): number {
+  return g.type === 'h' ? 2 * g.gx : 2 * g.gx + 1;
+}
+
+/** Half-grid Y coordinate for a gap */
+function gapHalfY(g: GapCoord): number {
+  return g.type === 'v' ? 2 * g.gy : 2 * g.gy + 1;
+}
+
+/** Adjacent gaps on the half-grid (Manhattan distance exactly 1) */
+function gapNeighbors(g: GapCoord): GapCoord[] {
+  switch (g.type) {
+    case 'v':
+      // gapV(x,y) at (2x+1, 2y); neighbors at (2x+1, 2y±1) = gapD
+      return [
+        { gx: g.gx, gy: g.gy, type: 'd' },
+        { gx: g.gx, gy: g.gy - 1, type: 'd' },
+      ];
+    case 'h':
+      // gapH(x,y) at (2x, 2y+1); neighbors at (2x±1, 2y+1) = gapD
+      return [
+        { gx: g.gx, gy: g.gy, type: 'd' },
+        { gx: g.gx - 1, gy: g.gy, type: 'd' },
+      ];
+    case 'd':
+      // gapD(x,y) at (2x+1, 2y+1); neighbors: gapV above/below, gapH left/right
+      return [
+        { gx: g.gx, gy: g.gy, type: 'v' },
+        { gx: g.gx, gy: g.gy + 1, type: 'v' },
+        { gx: g.gx, gy: g.gy, type: 'h' },
+        { gx: g.gx + 1, gy: g.gy, type: 'h' },
+      ];
+  }
+}
+
+/**
+ * Interpolates gaps between two gap coordinates (same row/col or diagonal / cross-type).
+ * Delegates to computeGapLine which handles all cases via greedy gap walk.
+ */
+export function interpolateGapLine(from: GapCoord, to: GapCoord): GapCoord[] {
+  if (from.gx === to.gx && from.gy === to.gy && from.type === to.type) {
+    return [to];
+  }
+  return computeGapLine(from, to);
 }
 
 // ═══════════════════════════════════════════════════════

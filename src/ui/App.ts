@@ -3,7 +3,7 @@
  */
 import { GridModel } from '../core/GridModel';
 import { HistoryManager } from '../core/HistoryManager';
-import { screenToCell, hitTest } from '../core/CoordinateMapper';
+import { screenToCell } from '../core/CoordinateMapper';
 import { CanvasRenderer, OverlayState } from '../canvas/CanvasRenderer';
 import { exportToPNG, exportToWebP, exportToSVG } from '../canvas/ExportRenderer';
 import { BaseTool, ToolContext } from '../tools/BaseTool';
@@ -13,8 +13,8 @@ import { BrushTool } from '../tools/BrushTool';
 import { PanTool } from '../tools/PanTool';
 import { SelectTool } from '../tools/SelectTool';
 import { downloadPNG, downloadJSON, exportProject, importProject } from '../storage/ProjectIO';
-import { saveSession, loadSession, saveSettings, loadSettings } from '../storage/SessionManager';
-import type { ToolType, RenderConfig, BgProps, LetterEntry, SessionData } from '../types/grid';
+import { saveSession, saveSettings, loadSettings } from '../storage/SessionManager';
+import type { ToolType, RenderConfig, BgProps, LetterEntry, SessionData, SelectionData } from '../types/grid';
 
 /** Default render configuration. */
 function defaultConfig(): RenderConfig {
@@ -45,10 +45,11 @@ export class App {
   private currentToolType: ToolType = 'draw';
   private currentTool: BaseTool;
   private tools: Map<ToolType, BaseTool>;
-  private cancelLoop: (() => void) | null = null;
+
 
   // Background
   bgImage: HTMLImageElement | null = null;
+  bgDataUrl: string | null = null;
   bgProps: BgProps = { x: 0, y: 0, w: 0, h: 0, opacity: 0.5, blend: 'normal', rotate: 0, crop: { x: 0, y: 0, w: 1, h: 1 } };
   bgVisible = true;
 
@@ -58,11 +59,17 @@ export class App {
   // Auto-save timer
   private autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // Cached DOM elements
+  private coordsDisplay: HTMLElement | null = null;
+
   constructor(private container: HTMLElement) {
     this.config = defaultConfig();
     this.model = new GridModel(24, 24);
     this.history = new HistoryManager(60);
     this.renderer = new CanvasRenderer(container);
+
+    // Cache DOM elements
+    this.coordsDisplay = document.getElementById('coordsDisplay');
 
     // Create tools
     const drawTool = new DrawTool('draw');
@@ -124,7 +131,7 @@ export class App {
     this.setupResize();
 
     // Start render loop
-    this.cancelLoop = this.renderer.startLoop(
+    this.renderer.startLoop(
       () => this.model,
       this.config,
       () => this.getOverlayState()
@@ -172,6 +179,16 @@ export class App {
     this.requestRender();
   }
 
+  resizeGrid(cols: number, rows: number): void {
+    const c = Math.max(5, Math.min(120, cols));
+    const r = Math.max(5, Math.min(120, rows));
+    if (c === this.model.cols && r === this.model.rows) return;
+    this.history.saveState(this.model);
+    this.model.resize(c, r);
+    this.requestRender();
+    this.scheduleAutoSave();
+  }
+
   clearGrid(): void {
     this.history.saveState(this.model);
     this.model.clear();
@@ -198,6 +215,15 @@ export class App {
   // ─── Undo/Redo ──────────────────────────────────────────
 
   undo(): void {
+    // If select tool is in float phase, undo restores content + selection frame
+    if (this.currentToolType === 'select') {
+      const sel = this.currentTool as SelectTool;
+      if (sel.getPhase() === 'float') {
+        sel.undoFloat(this.getToolContext());
+        this.scheduleAutoSave();
+        return;
+      }
+    }
     this.history.undo(this.model);
     this.requestRender();
     this.scheduleAutoSave();
@@ -211,7 +237,13 @@ export class App {
 
   // ─── Export ─────────────────────────────────────────────
 
-  exportPNG(withBg: boolean): void {
+  /** Whether background should be included in export (auto-detect from bgImage). */
+  private get shouldExportBg(): boolean {
+    return !!(this.bgImage && this.bgVisible);
+  }
+
+  exportPNG(): void {
+    const withBg = this.shouldExportBg;
     const dataUrl = exportToPNG(this.model, this.config, {
       withBackground: withBg,
       bgImage: this.bgImage,
@@ -220,13 +252,13 @@ export class App {
     downloadPNG(dataUrl, `murabba_${Date.now()}.png`);
   }
 
-  exportWebP(withBg: boolean): void {
+  exportWebP(): void {
+    const withBg = this.shouldExportBg;
     const dataUrl = exportToWebP(this.model, this.config, {
       withBackground: withBg,
       bgImage: this.bgImage,
       bgProps: this.bgProps,
     });
-    // Download as WebP
     const anchor = document.createElement('a');
     anchor.href = dataUrl;
     anchor.download = `murabba_${Date.now()}.webp`;
@@ -236,7 +268,12 @@ export class App {
   }
 
   exportSVG(): void {
-    const svgStr = exportToSVG(this.model, this.config);
+    const withBg = this.shouldExportBg;
+    const svgStr = exportToSVG(this.model, this.config, {
+      withBackground: withBg,
+      bgImage: this.bgImage,
+      bgProps: this.bgProps,
+    });
     const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
@@ -302,6 +339,7 @@ export class App {
   // ─── Background ─────────────────────────────────────────
 
   setBgImage(dataUrl: string): void {
+    this.bgDataUrl = dataUrl;
     const img = new Image();
     img.onload = () => {
       this.bgImage = img;
@@ -323,6 +361,7 @@ export class App {
 
   removeBgImage(): void {
     this.bgImage = null;
+    this.bgDataUrl = null;
     this.bgVisible = false;
     this.requestRender();
   }
@@ -333,48 +372,48 @@ export class App {
     const entry = this.letters[ch];
     if (!entry) return;
 
-    this.history.saveState(this.model);
     const { m, gH, gV, gD } = entry;
     const color = this.config.drawColor;
 
-    // Stamp cells
+    // Convert letter matrices to SelectionData format
+    const cells: SelectionData['cells'] = [];
+    const gHData: SelectionData['gH'] = [];
+    const gVData: SelectionData['gV'] = [];
+    const gDData: SelectionData['gD'] = [];
+
+    const rows = m.length;
+    const cols = rows > 0 ? m[0].length : 0;
+
     m.forEach((row, dy) => row.forEach((v, dx) => {
-      const x = sx + dx, y = sy + dy;
-      if (v && x < this.model.cols && y < this.model.rows) {
-        this.model.setCell(x, y, 1);
-        this.model.setCellColor(x, y, color);
-      }
+      if (v) cells.push({ lx: dx, ly: dy, c: color });
     }));
-
-    // Stamp gap-H
     if (gH) gH.forEach((row, dy) => row.forEach((v, dx) => {
-      const x = sx + dx, y = sy + dy;
-      if (v && x < this.model.cols && y < this.model.rows - 1) {
-        this.model.setGapH(x, y, 1);
-        this.model.setGapHColor(x, y, color);
-      }
+      if (v) gHData.push({ lx: dx, ly: dy, c: color });
     }));
-
-    // Stamp gap-V
     if (gV) gV.forEach((row, dy) => row.forEach((v, dx) => {
-      const x = sx + dx, y = sy + dy;
-      if (v && x < this.model.cols - 1 && y < this.model.rows) {
-        this.model.setGapV(x, y, 1);
-        this.model.setGapVColor(x, y, color);
-      }
+      if (v) gVData.push({ lx: dx, ly: dy, c: color });
     }));
-
-    // Stamp gap-D
     if (gD) gD.forEach((row, dy) => row.forEach((v, dx) => {
-      const x = sx + dx, y = sy + dy;
-      if (v && x < this.model.cols - 1 && y < this.model.rows - 1) {
-        this.model.setGapD(x, y, 1);
-        this.model.setGapDColor(x, y, color);
-      }
+      if (v) gDData.push({ lx: dx, ly: dy, c: color });
     }));
 
-    this.requestRender();
-    this.scheduleAutoSave();
+    if (cells.length === 0 && gHData.length === 0 && gVData.length === 0 && gDData.length === 0) return;
+
+    const floatData: SelectionData = {
+      cells,
+      gH: gHData,
+      gV: gVData,
+      gD: gDData,
+      ox: sx,
+      oy: sy,
+      w: cols,
+      h: rows,
+    };
+
+    // Switch to select tool and enter float phase
+    this.setTool('select');
+    const selectTool = this.currentTool as SelectTool;
+    selectTool.startFloat(floatData, this.getToolContext());
   }
 
   // ─── Zoom ───────────────────────────────────────────────
@@ -397,6 +436,25 @@ export class App {
 
   requestRender(): void {
     this.renderer.requestRender();
+  }
+
+  // ─── Public API for external access ─────────────────────
+
+  setBrushMode(mode: 1 | 2 | 3): void {
+    const brush = this.tools.get('brush') as BrushTool;
+    if (brush) brush.mode = mode;
+  }
+
+  resetBrushTool(): void {
+    const brush = this.tools.get('brush') as BrushTool;
+    if (brush) brush.reset();
+    this.requestRender();
+  }
+
+  resetSelectTool(): void {
+    const select = this.tools.get('select') as SelectTool;
+    if (select) select.reset();
+    this.requestRender();
   }
 
   // ─── Private: Tool Context ──────────────────────────────
@@ -465,7 +523,12 @@ export class App {
         if (this.currentToolType === 'brush' && brushTool) {
           brushTool.reset();
         } else if (this.currentToolType === 'select' && selectTool) {
-          selectTool.reset();
+          if (selectTool.getPhase() === 'float') {
+            // Stamp float at current position
+            selectTool.stampFloat(this.getToolContext());
+          } else {
+            selectTool.reset();
+          }
         }
         this.requestRender();
         return;
@@ -473,6 +536,10 @@ export class App {
 
       // Left-click: normal tool action
       const pos = this.renderer.screenToCanvas(e.clientX, e.clientY, this.config);
+      // Pass modifier keys to SelectTool
+      if (this.currentToolType === 'select') {
+        (this.currentTool as SelectTool).shiftKey = e.shiftKey;
+      }
       this.currentTool.onPointerDown(pos.x, pos.y, this.getToolContext());
       canvas.setPointerCapture(e.pointerId);
     });
@@ -483,9 +550,10 @@ export class App {
 
       // Update coordinate display
       const cell = screenToCell(pos.x, pos.y, this.config);
-      const coordEl = document.getElementById('coordsDisplay');
-      if (coordEl && cell) {
-        coordEl.textContent = `X: ${cell.x} — Y: ${cell.y}`;
+      if (this.coordsDisplay && cell) {
+        this.coordsDisplay.textContent = `X: ${cell.x} — Y: ${cell.y}`;
+      } else if (this.coordsDisplay) {
+        this.coordsDisplay.textContent = '';
       }
     });
 
@@ -502,18 +570,9 @@ export class App {
       }
     }, { passive: false });
 
-    // Right-click on canvas: also reset via contextmenu event
+    // Block browser context menu on canvas (right-click handled in pointerdown)
     canvas.addEventListener('contextmenu', (e) => {
       e.preventDefault();
-      const brushTool = this.tools.get('brush') as BrushTool;
-      const selectTool = this.tools.get('select') as SelectTool;
-
-      if (this.currentToolType === 'brush' && brushTool) {
-        brushTool.reset();
-      } else if (this.currentToolType === 'select' && selectTool) {
-        selectTool.reset();
-      }
-      this.requestRender();
     });
   }
 
@@ -521,11 +580,17 @@ export class App {
 
   private setupKeyboard(): void {
     window.addEventListener('keydown', (e) => {
+      // Guard: don't intercept shortcuts when typing in form inputs
+      const target = e.target as HTMLElement;
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement || target.isContentEditable) {
+        return;
+      }
+
       const ctrl = e.ctrlKey || e.metaKey;
 
       if (ctrl && e.key === 'z') { e.preventDefault(); this.undo(); return; }
       if (ctrl && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) { e.preventDefault(); this.redo(); return; }
-      if (ctrl && e.key === 's') { e.preventDefault(); this.exportPNG(true); return; }
+      if (ctrl && e.key === 's') { e.preventDefault(); this.exportPNG(); return; }
 
       if (!ctrl) {
         switch (e.key.toLowerCase()) {
@@ -587,7 +652,7 @@ export class App {
     if (this.autoSaveTimer) clearTimeout(this.autoSaveTimer);
     this.autoSaveTimer = setTimeout(() => {
       try {
-        saveSession(this.model, this.config, this.bgProps, this.config.drawColor);
+        saveSession(this.model, this.config, this.bgProps, this.config.drawColor, this.bgDataUrl);
         saveSettings(this.config);
       } catch { /* ignore */ }
     }, 2000);

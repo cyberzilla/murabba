@@ -91,15 +91,24 @@ export function renderEmptyCells(
     return;
   }
 
-  const { cellSize, gapSize, padding, cellRadius } = config;
+  const { cellSize, gapSize, padding, cellRadius, zoom, panX, panY } = config;
   const step = cellSize + gapSize;
   const emptyRadius = Math.min(cellRadius, Math.floor(cellSize / 2));
   const radii: CornerRadii = [emptyRadius, emptyRadius, emptyRadius, emptyRadius];
 
+  // Viewport culling: determine visible cell range
+  const dpr = window.devicePixelRatio || 1;
+  const canvasW = ctx.canvas.width / dpr;
+  const canvasH = ctx.canvas.height / dpr;
+  const startCol = Math.max(0, Math.floor((-panX / zoom - padding) / step) - 1);
+  const endCol = Math.min(model.cols, Math.ceil((-panX / zoom + canvasW / zoom - padding) / step) + 1);
+  const startRow = Math.max(0, Math.floor((-panY / zoom - padding) / step) - 1);
+  const endRow = Math.min(model.rows, Math.ceil((-panY / zoom + canvasH / zoom - padding) / step) + 1);
+
   ctx.fillStyle = config.emptyCellColor;
 
-  for (let y = 0; y < model.rows; y++) {
-    for (let x = 0; x < model.cols; x++) {
+  for (let y = startRow; y < endRow; y++) {
+    for (let x = startCol; x < endCol; x++) {
       if (model.isFilledCell(x, y)) {
         continue;
       }
@@ -124,11 +133,20 @@ export function renderFilledCells(
   model: GridModel,
   config: RenderConfig
 ): void {
-  const { cellSize, gapSize, padding, cellRadius, drawColor } = config;
+  const { cellSize, gapSize, padding, cellRadius, drawColor, zoom, panX, panY } = config;
   const step = cellSize + gapSize;
 
-  for (let y = 0; y < model.rows; y++) {
-    for (let x = 0; x < model.cols; x++) {
+  // Viewport culling
+  const dpr = window.devicePixelRatio || 1;
+  const canvasW = ctx.canvas.width / dpr;
+  const canvasH = ctx.canvas.height / dpr;
+  const startCol = Math.max(0, Math.floor((-panX / zoom - padding) / step) - 1);
+  const endCol = Math.min(model.cols, Math.ceil((-panX / zoom + canvasW / zoom - padding) / step) + 1);
+  const startRow = Math.max(0, Math.floor((-panY / zoom - padding) / step) - 1);
+  const endRow = Math.min(model.rows, Math.ceil((-panY / zoom + canvasH / zoom - padding) / step) + 1);
+
+  for (let y = startRow; y < endRow; y++) {
+    for (let x = startCol; x < endCol; x++) {
       if (!model.isFilledCell(x, y)) {
         continue;
       }
@@ -158,15 +176,24 @@ export function renderFilledGaps(
   model: GridModel,
   config: RenderConfig
 ): void {
-  const { cellSize, gapSize, padding, cellRadius, drawColor } = config;
+  const { cellSize, gapSize, padding, cellRadius, drawColor, zoom, panX, panY } = config;
   if (gapSize <= 0) {
     return;
   }
   const step = cellSize + gapSize;
 
+  // Viewport culling
+  const dpr = window.devicePixelRatio || 1;
+  const canvasW = ctx.canvas.width / dpr;
+  const canvasH = ctx.canvas.height / dpr;
+  const c0 = Math.max(0, Math.floor((-panX / zoom - padding) / step) - 1);
+  const c1 = Math.min(model.cols, Math.ceil((-panX / zoom + canvasW / zoom - padding) / step) + 1);
+  const r0 = Math.max(0, Math.floor((-panY / zoom - padding) / step) - 1);
+  const r1 = Math.min(model.rows, Math.ceil((-panY / zoom + canvasH / zoom - padding) / step) + 1);
+
   // 1. Horizontal Gaps (gapH) - between row gy and row gy + 1
-  for (let gy = 0; gy < model.rows - 1; gy++) {
-    for (let gx = 0; gx < model.cols; gx++) {
+  for (let gy = Math.max(0, r0); gy < Math.min(model.rows - 1, r1); gy++) {
+    for (let gx = c0; gx < c1; gx++) {
       if (!model.isFilledGapH(gx, gy)) {
         continue;
       }
@@ -183,8 +210,8 @@ export function renderFilledGaps(
   }
 
   // 2. Vertical Gaps (gapV) - between col gx and col gx + 1
-  for (let gy = 0; gy < model.rows; gy++) {
-    for (let gx = 0; gx < model.cols - 1; gx++) {
+  for (let gy = r0; gy < r1; gy++) {
+    for (let gx = Math.max(0, c0); gx < Math.min(model.cols - 1, c1); gx++) {
       if (!model.isFilledGapV(gx, gy)) {
         continue;
       }
@@ -201,8 +228,8 @@ export function renderFilledGaps(
   }
 
   // 3. Diagonal / Intersection Dots (gapD) - at col gx, row gy
-  for (let gy = 0; gy < model.rows - 1; gy++) {
-    for (let gx = 0; gx < model.cols - 1; gx++) {
+  for (let gy = Math.max(0, r0); gy < Math.min(model.rows - 1, r1); gy++) {
+    for (let gx = Math.max(0, c0); gx < Math.min(model.cols - 1, c1); gx++) {
       if (!model.isFilledGapD(gx, gy)) {
         continue;
       }
@@ -235,32 +262,33 @@ export function renderAxisLines(
     return;
   }
 
-  const { cellSize, gapSize, padding, axisColor, axisEvery } = config;
+  const { cellSize, gapSize, padding, axisColor, axisEvery, zoom } = config;
   const step = cellSize + gapSize;
   const totalW = model.cols * step - gapSize;
   const totalH = model.rows * step - gapSize;
 
   ctx.save();
   ctx.strokeStyle = axisColor;
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 1 / (zoom || 1); // Stay 1px at any zoom level
+
+  // Batch all lines into a single path
+  ctx.beginPath();
 
   // Vertical guide lines
   for (let col = axisEvery; col < model.cols; col += axisEvery) {
     const lineX = Math.round(padding + col * step - gapSize / 2) + 0.5;
-    ctx.beginPath();
     ctx.moveTo(lineX, padding);
     ctx.lineTo(lineX, padding + totalH);
-    ctx.stroke();
   }
 
   // Horizontal guide lines
   for (let row = axisEvery; row < model.rows; row += axisEvery) {
     const lineY = Math.round(padding + row * step - gapSize / 2) + 0.5;
-    ctx.beginPath();
     ctx.moveTo(padding, lineY);
     ctx.lineTo(padding + totalW, lineY);
-    ctx.stroke();
   }
+
+  ctx.stroke(); // Single draw call for all lines
 
   ctx.restore();
 }

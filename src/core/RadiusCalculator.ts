@@ -7,6 +7,11 @@
 import { CornerRadii } from '../types/grid';
 import { GridModel } from './GridModel';
 
+const _reusableRadii: CornerRadii = [0, 0, 0, 0];
+const _reusableRadiiH: CornerRadii = [0, 0, 0, 0];
+const _reusableRadiiV: CornerRadii = [0, 0, 0, 0];
+const _reusableRadiiD: CornerRadii = [0, 0, 0, 0];
+
 /**
  * Computes corner radii [tl, tr, br, bl] for a main cell at (x, y).
  * A corner is flattened (radius = 0) if connected to an adjacent filled gap or diagonal element.
@@ -24,7 +29,11 @@ export function computeCellRadius(
   radius: number
 ): CornerRadii {
   if (radius <= 0) {
-    return [0, 0, 0, 0];
+    _reusableRadii[0] = 0;
+    _reusableRadii[1] = 0;
+    _reusableRadii[2] = 0;
+    _reusableRadii[3] = 0;
+    return _reusableRadii;
   }
 
   // Top-Left corner: blocked by left gapV, top gapH, or top-left gapD
@@ -51,12 +60,11 @@ export function computeCellRadius(
     model.isFilledGapH(x, y) ||
     model.isFilledGapD(x - 1, y);
 
-  return [
-    tlBlocked ? 0 : radius,
-    trBlocked ? 0 : radius,
-    brBlocked ? 0 : radius,
-    blBlocked ? 0 : radius,
-  ];
+  _reusableRadii[0] = tlBlocked ? 0 : radius;
+  _reusableRadii[1] = trBlocked ? 0 : radius;
+  _reusableRadii[2] = brBlocked ? 0 : radius;
+  _reusableRadii[3] = blBlocked ? 0 : radius;
+  return _reusableRadii;
 }
 
 /**
@@ -67,16 +75,31 @@ export function computeCellRadius(
  * @param gx Column index of the gap
  * @param gy Row index of the gap (between row gy and gy+1)
  * @param radius Desired corner radius
+ * @param gapSize Physical dimension of the gap (optional)
  * @returns 4-tuple of radii: [tl, tr, br, bl]
  */
 export function computeGapHRadius(
   model: GridModel,
   gx: number,
   gy: number,
-  radius: number
+  radius: number,
+  gapSize?: number
 ): CornerRadii {
-  if (radius <= 0) {
-    return [0, 0, 0, 0];
+  if (radius <= 0 || (gapSize !== undefined && gapSize <= 0)) {
+    _reusableRadiiH[0] = 0;
+    _reusableRadiiH[1] = 0;
+    _reusableRadiiH[2] = 0;
+    _reusableRadiiH[3] = 0;
+    return _reusableRadiiH;
+  }
+
+  const maxR = gapSize !== undefined ? Math.min(radius, Math.floor(gapSize / 2)) : radius;
+  if (maxR <= 0) {
+    _reusableRadiiH[0] = 0;
+    _reusableRadiiH[1] = 0;
+    _reusableRadiiH[2] = 0;
+    _reusableRadiiH[3] = 0;
+    return _reusableRadiiH;
   }
 
   // Top-Left corner: cell above, gapV top-left, gapD left
@@ -103,12 +126,11 @@ export function computeGapHRadius(
     model.isFilledGapV(gx - 1, gy + 1) ||
     model.isFilledGapD(gx - 1, gy);
 
-  return [
-    tlBlocked ? 0 : radius,
-    trBlocked ? 0 : radius,
-    brBlocked ? 0 : radius,
-    blBlocked ? 0 : radius,
-  ];
+  _reusableRadiiH[0] = tlBlocked ? 0 : maxR;
+  _reusableRadiiH[1] = trBlocked ? 0 : maxR;
+  _reusableRadiiH[2] = brBlocked ? 0 : maxR;
+  _reusableRadiiH[3] = blBlocked ? 0 : maxR;
+  return _reusableRadiiH;
 }
 
 /**
@@ -119,16 +141,31 @@ export function computeGapHRadius(
  * @param gx Column index of the gap (between column gx and gx+1)
  * @param gy Row index of the gap
  * @param radius Desired corner radius
+ * @param gapSize Physical dimension of the gap (optional)
  * @returns 4-tuple of radii: [tl, tr, br, bl]
  */
 export function computeGapVRadius(
   model: GridModel,
   gx: number,
   gy: number,
-  radius: number
+  radius: number,
+  gapSize?: number
 ): CornerRadii {
-  if (radius <= 0) {
-    return [0, 0, 0, 0];
+  if (radius <= 0 || (gapSize !== undefined && gapSize <= 0)) {
+    _reusableRadiiV[0] = 0;
+    _reusableRadiiV[1] = 0;
+    _reusableRadiiV[2] = 0;
+    _reusableRadiiV[3] = 0;
+    return _reusableRadiiV;
+  }
+
+  const maxR = gapSize !== undefined ? Math.min(radius, Math.floor(gapSize / 2)) : radius;
+  if (maxR <= 0) {
+    _reusableRadiiV[0] = 0;
+    _reusableRadiiV[1] = 0;
+    _reusableRadiiV[2] = 0;
+    _reusableRadiiV[3] = 0;
+    return _reusableRadiiV;
   }
 
   // Top-Left corner: cell left, gapH top-left, gapD top
@@ -155,12 +192,11 @@ export function computeGapVRadius(
     model.isFilledGapH(gx, gy) ||
     model.isFilledGapD(gx, gy);
 
-  return [
-    tlBlocked ? 0 : radius,
-    trBlocked ? 0 : radius,
-    brBlocked ? 0 : radius,
-    blBlocked ? 0 : radius,
-  ];
+  _reusableRadiiV[0] = tlBlocked ? 0 : maxR;
+  _reusableRadiiV[1] = trBlocked ? 0 : maxR;
+  _reusableRadiiV[2] = brBlocked ? 0 : maxR;
+  _reusableRadiiV[3] = blBlocked ? 0 : maxR;
+  return _reusableRadiiV;
 }
 
 /**
@@ -182,12 +218,20 @@ export function computeGapDRadius(
   gapSize: number
 ): CornerRadii {
   if (radius <= 0 || gapSize <= 0) {
-    return [0, 0, 0, 0];
+    _reusableRadiiD[0] = 0;
+    _reusableRadiiD[1] = 0;
+    _reusableRadiiD[2] = 0;
+    _reusableRadiiD[3] = 0;
+    return _reusableRadiiD;
   }
 
   const maxR = Math.min(radius, Math.floor(gapSize / 2));
   if (maxR <= 0) {
-    return [0, 0, 0, 0];
+    _reusableRadiiD[0] = 0;
+    _reusableRadiiD[1] = 0;
+    _reusableRadiiD[2] = 0;
+    _reusableRadiiD[3] = 0;
+    return _reusableRadiiD;
   }
 
   // Top-Left corner: cell (gx, gy), gapH (gx, gy), gapV (gx, gy)
@@ -214,12 +258,11 @@ export function computeGapDRadius(
     model.isFilledGapH(gx, gy) ||
     model.isFilledGapV(gx, gy + 1);
 
-  return [
-    tlBlocked ? 0 : maxR,
-    trBlocked ? 0 : maxR,
-    brBlocked ? 0 : maxR,
-    blBlocked ? 0 : maxR,
-  ];
+  _reusableRadiiD[0] = tlBlocked ? 0 : maxR;
+  _reusableRadiiD[1] = trBlocked ? 0 : maxR;
+  _reusableRadiiD[2] = brBlocked ? 0 : maxR;
+  _reusableRadiiD[3] = blBlocked ? 0 : maxR;
+  return _reusableRadiiD;
 }
 
 /**

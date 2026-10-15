@@ -543,6 +543,8 @@ export class GridModel {
    */
   public snapshot(): HistorySnapshot {
     return {
+      cols: this._cols,
+      rows: this._rows,
       cells: new Uint8Array(this._cells),
       gapH: new Uint8Array(this._gapH),
       gapV: new Uint8Array(this._gapV),
@@ -565,6 +567,8 @@ export class GridModel {
    * Restores grid state from a previously created snapshot.
    */
   public applySnapshot(snap: HistorySnapshot): void {
+    this._cols = snap.cols;
+    this._rows = snap.rows;
     this._cells = new Uint8Array(snap.cells);
     this._gapH = new Uint8Array(snap.gapH);
     this._gapV = new Uint8Array(snap.gapV);
@@ -594,6 +598,47 @@ export class GridModel {
           if (x > maxX) maxX = x;
           if (y < minY) minY = y;
           if (y > maxY) maxY = y;
+        }
+      }
+    }
+
+    // Check horizontal gaps (gapH)
+    const gapHRows = this._rows - 1;
+    for (let gy = 0; gy < gapHRows; gy++) {
+      for (let gx = 0; gx < this._cols; gx++) {
+        if (this._gapH[this.gapHIndex(gx, gy)] === 1) {
+          hasFilled = true;
+          if (gx < minX) minX = gx;
+          if (gx > maxX) maxX = gx;
+          if (gy < minY) minY = gy;
+          if (gy + 1 > maxY) maxY = gy + 1;
+        }
+      }
+    }
+
+    // Check vertical gaps (gapV)
+    const gapVCols = this._cols - 1;
+    for (let gy = 0; gy < this._rows; gy++) {
+      for (let gx = 0; gx < gapVCols; gx++) {
+        if (this._gapV[this.gapVIndex(gx, gy)] === 1) {
+          hasFilled = true;
+          if (gx < minX) minX = gx;
+          if (gx + 1 > maxX) maxX = gx + 1;
+          if (gy < minY) minY = gy;
+          if (gy > maxY) maxY = gy;
+        }
+      }
+    }
+
+    // Check diagonal dot gaps (gapD)
+    for (let gy = 0; gy < gapHRows; gy++) {
+      for (let gx = 0; gx < gapVCols; gx++) {
+        if (this._gapD[this.gapDIndex(gx, gy)] === 1) {
+          hasFilled = true;
+          if (gx < minX) minX = gx;
+          if (gx + 1 > maxX) maxX = gx + 1;
+          if (gy < minY) minY = gy;
+          if (gy + 1 > maxY) maxY = gy + 1;
         }
       }
     }

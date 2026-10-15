@@ -8,7 +8,8 @@
  * Phase 'define':
  *   - User drags to create a marquee rectangle.
  *   - Frame persists on screen after release.
- *   - Dragging inside the frame repositions/moves the selection frame.
+ *   - Dragging inside the frame auto-commits (cuts content) and moves it as a float.
+ *   - Shift+dragging inside the frame repositions the selection frame only.
  *   - Clicking outside the frame cancels the selection and returns to idle.
  *   - Enter commits (extracts/cuts content into a floating selection).
  *   - Delete / Backspace erases content in the selection region.
@@ -44,8 +45,9 @@ export class SelectTool extends BaseTool {
 
   // State flags for define phase
   private isDefining = false;
-  private wasInDefine = false;
-  private hasMoved = false;
+
+  /** Modifier key state — set by App before onPointerDown */
+  shiftKey = false;
 
   // Frame dragging state
   private isDraggingFrame = false;
@@ -58,10 +60,13 @@ export class SelectTool extends BaseTool {
   private floatDragStartCell: CellCoord | null = null;
   private dragStartFloatOrigin: { ox: number; oy: number } | null = null;
 
+  // Saved selection bounds before commit (for undo back to define phase)
+  private preCommitBounds: { x1: number; y1: number; x2: number; y2: number } | null = null;
+
   // ─── BaseTool Overrides ──────────────────────────────────
 
   getCursor(): string {
-    if (this.phase === 'float' || this.isDraggingFrame) {
+    if (this.phase === 'float' || this.isDraggingFrame || this.isDraggingFloat) {
       return 'move';
     }
     return 'crosshair';
@@ -85,8 +90,6 @@ export class SelectTool extends BaseTool {
         if (cell) {
           this.phase = 'define';
           this.isDefining = true;
-          this.wasInDefine = false;
-          this.hasMoved = false;
           this.x1 = cell.x;
           this.y1 = cell.y;
           this.x2 = cell.x;
@@ -100,10 +103,21 @@ export class SelectTool extends BaseTool {
     // Case 2: DEFINE phase
     if (this.phase === 'define') {
       if (cell && this.isInsideFrame(cell.x, cell.y)) {
-        // Pointer down INSIDE frame: start dragging the frame
-        this.isDraggingFrame = true;
-        this.frameDragStartCell = { x: cell.x, y: cell.y };
-        this.dragStartBounds = this.getSelectionBounds();
+        if (this.shiftKey) {
+          // Shift+drag: move frame only (reposition selection rectangle)
+          this.isDraggingFrame = true;
+          this.frameDragStartCell = { x: cell.x, y: cell.y };
+          this.dragStartBounds = this.getSelectionBounds();
+        } else {
+          // Normal drag: auto-commit selection → cut content → start float drag
+          this.commitSelection(ctx);
+          // commitSelection mutates phase to 'float' and sets floatData
+          if (this.floatData) {
+            this.isDraggingFloat = true;
+            this.floatDragStartCell = { x: cell.x, y: cell.y };
+            this.dragStartFloatOrigin = { ox: this.floatData.ox, oy: this.floatData.oy };
+          }
+        }
         return;
       }
 
@@ -125,8 +139,6 @@ export class SelectTool extends BaseTool {
     if (!cell) return;
     this.phase = 'define';
     this.isDefining = true;
-    this.wasInDefine = false;
-    this.hasMoved = false;
     this.x1 = cell.x;
     this.y1 = cell.y;
     this.x2 = cell.x;
@@ -183,9 +195,8 @@ export class SelectTool extends BaseTool {
 
     // Dragging to define rectangle bounds
     if (this.phase === 'define' && this.isDefining) {
-      if (cell.x !== this.x1 || cell.y !== this.y1) {
-        this.hasMoved = true;
-      }
+
+
       this.x2 = cell.x;
       this.y2 = cell.y;
       ctx.requestRender();
@@ -211,13 +222,6 @@ export class SelectTool extends BaseTool {
 
     if (this.isDefining) {
       this.isDefining = false;
-
-      // Clicking outside the frame without dragging cancels the selection and returns to idle
-      if (this.wasInDefine && !this.hasMoved) {
-        this.reset();
-        ctx.requestRender();
-        return;
-      }
 
       // Normalize bounds so x1 <= x2 and y1 <= y2, frame stays visible
       const bounds = this.getSelectionBounds();
@@ -274,6 +278,24 @@ export class SelectTool extends BaseTool {
   }
 
   /**
+   * Enters float phase directly from external SelectionData (e.g. letter placement).
+   * No grid content is cut — the float data is purely additive.
+   * When stamped, content will be written to the grid with a history save.
+   */
+  startFloat(data: SelectionData, ctx: ToolContext): void {
+    // If already in float, stamp current float first
+    if (this.phase === 'float') {
+      this.stampFloat(ctx);
+    } else if (this.phase === 'define') {
+      this.reset();
+    }
+    this.floatData = data;
+    this.phase = 'float';
+    this.preCommitBounds = null;
+    ctx.requestRender();
+  }
+
+  /**
    * Commits the defined frame: extracts content from the grid, cuts original cells,
    * creates floating selection data, and enters the 'float' phase.
    */
@@ -288,10 +310,10 @@ export class SelectTool extends BaseTool {
     const gD: SelectionData['gD'] = [];
 
     // Collect cells and gaps from defined region.
-    // Only collect a gap if BOTH endpoint cells are inside the selection bounds:
-    //   gapH(x,y) connects (x,y)↔(x,y+1)  → only if y+1 <= y2
-    //   gapV(x,y) connects (x,y)↔(x+1,y)  → only if x+1 <= x2
-    //   gapD(x,y) connects 4 corners        → only if x+1 <= x2 AND y+1 <= y2
+    // Include ALL gaps that visually appear inside the selection frame:
+    //   gapH(x,y) = horizontal connector below cell(x,y) → include if in grid bounds
+    //   gapV(x,y) = vertical connector right of cell(x,y) → include if in grid bounds
+    //   gapD(x,y) = corner connector bottom-right of cell(x,y) → include if in grid bounds
     for (let y = y1; y <= y2; y++) {
       for (let x = x1; x <= x2; x++) {
         const lx = x - x1;
@@ -299,16 +321,16 @@ export class SelectTool extends BaseTool {
         if (model.isFilledCell(x, y)) {
           cells.push({ lx, ly, c: model.getCellColor(x, y) || ctx.config.drawColor });
         }
-        // gapV at (x,y) → right side, only if x+1 is also inside selection
-        if (x + 1 <= x2 && model.isGapVInBounds(x, y) && model.isFilledGapV(x, y)) {
+        // gapV at (x,y) → right side connector
+        if (model.isGapVInBounds(x, y) && model.isFilledGapV(x, y)) {
           gV.push({ lx, ly, c: model.getGapVColor(x, y) || ctx.config.drawColor });
         }
-        // gapH at (x,y) → bottom side, only if y+1 is also inside selection
-        if (y + 1 <= y2 && model.isGapHInBounds(x, y) && model.isFilledGapH(x, y)) {
+        // gapH at (x,y) → bottom side connector
+        if (model.isGapHInBounds(x, y) && model.isFilledGapH(x, y)) {
           gH.push({ lx, ly, c: model.getGapHColor(x, y) || ctx.config.drawColor });
         }
-        // gapD at (x,y) → bottom-right corner, only if both x+1 and y+1 inside selection
-        if (x + 1 <= x2 && y + 1 <= y2 && model.isGapDInBounds(x, y) && model.isFilledGapD(x, y)) {
+        // gapD at (x,y) → bottom-right corner connector
+        if (model.isGapDInBounds(x, y) && model.isFilledGapD(x, y)) {
           gD.push({ lx, ly, c: model.getGapDColor(x, y) || ctx.config.drawColor });
         }
       }
@@ -321,6 +343,9 @@ export class SelectTool extends BaseTool {
       return;
     }
 
+    // Save selection bounds for undo restoration
+    this.preCommitBounds = { x1, y1, x2, y2 };
+
     // Save undo history before cutting
     ctx.history.saveState(model);
 
@@ -329,15 +354,15 @@ export class SelectTool extends BaseTool {
       for (let x = x1; x <= x2; x++) {
         model.setCell(x, y, 0);
         model.clearCellColor(x, y);
-        if (x + 1 <= x2 && model.isGapVInBounds(x, y)) {
+        if (model.isGapVInBounds(x, y)) {
           model.setGapV(x, y, 0);
           model.clearGapVColor(x, y);
         }
-        if (y + 1 <= y2 && model.isGapHInBounds(x, y)) {
+        if (model.isGapHInBounds(x, y)) {
           model.setGapH(x, y, 0);
           model.clearGapHColor(x, y);
         }
-        if (x + 1 <= x2 && y + 1 <= y2 && model.isGapDInBounds(x, y)) {
+        if (model.isGapDInBounds(x, y)) {
           model.setGapD(x, y, 0);
           model.clearGapDColor(x, y);
         }
@@ -363,6 +388,11 @@ export class SelectTool extends BaseTool {
    */
   stampFloat(ctx: ToolContext): void {
     if (!this.floatData || this.phase !== 'float') return;
+    // For additive floats (e.g. letter placement via startFloat), save history
+    // before stamping since there was no prior commitSelection that saved state.
+    if (!this.preCommitBounds) {
+      ctx.history.saveState(ctx.model);
+    }
     this.stampToGrid(ctx.model, ctx.config.drawColor);
     this.reset();
     ctx.requestRender();
@@ -370,11 +400,40 @@ export class SelectTool extends BaseTool {
 
   /**
    * Cancels the floating selection, reverting changes via history undo.
+   * Restores the selection frame to define phase so the user can re-drag.
    */
   cancelFloat(ctx: ToolContext): void {
     if (this.phase !== 'float') return;
-    ctx.history.undo(ctx.model);
-    this.reset();
+    this.undoFloat(ctx);
+  }
+
+  /**
+   * Undoes the float: reverts the grid cut via history undo, then restores
+   * the selection tool to define phase with the original selection bounds.
+   * This allows the user to see the content back in place with the selection
+   * frame still active (ready to drag again or modify).
+   */
+  undoFloat(ctx: ToolContext): void {
+    if (this.phase !== 'float') return;
+
+    if (this.preCommitBounds) {
+      // Float from commitSelection: undo the grid cut and restore define phase
+      ctx.history.undo(ctx.model);
+      const b = this.preCommitBounds;
+      this.phase = 'define';
+      this.x1 = b.x1;
+      this.y1 = b.y1;
+      this.x2 = b.x2;
+      this.y2 = b.y2;
+      this.floatData = null;
+      this.isDraggingFloat = false;
+      this.floatDragStartCell = null;
+      this.dragStartFloatOrigin = null;
+      this.isDefining = false;
+    } else {
+      // Additive float (e.g. letter placement): just discard, no history to undo
+      this.reset();
+    }
     ctx.requestRender();
   }
 
@@ -392,15 +451,15 @@ export class SelectTool extends BaseTool {
       for (let x = x1; x <= x2; x++) {
         model.setCell(x, y, 0);
         model.clearCellColor(x, y);
-        if (x + 1 <= x2 && model.isGapVInBounds(x, y)) {
+        if (model.isGapVInBounds(x, y)) {
           model.setGapV(x, y, 0);
           model.clearGapVColor(x, y);
         }
-        if (y + 1 <= y2 && model.isGapHInBounds(x, y)) {
+        if (model.isGapHInBounds(x, y)) {
           model.setGapH(x, y, 0);
           model.clearGapHColor(x, y);
         }
-        if (x + 1 <= x2 && y + 1 <= y2 && model.isGapDInBounds(x, y)) {
+        if (model.isGapDInBounds(x, y)) {
           model.setGapD(x, y, 0);
           model.clearGapDColor(x, y);
         }
@@ -426,13 +485,13 @@ export class SelectTool extends BaseTool {
         if (model.isFilledCell(x, y)) {
           model.setCellColor(x, y, color);
         }
-        if (x + 1 <= x2 && model.isGapVInBounds(x, y) && model.isFilledGapV(x, y)) {
+        if (model.isGapVInBounds(x, y) && model.isFilledGapV(x, y)) {
           model.setGapVColor(x, y, color);
         }
-        if (y + 1 <= y2 && model.isGapHInBounds(x, y) && model.isFilledGapH(x, y)) {
+        if (model.isGapHInBounds(x, y) && model.isFilledGapH(x, y)) {
           model.setGapHColor(x, y, color);
         }
-        if (x + 1 <= x2 && y + 1 <= y2 && model.isGapDInBounds(x, y) && model.isFilledGapD(x, y)) {
+        if (model.isGapDInBounds(x, y) && model.isFilledGapD(x, y)) {
           model.setGapDColor(x, y, color);
         }
       }
@@ -484,8 +543,6 @@ export class SelectTool extends BaseTool {
     this.x2 = 0;
     this.y2 = 0;
     this.isDefining = false;
-    this.wasInDefine = false;
-    this.hasMoved = false;
 
     this.isDraggingFrame = false;
     this.frameDragStartCell = null;
@@ -495,6 +552,7 @@ export class SelectTool extends BaseTool {
     this.isDraggingFloat = false;
     this.floatDragStartCell = null;
     this.dragStartFloatOrigin = null;
+    this.preCommitBounds = null;
   }
 
   // ─── Private Helpers ─────────────────────────────────────

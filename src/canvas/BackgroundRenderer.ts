@@ -40,7 +40,7 @@ export function renderBackground(
     multiply: 'multiply',
     screen: 'screen',
     overlay: 'overlay',
-    lighten: 'lighter',
+    lighten: 'lighten',
   };
   ctx.globalCompositeOperation = blendMap[props.blend] || 'source-over';
 
