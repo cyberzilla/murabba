@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+  <title>Murabba</title>
+  <!-- favicon will be added when new Murabba icon is created -->
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="theme-color" content="#0A0D0B"/>
+  <meta name="description" content="Murabba — محرر الخط الكوفي المربع. Square Kufic Script Editor."/>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/styles/main.css">
+</head>
+<body>
+
+<!-- ══════════ WELCOME SCREEN ══════════ -->
+<div id="welcomeScreen">
+  <div class="wl-container">
+    <div class="wl-logo">
+      <div class="wl-logo-icon">✦</div>
+      <h1 class="wl-title">Murabba</h1>
+      <p class="wl-subtitle" data-i18n="welcome.subtitle">محرر الخط الكوفي المربع</p>
+    </div>
+
+    <div class="wl-cards">
+      <div class="wl-card" id="wlNew">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32"><path d="M12 5v14M5 12h14"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+        <span data-i18n="welcome.newProject">مشروع جديد</span>
+      </div>
+      <div class="wl-card" id="wlLoad">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <span data-i18n="welcome.openFile">فتح ملف</span>
+      </div>
+      <div class="wl-card" id="wlContinue" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32"><path d="M5 3l14 9-14 9V3z"/></svg>
+        <span data-i18n="welcome.continue">Continue</span>
+        <small class="wl-card-sub" id="wlContinueTime"></small>
+      </div>
+    </div>
+
+    <div class="wl-lang" style="display:flex;gap:8px;justify-content:center;margin-top:16px">
+      <button class="s-btn" data-wl-lang="en" style="font-size:12px">English</button>
+      <button class="s-btn" data-wl-lang="ar" style="font-size:12px">العربية</button>
+      <button class="s-btn" data-wl-lang="id" style="font-size:12px">Indonesia</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MAIN EDITOR ══════════ -->
+<div id="editor" style="display:none">
+
+  <!-- TOP BAR -->
+  <header id="topbar">
+    <div class="tb-left">
+      <div class="tb-logo">
+        <div class="tb-logo-mark">✦</div>
+        <div>
+          <div class="tb-logo-text">Murabba</div>
+          <div class="tb-logo-sub" data-i18n="topbar.subtitle">Square Kufic Editor</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tb-center">
+      <button class="tb-btn" id="btnUndo" title="Undo (Ctrl+Z)" data-i18n-tip="tip.undo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>
+      </button>
+      <button class="tb-btn" id="btnRedo" title="Redo (Ctrl+Y)" data-i18n-tip="tip.redo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 14 20 9 15 4"/><path d="M4 20v-7a4 4 0 0 1 4-4h12"/></svg>
+      </button>
+      <div class="tb-sep"></div>
+      <button class="tb-btn" id="btnClear" title="Clear Canvas" data-i18n-tip="tip.clearCanvas">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6l-1 14H6L5 6"/><path d="M9 6V4h6v2"/></svg>
+      </button>
+      <div class="tb-sep"></div>
+      <button class="tb-btn" id="btnExport" title="Export PNG" data-i18n-tip="tip.exportPNG">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
+      <button class="tb-btn" id="btnSaveJSON" title="Save JSON" data-i18n-tip="tip.saveJSON">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      </button>
+      <button class="tb-btn" id="btnLoadJSON" title="Load JSON" data-i18n-tip="tip.loadJSON">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      </button>
+      <input type="file" id="loadFileInput" accept=".json" style="display:none"/>
+    </div>
+
+    <div class="tb-right">
+      <button class="tb-btn" id="btnLangSwitch" title="Language" data-i18n-tip="lang.label">
+        <span id="tbLangLabel" style="font-size:11px;font-weight:700">عربي</span>
+      </button>
+      <div class="tb-sep"></div>
+      <button class="tb-btn" id="tbPanelToggle" title="Toggle Panel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- CONTENT AREA -->
+  <div id="content">
+    <!-- LEFT TOOL PANEL -->
+    <aside id="toolPanel">
+      <button class="tool-btn active" data-tool="draw" title="Draw (B)" data-i18n-tip="tip.draw">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      </button>
+      <button class="tool-btn" data-tool="erase" title="Eraser (E)" data-i18n-tip="tip.erase">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20H7L3 16l10-10 7 7-3.5 3.5"/><path d="M6.5 17.5l4-4"/></svg>
+      </button>
+      <button class="tool-btn" data-tool="fill" title="Fill (F)" data-i18n-tip="tip.fill">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 11L9 1 3 7l10 10"/><path d="M9.5 21.5a2.5 2.5 0 0 1-5 0c0-1.38 2.5-5 2.5-5s2.5 3.62 2.5 5z"/></svg>
+      </button>
+      <div class="tool-btn-wrap">
+        <button class="tool-btn" data-tool="brush" title="Continuous Pen (W)" data-i18n-tip="tip.brush">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.06 11.9l8.07-8.06a2.85 2.85 0 1 1 4.03 4.03l-8.06 8.08"/><path d="M7.07 14.94c-1.66 0-3 1.35-3 3.02 0 1.33-2.5 1.52-2 2.02 1 1 2.49 2.02 4 2.02 2.2 0 4-1.8 4-4.04a3.01 3.01 0 0 0-3-3.02z"/></svg>
+          <span class="tool-flyout-arrow">◢</span>
+        </button>
+        <div class="tool-flyout" id="brushFlyout">
+          <button class="flyout-item active" data-brush-mode="1">
+            <span class="flyout-icon">━</span>
+            <span>Line</span>
+          </button>
+          <button class="flyout-item" data-brush-mode="2">
+            <span class="flyout-icon">┅</span>
+            <span>Connect</span>
+          </button>
+          <button class="flyout-item" data-brush-mode="3">
+            <span class="flyout-icon">█</span>
+            <span>Bold</span>
+          </button>
+        </div>
+      </div>
+      <button class="tool-btn" data-tool="pan" title="Pan (H)" data-i18n-tip="tip.pan">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/></svg>
+      </button>
+      <button class="tool-btn" data-tool="select" title="Select (S)" data-i18n-tip="tip.select">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="1" stroke-dasharray="4 2.5"/></svg>
+      </button>
+      <div class="tool-sep"></div>
+      <!-- Color preview -->
+      <div class="color-preview-wrap">
+        <input type="color" id="fillColor" value="#22C55E" title="Draw Color" data-i18n-tip="tip.customColor"/>
+      </div>
+    </aside>
+
+    <!-- CANVAS AREA -->
+    <main id="canvasArea">
+      <!-- Canvas is inserted here by CanvasRenderer -->
+    </main>
+
+    <!-- RIGHT PANEL -->
+    <aside id="rightPanel">
+      <div class="rp-scroll">
+
+        <!-- Grid Settings Section -->
+        <details class="rp-section" open>
+          <summary class="rp-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            <span data-i18n="tab.grid">Grid</span>
+          </summary>
+          <div class="rp-body">
+            <div class="ctrl-row">
+              <label data-i18n="grid.columns">Cols</label><input type="number" id="gridCols" value="24" min="5" max="120"/>
+              <label data-i18n="grid.rows">Rows</label><input type="number" id="gridRows" value="24" min="5" max="120"/>
+            </div>
+            <div class="ctrl-row presets">
+              <button class="s-btn" data-preset="16,16">16×16</button>
+              <button class="s-btn" data-preset="24,24">24×24</button>
+              <button class="s-btn" data-preset="32,24">32×24</button>
+              <button class="s-btn" data-preset="48,32">48×32</button>
+            </div>
+            <label class="ctrl-label" data-i18n="grid.cellSize">Cell Size</label>
+            <div class="ctrl-row"><input type="range" id="cellSizeR" min="10" max="80" value="30"/><span id="cellSizeVal">30</span></div>
+            <label class="ctrl-label" data-i18n="grid.gapSize">Gap Size</label>
+            <div class="ctrl-row"><input type="range" id="gapSizeR" min="0" max="30" value="15"/><span id="gapSizeVal">15</span></div>
+            <label class="ctrl-label" data-i18n="grid.cornerRadius">Corner Radius</label>
+            <div class="ctrl-row"><input type="range" id="cellRadR" min="0" max="20" value="5"/><span id="cellRadVal">5</span></div>
+          </div>
+        </details>
+
+        <!-- Colors Section -->
+        <details class="rp-section" open>
+          <summary class="rp-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M12 2a4 4 0 0 0 0 8 4 4 0 0 1 0 8"/></svg>
+            <span data-i18n="tools.quickColors">Colors</span>
+          </summary>
+          <div class="rp-body">
+            <div class="swatches" id="swatchesContainer">
+              <div class="swatch selected" style="background:#22C55E" data-color="#22C55E"></div>
+              <div class="swatch" style="background:#DC2626" data-color="#DC2626"></div>
+              <div class="swatch" style="background:#FFFFFF" data-color="#FFFFFF"></div>
+              <div class="swatch" style="background:#111827;border:1px solid #333" data-color="#111827"></div>
+              <div class="swatch" style="background:#3B82F6" data-color="#3B82F6"></div>
+              <div class="swatch" style="background:#7C3AED" data-color="#7C3AED"></div>
+              <div class="swatch" style="background:#EC4899" data-color="#EC4899"></div>
+              <div class="swatch" style="background:#14B8A6" data-color="#14B8A6"></div>
+              <div class="swatch" style="background:#F59E0B" data-color="#F59E0B"></div>
+            </div>
+          </div>
+        </details>
+
+        <!-- Background Section -->
+        <details class="rp-section">
+          <summary class="rp-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <span data-i18n="tools.addBgImage">Background</span>
+          </summary>
+          <div class="rp-body">
+            <label class="upload-zone" for="bgFileInput">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <span data-i18n="tools.clickToUpload">Upload reference image</span>
+              <small>PNG · JPG · WebP · SVG</small>
+              <input type="file" id="bgFileInput" accept="image/*" style="display:none"/>
+            </label>
+            <!-- BG Controls (shown after image loaded) -->
+            <div id="bgControls" style="display:none;margin-top:10px">
+              <label class="ctrl-label" data-i18n="tools.bgOpacity">Opacity</label>
+              <div class="ctrl-row"><input type="range" id="bgOpacityR" min="0" max="100" value="50"/><span id="bgOpacityVal">50%</span></div>
+              <label class="ctrl-label" data-i18n="tools.bgSize">Scale</label>
+              <div class="ctrl-row"><input type="range" id="bgScaleR" min="10" max="400" value="100"/><span id="bgScaleVal">100%</span></div>
+              <label class="ctrl-label">Rotation</label>
+              <div class="ctrl-row"><input type="range" id="bgRotateR" min="0" max="360" value="0"/><span id="bgRotateVal">0°</span></div>
+              <div style="display:flex;gap:6px;margin-top:8px">
+                <button class="s-btn sm full" id="bgToggleVis" data-i18n="bg.hide">Hide</button>
+                <button class="s-btn sm full danger" id="bgRemove">✕ Remove</button>
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <!-- Letters Library Section -->
+        <details class="rp-section" open>
+          <summary class="rp-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
+            <span data-i18n="tab.letters">Letters</span>
+          </summary>
+          <div class="rp-body">
+            <div id="letterGrid" class="letter-grid"></div>
+          </div>
+        </details>
+
+        <!-- Export Section -->
+        <details class="rp-section">
+          <summary class="rp-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span data-i18n="tools.export">Export</span>
+          </summary>
+          <div class="rp-body">
+            <button class="s-btn accent full" id="exportPNG" data-i18n="tools.exportCleanPNG">Export Clean PNG</button>
+            <button class="s-btn full" id="exportWithBg" data-i18n="tools.exportWithBg" style="margin-top:6px">Export with Background</button>
+            <button class="s-btn full" id="exportSVG" data-i18n="tools.exportSVG" style="margin-top:6px">Export SVG</button>
+            <button class="s-btn full" id="exportWebP" data-i18n="tools.exportWebP" style="margin-top:6px">Export WebP</button>
+          </div>
+        </details>
+      </div>
+    </aside>
+  </div>
+
+  <!-- STATUS BAR -->
+  <footer id="statusBar">
+    <span id="coordsDisplay">X: 0 — Y: 0</span>
+    <span class="sb-sep">|</span>
+    <span id="statusTool" data-i18n="toolName.draw">Draw</span>
+    <div class="sb-spacer"></div>
+    <div class="zoom-controls">
+      <button class="zoom-btn" id="zoomOut" title="Zoom Out" data-i18n-tip="tip.zoomOut">−</button>
+      <span id="zoomLevel">100%</span>
+      <button class="zoom-btn" id="zoomIn" title="Zoom In" data-i18n-tip="tip.zoomIn">+</button>
+      <button class="zoom-btn" id="zoomFit" title="Fit" data-i18n-tip="tip.zoomFit">⊡</button>
+    </div>
+  </footer>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div id="confirmModal" class="modal-overlay">
+  <div class="modal-box">
+    <p id="modalMsg"></p>
+    <div class="modal-actions">
+      <button class="s-btn accent" id="modalOk" data-i18n="modal.ok">OK</button>
+      <button class="s-btn" id="modalCancel" data-i18n="modal.cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/src/index.ts"></script>
+</body>
+</html>

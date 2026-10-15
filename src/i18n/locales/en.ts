@@ -1,0 +1,272 @@
+/**
+ * English translations for Murabba
+ * English — Square Kufic Script Editor
+ */
+
+export const en: Record<string, string> = {
+  /* ── Welcome Screen ── */
+  'welcome.subtitle': 'Square Kufic Calligraphy Editor',
+  'welcome.newProject': 'New Project',
+  'welcome.startFresh': 'Start from scratch',
+  'welcome.continue': 'Continue',
+  'welcome.continueWork': 'Continue where you left off',
+  'welcome.previousSession': 'Previous session',
+  'welcome.openFile': 'Open File',
+  'welcome.savedJSON': 'Saved JSON',
+  'welcome.startDesign': 'Start Designing →',
+  'welcome.agreement': 'Using the app means agreeing to the policies and terms',
+
+  /* ── Top Bar ── */
+  'topbar.subtitle': 'Kufic Editor',
+  'topbar.developer': 'Developer',
+  'topbar.tools': 'Tools',
+  'topbar.grid': 'Grid',
+  'topbar.letters': 'Letters',
+  'topbar.myFiles': 'My Files',
+
+  /* ── Tooltips ── */
+  'tip.undo': 'Undo (Ctrl+Z)',
+  'tip.redo': 'Redo (Ctrl+Y)',
+  'tip.clearCanvas': 'Clear Canvas',
+  'tip.exportPNG': 'Export PNG',
+  'tip.saveJSON': 'Save JSON',
+  'tip.loadJSON': 'Open JSON File',
+  'tip.zoomOut': 'Zoom Out',
+  'tip.zoomIn': 'Zoom In',
+  'tip.zoomFit': 'Fit',
+  'tip.draw': 'Draw (B)',
+  'tip.erase': 'Eraser (E)',
+  'tip.fill': 'Fill (F)',
+  'tip.brush': 'Continuous Pen (W)',
+  'tip.pan': 'Pan (H)',
+  'tip.select': 'Select & Move (S)',
+  'tip.bgDrag': 'Toggle image drag',
+  'tip.pickColor': 'Pick a color',
+  'tip.customColor': 'Custom color',
+  'tip.bgScaleDown': 'Scale down background',
+  'tip.bgScaleUp': 'Scale up background',
+  'tip.brushMode1': 'Cells + direct connections',
+  'tip.brushMode2': 'Straight connections only (no cells)',
+  'tip.brushMode3': 'Full fill (cells + all surrounding gaps)',
+
+  /* ── Bottom Sheet Tabs ── */
+  'tab.tools': 'Tools',
+  'tab.grid': 'Grid',
+  'tab.letters': 'Letters',
+  'tab.myFiles': 'My Files',
+  'tab.developer': 'Developer',
+  'tab.privacy': 'Privacy',
+  'tab.terms': 'Terms',
+  'tab.faq': 'FAQ',
+
+  /* ── Saves Panel ── */
+  'saves.title': '📁 My Saved Files',
+  'saves.saveCurrent': '+ Save Current',
+  'saves.noFiles': 'No saved files',
+  'saves.pressToSave': 'Press "+ Save Current" to save your drawing',
+  'saves.hint': '💡 Files are saved in the browser. You can download them as JSON for backup.',
+  'saves.open': 'Open',
+  'saves.download': '⬇️',
+  'saves.delete': '🗑',
+  'saves.rename': '✏️',
+
+  /* ── Grid Panel ── */
+  'grid.size': 'Grid Size',
+  'grid.columns': 'Columns',
+  'grid.rows': 'Rows',
+  'grid.apply': 'Apply',
+  'grid.quickTemplates': 'Quick Templates',
+  'grid.cellSize': 'Cell Size',
+  'grid.gapSize': 'Gap Between Cells',
+  'grid.cornerRadius': 'Corner Radius',
+  'grid.canvasBg': 'Canvas Background',
+  'grid.dark': 'Dark',
+  'grid.light': 'Light',
+  'grid.axisLines': 'Axis Lines',
+  'grid.showAxis': 'Show axis lines',
+  'grid.axisColor': 'Axis Color',
+  'grid.every': 'Every',
+  'grid.cell': 'cell',
+  'grid.rulers': 'Guide Rulers',
+  'grid.showRulers': 'Show blue rulers',
+  'grid.interLines': 'Lines between cells',
+  'grid.enableInterLines': 'Enable inter-cell lines',
+
+  /* ── Letters Panel ── */
+  'letters.search': 'Search...',
+  'letters.newLetter': 'New Letter',
+  'letters.exportJSON': 'Export JSON',
+  'letters.importJSON': 'Import JSON',
+  'letters.resetDefault': 'Reset to Default',
+  'letters.insertPos': 'Insert Position',
+  'letters.autoAdvance': 'Auto-advance right',
+  'letters.noResults': 'No results',
+  'letters.edit': 'Edit',
+
+  /* ── Tools Panel ── */
+  'tools.drawColors': 'Drawing Colors',
+  'tools.fillColor': 'Fill Color',
+  'tools.emptyCellColor': 'Empty Cell Color',
+  'tools.quickColors': 'Quick Colors',
+  'tools.addColor': 'Add new color',
+  'tools.export': 'Export',
+  'tools.exportCleanPNG': 'Export Clean PNG',
+  'tools.exportWithBg': 'Export with Background',
+  'tools.exportSVG': 'Export SVG',
+  'tools.exportWebP': 'Export WebP',
+  'tools.addBgImage': 'Add image as drawing background',
+  'tools.clickToUpload': 'Click to upload reference image',
+  'tools.hide': 'Hide',
+  'tools.center': 'Center',
+  'tools.crop': '✂️ Crop',
+  'tools.remove': 'Remove',
+  'tools.opacity': 'Opacity',
+  'tools.bgOpacity': 'Opacity',
+  'tools.bgSize': 'Size',
+  'tools.posX': 'Horizontal Position (X)',
+  'tools.posY': 'Vertical Position (Y)',
+  'tools.dragMode': 'Drag Mode',
+  'tools.enableDrag': 'Enable image drag',
+  'tools.blendNormal': 'Normal',
+  'tools.blendMultiply': 'Multiply',
+  'tools.blendScreen': 'Screen',
+  'tools.blendOverlay': 'Overlay',
+  'tools.blendLighten': 'Lighten',
+
+  /* ── About Panel ── */
+  'about.appDesc': 'Square Kufic Calligraphy Editor',
+  'about.appIntro': 'About the App',
+  'about.appIntroText': 'A free, open-source tool for designing Square Kufic calligraphy. Runs entirely in the browser — no server needed, no data collected.',
+  'about.devInfo': 'Open source project — MIT License',
+  'about.sourceCode': 'Source Code',
+  'about.privacyPolicy': 'Privacy Policy',
+  'about.termsConditions': 'Terms & Conditions',
+  'about.faqTitle': 'FAQ & Guidelines',
+  'about.reset': 'Reset',
+  'about.resetFull': 'Full Reset',
+  'about.install': 'Install',
+  'about.installApp': 'Install App',
+
+  /* ── Privacy Page ── */
+  'privacy.title': '🔒 Privacy Policy',
+  'privacy.dataCollection': 'Data Collection',
+  'privacy.dataCollectionText': 'Murabba does not collect any personal data. All your data is stored locally on your device only.',
+  'privacy.cookies': 'Cookies',
+  'privacy.cookiesText': 'The app does not use any cookies.',
+  'privacy.localStorage': 'Local Storage',
+  'privacy.localStorageText': 'Uses localStorage and IndexedDB to save your session — can be cleared via reset.',
+
+  /* ── Terms Page ── */
+  'terms.title': '📋 Terms & Conditions',
+  'terms.usage': 'Usage',
+  'terms.usageText': 'Free for personal and non-commercial use without restrictions.',
+  'terms.ip': 'Intellectual Property',
+  'terms.ipText': 'Code is licensed under MIT License. Drawings you create are fully yours.',
+  'terms.disclaimer': 'Disclaimer',
+  'terms.disclaimerText': 'The app is provided as-is. The developer is not responsible for any data loss.',
+  'terms.license': 'License',
+  'terms.licenseText': 'This project is licensed under the MIT License.',
+
+  /* ── FAQ Page ── */
+  'faq.title': '❓ FAQ',
+  'faq.q1': 'How do I save my work?',
+  'faq.a1': 'Auto-save is continuous. You can export your work as PNG or JSON via the save buttons.',
+  'faq.q2': 'Does it work offline?',
+  'faq.a2': 'Yes! After the first visit it works fully offline. You can install it as an app via the install button.',
+  'faq.q3': 'What does reset mean?',
+  'faq.a3': 'Deletes all local data and restores the app to its initial state. Use only when necessary.',
+
+  /* ── Status Bar ── */
+  'status.tool': 'Tool:',
+  'status.grid': 'Grid:',
+  'status.filled': 'Filled:',
+
+  /* ── Tool Names ── */
+  'toolName.draw': 'Draw',
+  'toolName.erase': 'Eraser',
+  'toolName.fill': 'Fill',
+  'toolName.pan': 'Pan',
+  'toolName.select': 'Select',
+  'toolName.brush': 'Continuous Pen',
+
+  /* ── Modal / Dialogs ── */
+  'modal.confirm': 'Confirm',
+  'modal.ok': 'OK',
+  'modal.cancel': 'Cancel',
+
+  /* ── JS Dynamic Strings & Confirmations ── */
+  'confirm.clearAll': 'Clear all content?',
+  'confirm.fullReset': 'Full reset? All data and settings will be deleted.',
+  'confirm.resizeGrid': 'Resizing will clear content?',
+  'confirm.invalidFile': 'Invalid file or not a Murabba file',
+  'confirm.corruptFile': 'File is corrupt or invalid — could not load',
+  'confirm.loadError': 'File error',
+  'confirm.openSave': 'Open "%s"? Current drawing will be replaced.',
+  'confirm.deleteSave': 'Delete "%s"?',
+  'confirm.deleteColor': 'Remove color %s from the list?',
+  'confirm.resetLetters': 'Reset all letters to default?\nAll your letter edits will be deleted.',
+  'confirm.resetLettersDone': '✓ Default letters restored',
+  'confirm.importSuccess': 'Successfully imported %d letters',
+  'confirm.importError': 'Error reading file:',
+  'confirm.builtinLetter': 'This is a built-in letter. Reset to default?',
+  'confirm.deleteLetter': 'Delete letter "%s"?',
+  'prompt.fileName': 'File name:',
+  'prompt.defaultName': 'Drawing',
+  'prompt.renameSave': 'New name:',
+  'alert.enterChar': 'Enter the character or symbol',
+  'alert.drawShape': 'Draw the letter shape on the grid',
+
+  /* ── Letter Editor Modal ── */
+  'letterEditor.newLetter': 'New Letter',
+  'letterEditor.editPrefix': 'Edit:',
+  'letterEditor.charLabel': 'Character / Symbol',
+  'letterEditor.charPlaceholder': 'e.g.: ن',
+  'letterEditor.nameLabel': 'Name',
+  'letterEditor.namePlaceholder': 'e.g.: Nun',
+  'letterEditor.gridLabel': 'Grid:',
+  'letterEditor.applySize': 'Apply',
+  'letterEditor.clear': 'Clear',
+  'letterEditor.toolLabel': 'Tool:',
+  'letterEditor.drawTool': '✏️ Draw',
+  'letterEditor.eraseTool': '🧹 Erase',
+  'letterEditor.delete': 'Delete',
+  'letterEditor.cancel': 'Cancel',
+  'letterEditor.save': 'Save Letter',
+
+  /* ── Selection System ── */
+  'sel.confirm': 'Confirm',
+  'sel.elements': 'element(s)',
+  'sel.dragHint': 'Drag • Arrows for precise move',
+  'sel.commitTitle': 'Confirm (Enter)',
+  'sel.cancelTitle': 'Cancel (Esc)',
+  'sel.stampTitle': 'Stamp (Enter)',
+
+  /* ── Block Overlay ── */
+  'block.dragHint': 'Drag to move',
+  'block.mergeHint': 'Merge into canvas',
+  'block.mergeTitle': 'Merge into canvas',
+
+  /* ── Background ── */
+  'bg.hide': 'Hide',
+  'bg.show': 'Show',
+
+  /* ── Crop Editor ── */
+  'crop.title': '✂️ Select the part to show',
+  'crop.apply': '✓ Apply',
+  'crop.resetCrop': '↺ Reset',
+  'crop.cancel': '✕ Cancel',
+  'crop.hint': 'Drag frame to move · Drag corners to resize',
+
+  /* ── Misc ── */
+  'misc.bgMissing': '⚠ Reference image missing',
+  'misc.minutesAgo': 'minute(s)',
+  'misc.hoursAgo': 'hour(s)',
+  'misc.ago': 'ago',
+  'misc.lastSave': 'Last save',
+  'misc.since': 'since',
+
+  /* ── Language Switcher ── */
+  'lang.label': 'Language',
+};
+
+export default en;

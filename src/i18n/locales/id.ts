@@ -1,0 +1,272 @@
+/**
+ * Indonesian translations for Murabba
+ * Bahasa Indonesia — Editor Kaligrafi Kufi Persegi
+ */
+
+export const id: Record<string, string> = {
+  /* ── Welcome Screen ── */
+  'welcome.subtitle': 'Editor Kaligrafi Kufi Persegi',
+  'welcome.newProject': 'Proyek Baru',
+  'welcome.startFresh': 'Mulai dari awal',
+  'welcome.continue': 'Lanjutkan',
+  'welcome.continueWork': 'Lanjutkan dari terakhir',
+  'welcome.previousSession': 'Sesi sebelumnya',
+  'welcome.openFile': 'Buka File',
+  'welcome.savedJSON': 'JSON Tersimpan',
+  'welcome.startDesign': 'Mulai Mendesain →',
+  'welcome.agreement': 'Menggunakan aplikasi berarti menyetujui kebijakan dan ketentuan',
+
+  /* ── Top Bar ── */
+  'topbar.subtitle': 'Editor Kufi',
+  'topbar.developer': 'Pengembang',
+  'topbar.tools': 'Alat',
+  'topbar.grid': 'Grid',
+  'topbar.letters': 'Huruf',
+  'topbar.myFiles': 'File Saya',
+
+  /* ── Tooltips ── */
+  'tip.undo': 'Urungkan (Ctrl+Z)',
+  'tip.redo': 'Ulang (Ctrl+Y)',
+  'tip.clearCanvas': 'Hapus Kanvas',
+  'tip.exportPNG': 'Ekspor PNG',
+  'tip.saveJSON': 'Simpan JSON',
+  'tip.loadJSON': 'Buka File JSON',
+  'tip.zoomOut': 'Perkecil',
+  'tip.zoomIn': 'Perbesar',
+  'tip.zoomFit': 'Pas',
+  'tip.draw': 'Gambar (B)',
+  'tip.erase': 'Penghapus (E)',
+  'tip.fill': 'Isi (F)',
+  'tip.brush': 'Pena Kontinu (W)',
+  'tip.pan': 'Geser (H)',
+  'tip.select': 'Pilih & Pindah (S)',
+  'tip.bgDrag': 'Aktifkan/Nonaktifkan geser gambar',
+  'tip.pickColor': 'Pilih warna',
+  'tip.customColor': 'Warna kustom',
+  'tip.bgScaleDown': 'Kecilkan latar',
+  'tip.bgScaleUp': 'Besarkan latar',
+  'tip.brushMode1': 'Sel + koneksi langsung',
+  'tip.brushMode2': 'Koneksi lurus saja (tanpa sel)',
+  'tip.brushMode3': 'Isi penuh (sel + semua celah sekitar)',
+
+  /* ── Bottom Sheet Tabs ── */
+  'tab.tools': 'Alat',
+  'tab.grid': 'Grid',
+  'tab.letters': 'Huruf',
+  'tab.myFiles': 'File Saya',
+  'tab.developer': 'Pengembang',
+  'tab.privacy': 'Privasi',
+  'tab.terms': 'Ketentuan',
+  'tab.faq': 'FAQ',
+
+  /* ── Saves Panel ── */
+  'saves.title': '📁 File Tersimpan',
+  'saves.saveCurrent': '+ Simpan Sekarang',
+  'saves.noFiles': 'Tidak ada file tersimpan',
+  'saves.pressToSave': 'Tekan "+ Simpan Sekarang" untuk menyimpan',
+  'saves.hint': '💡 File disimpan di browser. Anda bisa mengunduhnya sebagai JSON untuk cadangan.',
+  'saves.open': 'Buka',
+  'saves.download': '⬇️',
+  'saves.delete': '🗑',
+  'saves.rename': '✏️',
+
+  /* ── Grid Panel ── */
+  'grid.size': 'Ukuran Grid',
+  'grid.columns': 'Kolom',
+  'grid.rows': 'Baris',
+  'grid.apply': 'Terapkan',
+  'grid.quickTemplates': 'Template Cepat',
+  'grid.cellSize': 'Ukuran Sel',
+  'grid.gapSize': 'Jarak Antar Sel',
+  'grid.cornerRadius': 'Radius Sudut',
+  'grid.canvasBg': 'Latar Kanvas',
+  'grid.dark': 'Gelap',
+  'grid.light': 'Terang',
+  'grid.axisLines': 'Garis Sumbu',
+  'grid.showAxis': 'Tampilkan garis sumbu',
+  'grid.axisColor': 'Warna Sumbu',
+  'grid.every': 'Setiap',
+  'grid.cell': 'sel',
+  'grid.rulers': 'Penggaris Panduan',
+  'grid.showRulers': 'Tampilkan penggaris biru',
+  'grid.interLines': 'Garis antar sel',
+  'grid.enableInterLines': 'Aktifkan garis antar sel',
+
+  /* ── Letters Panel ── */
+  'letters.search': 'Cari...',
+  'letters.newLetter': 'Huruf Baru',
+  'letters.exportJSON': 'Ekspor JSON',
+  'letters.importJSON': 'Impor JSON',
+  'letters.resetDefault': 'Reset ke Default',
+  'letters.insertPos': 'Posisi Sisip',
+  'letters.autoAdvance': 'Otomatis maju ke kanan',
+  'letters.noResults': 'Tidak ada hasil',
+  'letters.edit': 'Ubah',
+
+  /* ── Tools Panel ── */
+  'tools.drawColors': 'Warna Gambar',
+  'tools.fillColor': 'Warna Isi',
+  'tools.emptyCellColor': 'Warna Sel Kosong',
+  'tools.quickColors': 'Warna Cepat',
+  'tools.addColor': 'Tambah warna baru',
+  'tools.export': 'Ekspor',
+  'tools.exportCleanPNG': 'Ekspor PNG Bersih',
+  'tools.exportWithBg': 'Ekspor dengan Latar',
+  'tools.exportSVG': 'Ekspor SVG',
+  'tools.exportWebP': 'Ekspor WebP',
+  'tools.addBgImage': 'Tambahkan gambar sebagai latar',
+  'tools.clickToUpload': 'Klik untuk unggah gambar referensi',
+  'tools.hide': 'Sembunyikan',
+  'tools.center': 'Tengah',
+  'tools.crop': '✂️ Potong',
+  'tools.remove': 'Hapus',
+  'tools.opacity': 'Transparansi',
+  'tools.bgOpacity': 'Transparansi',
+  'tools.bgSize': 'Ukuran',
+  'tools.posX': 'Posisi Horizontal (X)',
+  'tools.posY': 'Posisi Vertikal (Y)',
+  'tools.dragMode': 'Mode Geser',
+  'tools.enableDrag': 'Aktifkan geser gambar',
+  'tools.blendNormal': 'Normal',
+  'tools.blendMultiply': 'Multiply',
+  'tools.blendScreen': 'Screen',
+  'tools.blendOverlay': 'Overlay',
+  'tools.blendLighten': 'Lighten',
+
+  /* ── About Panel ── */
+  'about.appDesc': 'Editor Kaligrafi Kufi Persegi',
+  'about.appIntro': 'Tentang Aplikasi',
+  'about.appIntroText': 'Alat gratis dan open-source untuk mendesain kaligrafi Kufi Persegi. Berjalan sepenuhnya di browser — tanpa server, tanpa pengumpulan data.',
+  'about.devInfo': 'Proyek open source — Lisensi MIT',
+  'about.sourceCode': 'Kode Sumber',
+  'about.privacyPolicy': 'Kebijakan Privasi',
+  'about.termsConditions': 'Syarat & Ketentuan',
+  'about.faqTitle': 'FAQ & Panduan',
+  'about.reset': 'Reset',
+  'about.resetFull': 'Reset Penuh',
+  'about.install': 'Instal',
+  'about.installApp': 'Instal Aplikasi',
+
+  /* ── Privacy Page ── */
+  'privacy.title': '🔒 Kebijakan Privasi',
+  'privacy.dataCollection': 'Pengumpulan Data',
+  'privacy.dataCollectionText': 'Murabba tidak mengumpulkan data pribadi apa pun. Semua data Anda disimpan secara lokal di perangkat Anda saja.',
+  'privacy.cookies': 'Cookie',
+  'privacy.cookiesText': 'Aplikasi tidak menggunakan cookie apa pun.',
+  'privacy.localStorage': 'Penyimpanan Lokal',
+  'privacy.localStorageText': 'Menggunakan localStorage dan IndexedDB untuk menyimpan sesi Anda — bisa dihapus melalui reset.',
+
+  /* ── Terms Page ── */
+  'terms.title': '📋 Syarat & Ketentuan',
+  'terms.usage': 'Penggunaan',
+  'terms.usageText': 'Gratis untuk penggunaan pribadi dan non-komersial tanpa batasan.',
+  'terms.ip': 'Kekayaan Intelektual',
+  'terms.ipText': 'Kode dilisensikan di bawah Lisensi MIT. Gambar yang Anda buat sepenuhnya milik Anda.',
+  'terms.disclaimer': 'Penafian',
+  'terms.disclaimerText': 'Aplikasi disediakan apa adanya. Pengembang tidak bertanggung jawab atas kehilangan data.',
+  'terms.license': 'Lisensi',
+  'terms.licenseText': 'Proyek ini dilisensikan di bawah Lisensi MIT.',
+
+  /* ── FAQ Page ── */
+  'faq.title': '❓ FAQ',
+  'faq.q1': 'Bagaimana cara menyimpan pekerjaan saya?',
+  'faq.a1': 'Penyimpanan otomatis terus berjalan. Anda bisa mengekspor pekerjaan sebagai PNG atau JSON melalui tombol simpan.',
+  'faq.q2': 'Apakah bisa digunakan tanpa internet?',
+  'faq.a2': 'Ya! Setelah kunjungan pertama, berfungsi sepenuhnya offline. Anda bisa menginstalnya sebagai aplikasi melalui tombol instal.',
+  'faq.q3': 'Apa arti reset?',
+  'faq.a3': 'Menghapus semua data lokal dan mengembalikan aplikasi ke keadaan awal. Gunakan hanya jika diperlukan.',
+
+  /* ── Status Bar ── */
+  'status.tool': 'Alat:',
+  'status.grid': 'Grid:',
+  'status.filled': 'Terisi:',
+
+  /* ── Tool Names ── */
+  'toolName.draw': 'Gambar',
+  'toolName.erase': 'Penghapus',
+  'toolName.fill': 'Isi',
+  'toolName.pan': 'Geser',
+  'toolName.select': 'Pilih',
+  'toolName.brush': 'Pena Kontinu',
+
+  /* ── Modal / Dialogs ── */
+  'modal.confirm': 'Konfirmasi',
+  'modal.ok': 'OK',
+  'modal.cancel': 'Batal',
+
+  /* ── JS Dynamic Strings & Confirmations ── */
+  'confirm.clearAll': 'Hapus semua konten?',
+  'confirm.fullReset': 'Reset penuh? Semua data dan pengaturan akan dihapus.',
+  'confirm.resizeGrid': 'Mengubah ukuran akan menghapus konten?',
+  'confirm.invalidFile': 'File tidak valid atau bukan file Murabba',
+  'confirm.corruptFile': 'File rusak atau tidak valid — tidak bisa dimuat',
+  'confirm.loadError': 'Error file',
+  'confirm.openSave': 'Buka "%s"? Gambar saat ini akan diganti.',
+  'confirm.deleteSave': 'Hapus "%s"?',
+  'confirm.deleteColor': 'Hapus warna %s dari daftar?',
+  'confirm.resetLetters': 'Reset semua huruf ke default?\nSemua editan huruf Anda akan dihapus.',
+  'confirm.resetLettersDone': '✓ Huruf default dipulihkan',
+  'confirm.importSuccess': 'Berhasil mengimpor %d huruf',
+  'confirm.importError': 'Error membaca file:',
+  'confirm.builtinLetter': 'Ini huruf bawaan. Reset ke default?',
+  'confirm.deleteLetter': 'Hapus huruf "%s"?',
+  'prompt.fileName': 'Nama file:',
+  'prompt.defaultName': 'Gambar',
+  'prompt.renameSave': 'Nama baru:',
+  'alert.enterChar': 'Masukkan karakter atau simbol',
+  'alert.drawShape': 'Gambar bentuk huruf di grid',
+
+  /* ── Letter Editor Modal ── */
+  'letterEditor.newLetter': 'Huruf Baru',
+  'letterEditor.editPrefix': 'Edit:',
+  'letterEditor.charLabel': 'Karakter / Simbol',
+  'letterEditor.charPlaceholder': 'misal: ن',
+  'letterEditor.nameLabel': 'Nama',
+  'letterEditor.namePlaceholder': 'misal: Nun',
+  'letterEditor.gridLabel': 'Grid:',
+  'letterEditor.applySize': 'Terapkan',
+  'letterEditor.clear': 'Hapus',
+  'letterEditor.toolLabel': 'Alat:',
+  'letterEditor.drawTool': '✏️ Gambar',
+  'letterEditor.eraseTool': '🧹 Hapus',
+  'letterEditor.delete': 'Hapus',
+  'letterEditor.cancel': 'Batal',
+  'letterEditor.save': 'Simpan Huruf',
+
+  /* ── Selection System ── */
+  'sel.confirm': 'Konfirmasi',
+  'sel.elements': 'elemen',
+  'sel.dragHint': 'Seret • Panah untuk geser presisi',
+  'sel.commitTitle': 'Konfirmasi (Enter)',
+  'sel.cancelTitle': 'Batal (Esc)',
+  'sel.stampTitle': 'Terapkan (Enter)',
+
+  /* ── Block Overlay ── */
+  'block.dragHint': 'Seret untuk memindahkan',
+  'block.mergeHint': 'Gabungkan ke kanvas',
+  'block.mergeTitle': 'Gabung ke kanvas',
+
+  /* ── Background ── */
+  'bg.hide': 'Sembunyikan',
+  'bg.show': 'Tampilkan',
+
+  /* ── Crop Editor ── */
+  'crop.title': '✂️ Pilih bagian yang ingin ditampilkan',
+  'crop.apply': '✓ Terapkan',
+  'crop.resetCrop': '↺ Reset',
+  'crop.cancel': '✕ Batal',
+  'crop.hint': 'Seret bingkai untuk memindahkan · Seret sudut untuk mengubah ukuran',
+
+  /* ── Misc ── */
+  'misc.bgMissing': '⚠ Gambar referensi hilang',
+  'misc.minutesAgo': 'menit',
+  'misc.hoursAgo': 'jam',
+  'misc.ago': 'yang lalu',
+  'misc.lastSave': 'Terakhir disimpan',
+  'misc.since': 'sejak',
+
+  /* ── Language Switcher ── */
+  'lang.label': 'Bahasa',
+};
+
+export default id;

@@ -1,0 +1,272 @@
+/**
+ * Arabic translations for Murabba
+ * العربية — الخط الكوفي المربع
+ */
+
+export const ar: Record<string, string> = {
+  /* ── Welcome Screen (شاشة الترحيب) ── */
+  'welcome.subtitle': 'محرر الخط الكوفي المربع',
+  'welcome.newProject': 'مشروع جديد',
+  'welcome.startFresh': 'ابدأ من الصفر',
+  'welcome.continue': 'متابعة',
+  'welcome.continueWork': 'استمر من حيث توقفت',
+  'welcome.previousSession': 'جلسة سابقة',
+  'welcome.openFile': 'فتح ملف',
+  'welcome.savedJSON': 'JSON محفوظ',
+  'welcome.startDesign': 'ابدأ التصميم →',
+  'welcome.agreement': 'استخدام التطبيق يعني الموافقة على السياسات والاحكام',
+
+  /* ── Top Bar (الشريط العلوي) ── */
+  'topbar.subtitle': 'محرر كوفي',
+  'topbar.developer': 'المطور',
+  'topbar.tools': 'أدوات',
+  'topbar.grid': 'شبكة',
+  'topbar.letters': 'حروف',
+  'topbar.myFiles': 'ملفاتي',
+
+  /* ── Tooltips (تلميحات الأدوات) ── */
+  'tip.undo': 'تراجع (Ctrl+Z)',
+  'tip.redo': 'إعادة (Ctrl+Y)',
+  'tip.clearCanvas': 'مسح اللوحة',
+  'tip.exportPNG': 'تصدير PNG',
+  'tip.saveJSON': 'حفظ JSON',
+  'tip.loadJSON': 'فتح ملف JSON',
+  'tip.zoomOut': 'تصغير',
+  'tip.zoomIn': 'تكبير',
+  'tip.zoomFit': 'ملاءمة',
+  'tip.draw': 'رسم (B)',
+  'tip.erase': 'ممحاة (E)',
+  'tip.fill': 'ملء (F)',
+  'tip.brush': 'قلم متواصل (W)',
+  'tip.pan': 'تحريك (H)',
+  'tip.select': 'تحديد ونقل (S)',
+  'tip.bgDrag': 'تفعيل/تعطيل سحب الصورة',
+  'tip.pickColor': 'اختر لوناً',
+  'tip.customColor': 'لون مخصص',
+  'tip.bgScaleDown': 'تصغير الخلفية',
+  'tip.bgScaleUp': 'تكبير الخلفية',
+  'tip.brushMode1': 'خلايا + وصلات مباشرة',
+  'tip.brushMode2': 'وصلات مستقيمة فقط (بدون خلايا)',
+  'tip.brushMode3': 'ملء كامل (خلايا + كل الفراغات المحيطة)',
+
+  /* ── Bottom Sheet Tabs (ألسنة اللوحة السفلية) ── */
+  'tab.tools': 'الادوات',
+  'tab.grid': 'الشبكة',
+  'tab.letters': 'الحروف',
+  'tab.myFiles': 'ملفاتي',
+  'tab.developer': 'المطور',
+  'tab.privacy': 'الخصوصية',
+  'tab.terms': 'الشروط',
+  'tab.faq': 'الأسئلة',
+
+  /* ── Saves Panel (لوحة الملفات المحفوظة) ── */
+  'saves.title': '📁 ملفاتي المحفوظة',
+  'saves.saveCurrent': '+ حفظ الحالي',
+  'saves.noFiles': 'لا توجد ملفات محفوظة',
+  'saves.pressToSave': 'اضغط "+ حفظ الحالي" لحفظ رسمك',
+  'saves.hint': '💡 الملفات محفوظة في المتصفح. يمكنك تنزيلها كـ JSON للنسخ الاحتياطي.',
+  'saves.open': 'فتح',
+  'saves.download': '⬇️',
+  'saves.delete': '🗑',
+  'saves.rename': '✏️',
+
+  /* ── Grid Panel (لوحة الشبكة) ── */
+  'grid.size': 'حجم الشبكة',
+  'grid.columns': 'أعمدة',
+  'grid.rows': 'صفوف',
+  'grid.apply': 'تطبيق',
+  'grid.quickTemplates': 'قوالب سريعة',
+  'grid.cellSize': 'حجم الخلية',
+  'grid.gapSize': 'فجوة بين الخلايا',
+  'grid.cornerRadius': 'استدارة الأركان',
+  'grid.canvasBg': 'خلفية اللوحة',
+  'grid.dark': 'داكنة',
+  'grid.light': 'فاتحة',
+  'grid.axisLines': 'خطوط المحاور',
+  'grid.showAxis': 'إظهار خطوط المحاور',
+  'grid.axisColor': 'لون المحور',
+  'grid.every': 'كل',
+  'grid.cell': 'خلية',
+  'grid.rulers': 'مساطر الإرشاد',
+  'grid.showRulers': 'إظهار المساطر الزرقاء',
+  'grid.interLines': 'خطوط بين الخلايا',
+  'grid.enableInterLines': 'تفعيل رسم الخطوط البينية',
+
+  /* ── Letters Panel (لوحة الحروف) ── */
+  'letters.search': 'بحث...',
+  'letters.newLetter': 'حرف جديد',
+  'letters.exportJSON': 'تصدير JSON',
+  'letters.importJSON': 'استيراد JSON',
+  'letters.resetDefault': 'إعادة للافتراضي',
+  'letters.insertPos': 'موضع الإدراج',
+  'letters.autoAdvance': 'تقدم تلقائي يميناً',
+  'letters.noResults': 'لا توجد نتائج',
+  'letters.edit': 'تعديل',
+
+  /* ── Tools Panel (لوحة الأدوات) ── */
+  'tools.drawColors': 'الوان الرسم',
+  'tools.fillColor': 'لون الحشو',
+  'tools.emptyCellColor': 'لون الخلايا الفارغة',
+  'tools.quickColors': 'ألوان سريعة',
+  'tools.addColor': 'إضافة لون جديد',
+  'tools.export': 'تصدير',
+  'tools.exportCleanPNG': 'تصدير PNG نظيف',
+  'tools.exportWithBg': 'تصدير مع خلفية',
+  'tools.exportSVG': 'تصدير SVG',
+  'tools.exportWebP': 'تصدير WebP',
+  'tools.addBgImage': 'اضافة صورة كخلفية رسم',
+  'tools.clickToUpload': 'انقر لرفع صورة مرجعية',
+  'tools.hide': 'إخفاء',
+  'tools.center': 'مركز',
+  'tools.crop': '✂️ قص',
+  'tools.remove': 'إزالة',
+  'tools.opacity': 'الشفافية',
+  'tools.bgOpacity': 'الشفافية',
+  'tools.bgSize': 'الحجم',
+  'tools.posX': 'الموضع الأفقي (X)',
+  'tools.posY': 'الموضع العمودي (Y)',
+  'tools.dragMode': 'وضع السحب',
+  'tools.enableDrag': 'تمكين سحب الصورة',
+  'tools.blendNormal': 'عادي',
+  'tools.blendMultiply': 'ضرب',
+  'tools.blendScreen': 'شاشة',
+  'tools.blendOverlay': 'تراكب',
+  'tools.blendLighten': 'إضاءة',
+
+  /* ── About Panel (عن التطبيق والمطور) ── */
+  'about.appDesc': 'محرر الخط الكوفي المربع',
+  'about.appIntro': 'تعريف بالتطبيق',
+  'about.appIntroText': 'أداة مجانية ومفتوحة المصدر لتصميم الخط الكوفي المربع. تعمل بالكامل في المتصفح — بدون خادم، ولا تجمع أي بيانات.',
+  'about.devInfo': 'مشروع مفتوح المصدر — رخصة MIT',
+  'about.sourceCode': 'الكود المصدري',
+  'about.privacyPolicy': 'سياسة الخصوصية',
+  'about.termsConditions': 'الشروط والأحكام',
+  'about.faqTitle': 'الأسئلة والتوجيهات',
+  'about.reset': 'تهيئة',
+  'about.resetFull': 'إعادة تهيئة شاملة',
+  'about.install': 'تثبيت',
+  'about.installApp': 'تثبيت التطبيق',
+
+  /* ── Privacy Page (صفحة سياسة الخصوصية) ── */
+  'privacy.title': '🔒 سياسة الخصوصية',
+  'privacy.dataCollection': 'جمع البيانات',
+  'privacy.dataCollectionText': 'لا يجمع مُرَبَّع أي بيانات شخصية. جميع بياناتك تُخزَّن محلياً على جهازك فقط.',
+  'privacy.cookies': 'ملفات تعريف الارتباط',
+  'privacy.cookiesText': 'لا يستخدم التطبيق أي Cookies.',
+  'privacy.localStorage': 'التخزين المحلي',
+  'privacy.localStorageText': 'يستخدم localStorage وIndexedDB لحفظ جلستك — يمكن مسحها عبر إعادة التهيئة.',
+
+  /* ── Terms Page (صفحة الشروط والأحكام) ── */
+  'terms.title': '📋 الشروط والأحكام',
+  'terms.usage': 'الاستخدام',
+  'terms.usageText': 'يُتاح للاستخدام الشخصي والغير التجاري مجاناً بدون قيود.',
+  'terms.ip': 'الملكية الفكرية',
+  'terms.ipText': 'الكود مرخَّص برخصة MIT. الرسومات التي تنشئها ملكك الكامل.',
+  'terms.disclaimer': 'إخلاء المسؤولية',
+  'terms.disclaimerText': 'يُقدَّم التطبيق كما هو. المطور غير مسؤول عن أي خسارة في البيانات.',
+  'terms.license': 'الترخيص',
+  'terms.licenseText': 'هذا المشروع مرخَّص بموجب رخصة MIT.',
+
+  /* ── FAQ Page (صفحة الأسئلة الشائعة) ── */
+  'faq.title': '❓ الأسئلة الشائعة',
+  'faq.q1': 'كيف أحفظ عملي؟',
+  'faq.a1': 'يتم الحفظ التلقائي باستمرار. يمكنك تصدير عملك كـ PNG أو JSON عبر أزرار الحفظ.',
+  'faq.q2': 'هل يعمل بدون إنترنت؟',
+  'faq.a2': 'نعم! بعد الزيارة الأولى يعمل كاملاً offline. يمكن تثبيته كتطبيق عبر زر التثبيت.',
+  'faq.q3': 'ماذا تعني إعادة التهيئة؟',
+  'faq.a3': 'تمسح جميع البيانات المحلية وتُعيد التطبيق لحالته الأولى. استخدمها عند الضرورة فقط.',
+
+  /* ── Status Bar (شريط الحالة) ── */
+  'status.tool': 'الأداة:',
+  'status.grid': 'الشبكة:',
+  'status.filled': 'مملوء:',
+
+  /* ── Tool Names (أسماء الأدوات) ── */
+  'toolName.draw': 'رسم',
+  'toolName.erase': 'ممحاة',
+  'toolName.fill': 'ملء',
+  'toolName.pan': 'تحريك',
+  'toolName.select': 'تحديد',
+  'toolName.brush': 'قلم متواصل',
+
+  /* ── Modal / Dialogs (النوافذ الحوارية) ── */
+  'modal.confirm': 'تأكيد',
+  'modal.ok': 'موافق',
+  'modal.cancel': 'إلغاء',
+
+  /* ── JS Dynamic Strings & Confirmations (رسائل الجافاسكريبت التفاعلية) ── */
+  'confirm.clearAll': 'مسح كل المحتوى؟',
+  'confirm.fullReset': 'إعادة تهيئة شاملة؟ سيتم مسح كل البيانات والإعدادات.',
+  'confirm.resizeGrid': 'تغيير الحجم سيمسح المحتوى؟',
+  'confirm.invalidFile': 'الملف غير صحيح أو ليس ملف مُرَبَّع',
+  'confirm.corruptFile': 'الملف تالف أو غير صالح — تعذّر تحميله',
+  'confirm.loadError': 'خطأ في الملف',
+  'confirm.openSave': 'فتح "%s"؟ سيتم استبدال الرسم الحالي.',
+  'confirm.deleteSave': 'حذف "%s"؟',
+  'confirm.deleteColor': 'حذف اللون %s من القائمة؟',
+  'confirm.resetLetters': 'إعادة جميع الحروف للشكل الافتراضي؟\nسيتم حذف كل تعديلاتك على الحروف.',
+  'confirm.resetLettersDone': '✓ تم استعادة الحروف الافتراضية',
+  'confirm.importSuccess': 'تم استيراد %d حرف بنجاح',
+  'confirm.importError': 'خطأ في قراءة الملف:',
+  'confirm.builtinLetter': 'هذا حرف مدمج. هل تريد إعادته للشكل الافتراضي؟',
+  'confirm.deleteLetter': 'حذف الحرف "%s"؟',
+  'prompt.fileName': 'اسم الملف:',
+  'prompt.defaultName': 'رسم',
+  'prompt.renameSave': 'اسم جديد:',
+  'alert.enterChar': 'أدخل الحرف أو الرمز',
+  'alert.drawShape': 'ارسم شكل الحرف في الشبكة',
+
+  /* ── Letter Editor Modal (محرر الحروف) ── */
+  'letterEditor.newLetter': 'حرف جديد',
+  'letterEditor.editPrefix': 'تعديل:',
+  'letterEditor.charLabel': 'الحرف / الرمز',
+  'letterEditor.charPlaceholder': 'مثل: ن',
+  'letterEditor.nameLabel': 'الاسم',
+  'letterEditor.namePlaceholder': 'مثل: نون',
+  'letterEditor.gridLabel': 'الشبكة:',
+  'letterEditor.applySize': 'تطبيق',
+  'letterEditor.clear': 'مسح',
+  'letterEditor.toolLabel': 'أداة:',
+  'letterEditor.drawTool': '✏️ رسم',
+  'letterEditor.eraseTool': '🧹 مسح',
+  'letterEditor.delete': 'حذف',
+  'letterEditor.cancel': 'إلغاء',
+  'letterEditor.save': 'حفظ الحرف',
+
+  /* ── Selection System (نظام التحديد) ── */
+  'sel.confirm': 'تأكيد',
+  'sel.elements': 'عنصر',
+  'sel.dragHint': 'اسحب • أسهم للنقل الدقيق',
+  'sel.commitTitle': 'تأكيد (Enter)',
+  'sel.cancelTitle': 'إلغاء (Esc)',
+  'sel.stampTitle': 'تثبيت (Enter)',
+
+  /* ── Block Overlay (كتل الحروف في اللوحة) ── */
+  'block.dragHint': 'اسحب للتحريك',
+  'block.mergeHint': 'دمج في اللوحة',
+  'block.mergeTitle': 'دمج في اللوحة',
+
+  /* ── Background (الخلفية) ── */
+  'bg.hide': 'إخفاء',
+  'bg.show': 'إظهار',
+
+  /* ── Crop Editor (محرر القص) ── */
+  'crop.title': '✂️ حدد الجزء الذي تريد إظهاره',
+  'crop.apply': '✓ تطبيق',
+  'crop.resetCrop': '↺ إعادة',
+  'crop.cancel': '✕ إلغاء',
+  'crop.hint': 'اسحب الإطار للتحريك · اسحب الزوايا لتغيير الحجم',
+
+  /* ── Misc (متنوعات) ── */
+  'misc.bgMissing': '⚠ صورة مرجعية مفقودة',
+  'misc.minutesAgo': 'دقيقة',
+  'misc.hoursAgo': 'ساعة',
+  'misc.ago': 'مضت',
+  'misc.lastSave': 'آخر حفظ',
+  'misc.since': 'منذ',
+
+  /* ── Language Switcher (مبدل اللغة) ── */
+  'lang.label': 'اللغة',
+};
+
+export default ar;
