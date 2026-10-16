@@ -91,17 +91,8 @@ export class SelectTool extends BaseTool {
           this.dragStartFloatOrigin = { ox: this.floatData.ox, oy: this.floatData.oy };
         }
       } else {
-        // Clicked outside float: finalize current float and either start defining or idle
+        // Clicked outside float: commit the float and return to idle
         this.stampFloat(ctx);
-        if (cell) {
-          this.phase = 'define';
-          this.isDefining = true;
-          this.x1 = cell.x;
-          this.y1 = cell.y;
-          this.x2 = cell.x;
-          this.y2 = cell.y;
-          ctx.requestRender();
-        }
       }
       return;
     }
