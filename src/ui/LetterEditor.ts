@@ -139,7 +139,7 @@ function createModalDOM(): void {
           <label>Char</label>
           <input type="text" id="leChar" maxlength="4" placeholder="ب" />
           <label>Name</label>
-          <input type="text" id="leName" placeholder="ba" />
+          <input type="text" id="leName" placeholder="Letter name" />
         </div>
       </div>
 
