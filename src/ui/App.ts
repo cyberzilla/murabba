@@ -368,7 +368,7 @@ export class App {
 
   // ─── Letter Placement ───────────────────────────────────
 
-  addLetter(ch: string, sx: number = 2, sy: number = 2): void {
+  addLetter(ch: string): void {
     const entry = this.letters[ch];
     if (!entry) return;
 
@@ -399,13 +399,16 @@ export class App {
 
     if (cells.length === 0 && gHData.length === 0 && gVData.length === 0 && gDData.length === 0) return;
 
+    // Find the next empty position for this letter
+    const pos = this.findEmptyPosition(cols, rows);
+
     const floatData: SelectionData = {
       cells,
       gH: gHData,
       gV: gVData,
       gD: gDData,
-      ox: sx,
-      oy: sy,
+      ox: pos.x,
+      oy: pos.y,
       w: cols,
       h: rows,
     };
@@ -414,6 +417,42 @@ export class App {
     this.setTool('select');
     const selectTool = this.currentTool as SelectTool;
     selectTool.startFloat(floatData, this.getToolContext());
+  }
+
+  /**
+   * Finds the next empty position on the grid where a letter of (w × h) can fit.
+   * Scans left-to-right, top-to-bottom. Checks that all cells in the bounding box are empty.
+   */
+  private findEmptyPosition(w: number, h: number): { x: number; y: number } {
+    const model = this.model;
+    const gridCols = model.cols;
+    const gridRows = model.rows;
+
+    for (let y = 0; y <= gridRows - h; y++) {
+      for (let x = 0; x <= gridCols - w; x++) {
+        if (this.isAreaEmpty(x, y, w, h)) {
+          return { x, y };
+        }
+      }
+    }
+
+    // Fallback: place at (0, 0) if no empty spot found
+    return { x: 0, y: 0 };
+  }
+
+  /**
+   * Checks if a rectangular area on the grid is completely empty (no filled cells).
+   */
+  private isAreaEmpty(sx: number, sy: number, w: number, h: number): boolean {
+    const model = this.model;
+    for (let dy = 0; dy < h; dy++) {
+      for (let dx = 0; dx < w; dx++) {
+        if (model.getCell(sx + dx, sy + dy) !== 0) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   // ─── Zoom ───────────────────────────────────────────────
