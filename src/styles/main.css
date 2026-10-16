@@ -21,7 +21,7 @@
 
 /* Remove native focus outline; keyboard users still see :focus-visible */
 *:focus { outline: none; }
-*:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+*:focus-visible { outline: none; }
 
 /* Disable text selection on interactive UI elements */
 #canvasArea,
