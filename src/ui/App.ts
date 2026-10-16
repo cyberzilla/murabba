@@ -447,17 +447,65 @@ export class App {
   }
 
   /**
-   * Checks if a rectangular area on the grid is completely empty (no filled cells).
+   * Checks if a rectangular area on the grid is completely empty.
+   * Checks cells, gapH, gapV, gapD within the bounding box,
+   * plus bordering gaps around it to prevent visual merging with neighbors.
    */
   private isAreaEmpty(sx: number, sy: number, w: number, h: number): boolean {
     const model = this.model;
+
+    // Check all cells in the bounding box
     for (let dy = 0; dy < h; dy++) {
       for (let dx = 0; dx < w; dx++) {
-        if (model.getCell(sx + dx, sy + dy) !== 0) {
-          return false;
-        }
+        if (model.getCell(sx + dx, sy + dy) !== 0) return false;
       }
     }
+
+    // Check gapH within area (between rows)
+    for (let dy = 0; dy < h - 1; dy++) {
+      for (let dx = 0; dx < w; dx++) {
+        if (model.isGapHInBounds(sx + dx, sy + dy) && model.isFilledGapH(sx + dx, sy + dy)) return false;
+      }
+    }
+
+    // Check gapV within area (between columns)
+    for (let dy = 0; dy < h; dy++) {
+      for (let dx = 0; dx < w - 1; dx++) {
+        if (model.isGapVInBounds(sx + dx, sy + dy) && model.isFilledGapV(sx + dx, sy + dy)) return false;
+      }
+    }
+
+    // Check gapD within area (diagonal corners)
+    for (let dy = 0; dy < h - 1; dy++) {
+      for (let dx = 0; dx < w - 1; dx++) {
+        if (model.isGapDInBounds(sx + dx, sy + dy) && model.isFilledGapD(sx + dx, sy + dy)) return false;
+      }
+    }
+
+    // Check bordering gaps — top edge gapH
+    if (sy > 0) {
+      for (let dx = 0; dx < w; dx++) {
+        if (model.isGapHInBounds(sx + dx, sy - 1) && model.isFilledGapH(sx + dx, sy - 1)) return false;
+      }
+    }
+
+    // Check bordering gaps — bottom edge gapH
+    for (let dx = 0; dx < w; dx++) {
+      if (model.isGapHInBounds(sx + dx, sy + h - 1) && model.isFilledGapH(sx + dx, sy + h - 1)) return false;
+    }
+
+    // Check bordering gaps — left edge gapV
+    if (sx > 0) {
+      for (let dy = 0; dy < h; dy++) {
+        if (model.isGapVInBounds(sx - 1, sy + dy) && model.isFilledGapV(sx - 1, sy + dy)) return false;
+      }
+    }
+
+    // Check bordering gaps — right edge gapV
+    for (let dy = 0; dy < h; dy++) {
+      if (model.isGapVInBounds(sx + w - 1, sy + dy) && model.isFilledGapV(sx + w - 1, sy + dy)) return false;
+    }
+
     return true;
   }
 
