@@ -626,6 +626,28 @@ export class App {
               else if (sel.getPhase() === 'define') { sel.reset(); ctx.requestRender(); }
               break;
           }
+
+          // Float transforms: R=rotate CW, Shift+R=rotate CCW, X=flip H, Y=flip V
+          if (sel.getPhase() === 'float') {
+            switch (e.key) {
+              case 'r':
+                e.preventDefault();
+                sel.rotateFloat(ctx);
+                break;
+              case 'R':
+                e.preventDefault();
+                sel.rotateFloatCCW(ctx);
+                break;
+              case 'x':
+                e.preventDefault();
+                sel.flipFloatH(ctx);
+                break;
+              case 'y':
+                e.preventDefault();
+                sel.flipFloatV(ctx);
+                break;
+            }
+          }
         }
 
         if (this.currentToolType === 'brush' && e.key === 'Escape') {

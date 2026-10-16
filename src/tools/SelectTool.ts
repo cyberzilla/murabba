@@ -29,6 +29,12 @@ import { BaseTool, ToolContext } from './BaseTool';
 import type { ToolType, SelectionData, CellCoord } from '../types/grid';
 import { screenToCell } from '../core/CoordinateMapper';
 import type { GridModel } from '../core/GridModel';
+import {
+  rotateSelectionCW,
+  rotateSelectionCCW,
+  flipSelectionH,
+  flipSelectionV,
+} from '../core/SelectionTransform';
 
 export type SelectPhase = 'idle' | 'define' | 'float';
 
@@ -534,6 +540,44 @@ export class SelectTool extends BaseTool {
   }
 
   /**
+   * Rotates the floating selection 90° clockwise.
+   */
+  rotateFloat(ctx: ToolContext): void {
+    if (!this.floatData || this.phase !== 'float') return;
+    this.floatData = rotateSelectionCW(this.floatData);
+    this.clampFloatOrigin(ctx);
+    ctx.requestRender();
+  }
+
+  /**
+   * Rotates the floating selection 90° counter-clockwise.
+   */
+  rotateFloatCCW(ctx: ToolContext): void {
+    if (!this.floatData || this.phase !== 'float') return;
+    this.floatData = rotateSelectionCCW(this.floatData);
+    this.clampFloatOrigin(ctx);
+    ctx.requestRender();
+  }
+
+  /**
+   * Flips the floating selection horizontally (left ↔ right).
+   */
+  flipFloatH(ctx: ToolContext): void {
+    if (!this.floatData || this.phase !== 'float') return;
+    this.floatData = flipSelectionH(this.floatData);
+    ctx.requestRender();
+  }
+
+  /**
+   * Flips the floating selection vertically (top ↔ bottom).
+   */
+  flipFloatV(ctx: ToolContext): void {
+    if (!this.floatData || this.phase !== 'float') return;
+    this.floatData = flipSelectionV(this.floatData);
+    ctx.requestRender();
+  }
+
+  /**
    * Resets the tool state to idle.
    */
   reset(): void {
@@ -556,6 +600,19 @@ export class SelectTool extends BaseTool {
   }
 
   // ─── Private Helpers ─────────────────────────────────────
+
+  /**
+   * Clamps float origin so the selection stays within grid bounds.
+   * Called after rotation since dimensions (w, h) may have swapped.
+   */
+  private clampFloatOrigin(ctx: ToolContext): void {
+    if (!this.floatData) return;
+    const d = this.floatData;
+    const maxOx = Math.max(0, ctx.model.cols - d.w);
+    const maxOy = Math.max(0, ctx.model.rows - d.h);
+    d.ox = Math.max(0, Math.min(maxOx, d.ox));
+    d.oy = Math.max(0, Math.min(maxOy, d.oy));
+  }
 
   /**
    * Resolves screen coordinates to discrete cell coordinates.

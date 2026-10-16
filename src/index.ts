@@ -6,6 +6,8 @@ import { initI18n, setLang, getLang, t } from './i18n/I18n';
 import type { SupportedLang } from './types';
 import { initConfirmModal, confirmDialog } from './ui/ConfirmModal';
 import { loadSession } from './storage/SessionManager';
+import { initLetterEditor, openNewLetter, openEditLetter } from './ui/LetterEditor';
+import { exportLibrary } from './letters/LetterLibrary';
 
 document.addEventListener('DOMContentLoaded', () => {
   // Disable right-click context menu on canvas only
@@ -476,12 +478,78 @@ function wireWelcomeScreen(app: App): void {
 }
 
 function wireLetterPanel(app: App): void {
+  // Initialize letter editor with callbacks
+  initLetterEditor({
+    onSave(ch, entry) {
+      app.letters[ch] = entry;
+      rebuildLetterGrid(app);
+    },
+    onDelete(ch) {
+      delete app.letters[ch];
+      rebuildLetterGrid(app);
+    },
+  });
+
+  // Wire add/export/import buttons
+  document.getElementById('btnAddLetter')?.addEventListener('click', () => {
+    openNewLetter();
+  });
+
+  document.getElementById('btnExportLib')?.addEventListener('click', () => {
+    const json = exportLibrary(app.letters);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `murabba-letters-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('btnImportLib')?.addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.addEventListener('change', () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(reader.result as string);
+          const rawLetters = parsed.letters || parsed;
+          for (const [ch, raw] of Object.entries(rawLetters)) {
+            const e = raw as any;
+            if (!e.m || !Array.isArray(e.m)) continue;
+            app.letters[ch] = {
+              ch,
+              name: e.name || ch,
+              m: e.m,
+              gH: e.gH || [],
+              gV: e.gV || [],
+              gD: e.gD || [],
+              _builtin: false,
+            };
+          }
+          rebuildLetterGrid(app);
+        } catch (err) {
+          console.warn('[Murabba] Failed to import letters:', err);
+        }
+      };
+      reader.readAsText(file);
+    }, { once: true });
+    input.click();
+  });
+
+  rebuildLetterGrid(app);
+}
+
+function rebuildLetterGrid(app: App): void {
   const grid = document.getElementById('letterGrid');
   if (!grid) return;
 
   const letters = app.letters;
   const keys = Object.keys(letters);
-  if (keys.length === 0) return;
 
   grid.innerHTML = '';
   for (const ch of keys) {
@@ -498,6 +566,17 @@ function wireLetterPanel(app: App): void {
     nameSpan.className = 'letter-name';
     nameSpan.textContent = entry.name || '';
     btn.appendChild(nameSpan);
+
+    // Edit button overlay
+    const editSpan = document.createElement('span');
+    editSpan.className = 'letter-edit';
+    editSpan.textContent = '✎';
+    editSpan.title = 'Edit letter';
+    editSpan.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openEditLetter(ch, entry);
+    });
+    btn.appendChild(editSpan);
 
     btn.addEventListener('click', () => {
       app.addLetter(ch);

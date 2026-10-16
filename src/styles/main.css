@@ -471,3 +471,159 @@ body {
   width: 16px; text-align: center;
   font-size: 13px; line-height: 1;
 }
+
+/* ── Letter Editor Modal ─────────────────────── */
+.le-panel {
+  max-width: 460px !important;
+  min-width: 360px;
+  text-align: start !important;
+}
+.le-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.le-header h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.le-close-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+.le-close-btn:hover { color: var(--text); }
+
+.le-meta { margin-bottom: 10px; }
+.le-meta-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.le-meta-row label {
+  font-size: 11px;
+  color: var(--muted);
+  min-width: 34px;
+}
+.le-meta-row input {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  padding: 4px 8px;
+  font-size: 13px;
+  font-family: 'Noto Sans Arabic', 'Amiri', serif;
+}
+.le-meta-row input:first-of-type { max-width: 60px; }
+
+.le-grid-controls {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.le-grid-controls label {
+  font-size: 11px;
+  color: var(--muted);
+}
+.le-grid-controls input[type="number"] {
+  width: 48px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  padding: 3px 6px;
+  font-size: 12px;
+  text-align: center;
+}
+
+.le-tools {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.le-editor-wrap {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--rs);
+  padding: 12px;
+  margin-bottom: 12px;
+  overflow: auto;
+  max-height: 340px;
+}
+.le-editor-grid {
+  display: grid;
+  gap: 0;
+  width: 100%;
+  aspect-ratio: 1;
+  max-width: 340px;
+  margin: 0 auto;
+  touch-action: none;
+  user-select: none;
+}
+
+/* Main cells */
+.le-cell {
+  background: var(--surface3);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.1s;
+  min-width: 0;
+  min-height: 0;
+}
+.le-cell:hover { background: #1a2a1e; }
+.le-cell.filled {
+  background: var(--accent);
+}
+
+/* Gap bridges — shared base */
+.le-gH, .le-gV, .le-gD {
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.1s;
+  border-radius: 2px;
+  min-width: 0;
+  min-height: 0;
+}
+.le-gH:hover, .le-gV:hover, .le-gD:hover {
+  background: rgba(34,197,94,0.15);
+}
+.le-gH.filled, .le-gV.filled, .le-gD.filled {
+  background: var(--accent);
+}
+
+.le-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.le-spacer { flex: 1; }
+
+/* ── Letter card edit overlay ────────────────── */
+.letter-btn .letter-edit {
+  position: absolute;
+  top: 2px;
+  inset-inline-end: 2px;
+  font-size: 9px;
+  color: var(--muted);
+  background: rgba(0,0,0,0.5);
+  border-radius: 3px;
+  padding: 1px 3px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+  line-height: 1;
+  z-index: 1;
+}
+.letter-btn:hover .letter-edit { opacity: 1; }
+.letter-btn .letter-edit:hover { color: var(--accent); }
