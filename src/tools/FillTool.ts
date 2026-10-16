@@ -46,16 +46,14 @@ export class FillTool extends BaseTool {
     const targetColor = ctx.model.getCellColor(startX, startY) || ctx.config.drawColor;
     const activeColor = ctx.config.drawColor;
 
+    // Same color: nothing to do
+    if (targetColor === activeColor) return;
+
     // Save history state once before mutating the grid
     ctx.history.saveState(ctx.model);
 
-    if (targetColor === activeColor) {
-      // Same color: ERASE the connected region
-      this.floodFill(ctx.model, startX, startY, 0, null, targetColor, activeColor);
-    } else {
-      // Different color: RECOLOR the connected region
-      this.floodFill(ctx.model, startX, startY, 1, activeColor, targetColor, activeColor);
-    }
+    // Different color: RECOLOR the connected region
+    this.floodFill(ctx.model, startX, startY, 1, activeColor, targetColor, activeColor);
 
     ctx.requestRender();
   }
