@@ -113,40 +113,33 @@ export class FillTool extends BaseTool {
 
 
   /**
-   * Recolors filled gaps only when BOTH cells on either side are in the recolored region.
+   * Recolors ALL filled gaps touching any cell in the recolored region.
    */
   private recolorConnectedGaps(model: GridModel, recoloredCells: CellCoord[], newColor: string): void {
-    const cols = model.cols;
-    const inRegion = new Set<number>();
     for (const { x, y } of recoloredCells) {
-      inRegion.add(y * cols + x);
-    }
-
-    for (const { x, y } of recoloredCells) {
-      // gapH below: connects (x,y) to (x,y+1)
-      if (model.isGapHInBounds(x, y) && model.isFilledGapH(x, y)
-          && inRegion.has((y + 1) * cols + x)) {
+      // gapH below
+      if (model.isGapHInBounds(x, y) && model.isFilledGapH(x, y)) {
         model.setGapHColor(x, y, newColor);
       }
-      // gapV right: connects (x,y) to (x+1,y)
-      if (model.isGapVInBounds(x, y) && model.isFilledGapV(x, y)
-          && inRegion.has(y * cols + (x + 1))) {
+      // gapH above
+      if (model.isGapHInBounds(x, y - 1) && model.isFilledGapH(x, y - 1)) {
+        model.setGapHColor(x, y - 1, newColor);
+      }
+      // gapV right
+      if (model.isGapVInBounds(x, y) && model.isFilledGapV(x, y)) {
         model.setGapVColor(x, y, newColor);
       }
-      // Corner dots: only if all 4 surrounding cells are in region
+      // gapV left
+      if (model.isGapVInBounds(x - 1, y) && model.isFilledGapV(x - 1, y)) {
+        model.setGapVColor(x - 1, y, newColor);
+      }
+      // Corner dots around (x,y)
       for (const { gx, gy } of [
         { gx: x - 1, gy: y - 1 }, { gx: x, gy: y - 1 },
         { gx: x - 1, gy: y },     { gx: x, gy: y },
       ]) {
         if (model.isGapDInBounds(gx, gy) && model.isFilledGapD(gx, gy)) {
-          const allInRegion =
-            inRegion.has(gy * cols + gx) &&
-            inRegion.has(gy * cols + (gx + 1)) &&
-            inRegion.has((gy + 1) * cols + gx) &&
-            inRegion.has((gy + 1) * cols + (gx + 1));
-          if (allInRegion) {
-            model.setGapDColor(gx, gy, newColor);
-          }
+          model.setGapDColor(gx, gy, newColor);
         }
       }
     }
