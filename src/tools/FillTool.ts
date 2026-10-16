@@ -38,48 +38,34 @@ export class FillTool extends BaseTool {
 
     const startX = startCell.x;
     const startY = startCell.y;
-    const targetValue = ctx.model.getCell(startX, startY);
 
     // Only operate on filled cells — ignore empty cells
-    if (targetValue !== 1) return;
+    if (ctx.model.getCell(startX, startY) !== 1) return;
 
-    const targetColor = ctx.model.getCellColor(startX, startY) || ctx.config.drawColor;
     const activeColor = ctx.config.drawColor;
-
-    // Same color: nothing to do
-    if (targetColor === activeColor) return;
 
     // Save history state once before mutating the grid
     ctx.history.saveState(ctx.model);
 
-    // Different color: RECOLOR the connected region
-    this.floodFill(ctx.model, startX, startY, 1, activeColor, targetColor, activeColor);
+    // Recolor the entire connected region (cells + gaps)
+    this.floodFillConnected(ctx.model, startX, startY, activeColor);
 
     ctx.requestRender();
   }
 
   /**
-   * Iterative stack-based DFS flood fill for cell regions.
-   * Only spreads to neighboring cells that are connected via filled gap bridges (gapH/gapV).
-   * Cells without a gap bridge between them are NOT considered connected.
+   * Iterative DFS flood fill that recolors ALL connected filled cells + gaps.
+   * Spreads through filled gap bridges (gapH/gapV) to find all physically
+   * connected cells, regardless of their current color.
    */
-  private floodFill(
+  private floodFillConnected(
     model: GridModel,
     startX: number,
     startY: number,
-    replacementValue: number,
-    replacementColor: string | null,
-    targetColor: string | null,
-    fallbackColor: string
+    newColor: string
   ): void {
     const cols = model.cols;
     const rows = model.rows;
-    const targetValue = model.getCell(startX, startY);
-
-    if (replacementValue === targetValue) {
-      if (replacementValue === 0) return;
-      if (replacementColor === targetColor) return;
-    }
 
     const visited = new Set<number>();
     const stack: CellCoord[] = [{ x: startX, y: startY }];
@@ -88,117 +74,43 @@ export class FillTool extends BaseTool {
     while (stack.length > 0) {
       const { x: cx, y: cy } = stack.pop()!;
 
-      if (cx < 0 || cx >= cols || cy < 0 || cy >= rows) {
-        continue;
-      }
+      if (cx < 0 || cx >= cols || cy < 0 || cy >= rows) continue;
 
       const flatIndex = cy * cols + cx;
-      if (visited.has(flatIndex)) {
-        continue;
-      }
+      if (visited.has(flatIndex)) continue;
 
-      const cellVal = model.getCell(cx, cy);
-      if (cellVal !== targetValue) {
-        continue;
-      }
-
-      if (targetValue === 1 && targetColor !== null) {
-        const cellColor = model.getCellColor(cx, cy) || fallbackColor;
-        if (cellColor !== targetColor) {
-          continue;
-        }
-      }
+      // Only spread to filled cells
+      if (model.getCell(cx, cy) !== 1) continue;
 
       visited.add(flatIndex);
       affectedCells.push({ x: cx, y: cy });
 
-      model.setCell(cx, cy, replacementValue);
-      if (replacementValue === 1 && replacementColor) {
-        model.setCellColor(cx, cy, replacementColor);
-      }
+      // Recolor this cell
+      model.setCellColor(cx, cy, newColor);
 
-      // Only spread to neighbors connected via gap bridges
-      // Up: cell(cx, cy-1) connected via gapH(cx, cy-1)
+      // Spread to neighbors connected via filled gap bridges
+      // Up: cell(cx, cy-1) via gapH(cx, cy-1)
       if (cy > 0 && model.isGapHInBounds(cx, cy - 1) && model.isFilledGapH(cx, cy - 1)) {
         stack.push({ x: cx, y: cy - 1 });
       }
-      // Down: cell(cx, cy+1) connected via gapH(cx, cy)
+      // Down: cell(cx, cy+1) via gapH(cx, cy)
       if (cy < rows - 1 && model.isGapHInBounds(cx, cy) && model.isFilledGapH(cx, cy)) {
         stack.push({ x: cx, y: cy + 1 });
       }
-      // Left: cell(cx-1, cy) connected via gapV(cx-1, cy)
+      // Left: cell(cx-1, cy) via gapV(cx-1, cy)
       if (cx > 0 && model.isGapVInBounds(cx - 1, cy) && model.isFilledGapV(cx - 1, cy)) {
         stack.push({ x: cx - 1, y: cy });
       }
-      // Right: cell(cx+1, cy) connected via gapV(cx, cy)
+      // Right: cell(cx+1, cy) via gapV(cx, cy)
       if (cx < cols - 1 && model.isGapVInBounds(cx, cy) && model.isFilledGapV(cx, cy)) {
         stack.push({ x: cx + 1, y: cy });
       }
     }
 
-    if (replacementValue === 0) {
-      this.cleanupGapsAfterErase(model, affectedCells);
-    } else if (replacementValue === 1 && replacementColor) {
-      this.recolorConnectedGaps(model, affectedCells, replacementColor);
-    }
+    // Recolor all gaps between affected cells
+    this.recolorConnectedGaps(model, affectedCells, newColor);
   }
 
-  /**
-   * Clears any gaps that connect only to cells being erased (where both connecting cells are now empty).
-   */
-  private cleanupGapsAfterErase(model: GridModel, erasedCells: CellCoord[]): void {
-    for (const cell of erasedCells) {
-      const { x, y } = cell;
-
-      // gapH above: (x, y - 1) connecting (x, y - 1) and (x, y)
-      if (model.isGapHInBounds(x, y - 1)) {
-        if (model.getCell(x, y - 1) === 0 && model.getCell(x, y) === 0) {
-          model.setGapH(x, y - 1, 0);
-        }
-      }
-
-      // gapH below: (x, y) connecting (x, y) and (x, y + 1)
-      if (model.isGapHInBounds(x, y)) {
-        if (model.getCell(x, y) === 0 && model.getCell(x, y + 1) === 0) {
-          model.setGapH(x, y, 0);
-        }
-      }
-
-      // gapV left: (x - 1, y) connecting (x - 1, y) and (x, y)
-      if (model.isGapVInBounds(x - 1, y)) {
-        if (model.getCell(x - 1, y) === 0 && model.getCell(x, y) === 0) {
-          model.setGapV(x - 1, y, 0);
-        }
-      }
-
-      // gapV right: (x, y) connecting (x, y) and (x + 1, y)
-      if (model.isGapVInBounds(x, y)) {
-        if (model.getCell(x, y) === 0 && model.getCell(x + 1, y) === 0) {
-          model.setGapV(x, y, 0);
-        }
-      }
-
-      // Corner dots around (x, y)
-      const dotCoords = [
-        { gx: x - 1, gy: y - 1 },
-        { gx: x, gy: y - 1 },
-        { gx: x - 1, gy: y },
-        { gx: x, gy: y },
-      ];
-
-      for (const { gx, gy } of dotCoords) {
-        if (model.isGapDInBounds(gx, gy) && model.isFilledGapD(gx, gy)) {
-          const c00 = model.getCell(gx, gy);
-          const c10 = model.getCell(gx + 1, gy);
-          const c01 = model.getCell(gx, gy + 1);
-          const c11 = model.getCell(gx + 1, gy + 1);
-          if (c00 === 0 && c10 === 0 && c01 === 0 && c11 === 0) {
-            model.setGapD(gx, gy, 0);
-          }
-        }
-      }
-    }
-  }
 
   /**
    * Recolors filled gaps only when BOTH cells on either side are in the recolored region.
