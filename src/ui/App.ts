@@ -542,11 +542,25 @@ export class App {
       }
       this.currentTool.onPointerDown(pos.x, pos.y, this.getToolContext());
       canvas.setPointerCapture(e.pointerId);
+
+      // Update cursor after pointerdown (e.g. grab → grabbing)
+      if (this.currentToolType === 'select') {
+        canvas.style.cursor = (this.currentTool as SelectTool).getHoverCursor(
+          pos.x, pos.y, this.getToolContext()
+        );
+      }
     });
 
     canvas.addEventListener('pointermove', (e) => {
       const pos = this.renderer.screenToCanvas(e.clientX, e.clientY, this.config);
       this.currentTool.onPointerMove(pos.x, pos.y, this.getToolContext());
+
+      // Dynamic cursor for select tool
+      if (this.currentToolType === 'select') {
+        canvas.style.cursor = (this.currentTool as SelectTool).getHoverCursor(
+          pos.x, pos.y, this.getToolContext()
+        );
+      }
 
       // Update coordinate display
       const cell = screenToCell(pos.x, pos.y, this.config);
@@ -560,6 +574,14 @@ export class App {
     canvas.addEventListener('pointerup', (e) => {
       this.currentTool.onPointerUp(this.getToolContext());
       try { canvas.releasePointerCapture(e.pointerId); } catch { /* ok */ }
+
+      // Refresh cursor after release (e.g. grabbing → grab)
+      if (this.currentToolType === 'select') {
+        const pos = this.renderer.screenToCanvas(e.clientX, e.clientY, this.config);
+        canvas.style.cursor = (this.currentTool as SelectTool).getHoverCursor(
+          pos.x, pos.y, this.getToolContext()
+        );
+      }
     });
 
     // Zoom with Ctrl+Wheel

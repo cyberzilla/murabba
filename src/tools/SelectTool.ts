@@ -72,9 +72,36 @@ export class SelectTool extends BaseTool {
   // ─── BaseTool Overrides ──────────────────────────────────
 
   getCursor(): string {
-    if (this.phase === 'float' || this.isDraggingFrame || this.isDraggingFloat) {
-      return 'move';
+    if (this.isDraggingFloat || this.isDraggingFrame) {
+      return 'grabbing';
     }
+    if (this.phase === 'float') {
+      return 'default';
+    }
+    return 'crosshair';
+  }
+
+  /**
+   * Returns the appropriate cursor for the given hover position.
+   * Called on every pointermove to provide interactive cursor feedback.
+   */
+  getHoverCursor(x: number, y: number, ctx: ToolContext): string {
+    if (this.isDraggingFloat || this.isDraggingFrame) {
+      return 'grabbing';
+    }
+
+    const cell = this.getCellFromPos(x, y, ctx);
+    if (!cell) return 'default';
+
+    if (this.phase === 'float') {
+      return this.isInsideFloat(cell.x, cell.y) ? 'grab' : 'default';
+    }
+
+    if (this.phase === 'define') {
+      if (this.isDefining) return 'crosshair';
+      return this.isInsideFrame(cell.x, cell.y) ? 'grab' : 'crosshair';
+    }
+
     return 'crosshair';
   }
 
