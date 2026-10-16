@@ -399,7 +399,16 @@ export class App {
 
     if (cells.length === 0 && gHData.length === 0 && gVData.length === 0 && gDData.length === 0) return;
 
-    // Find the next empty position for this letter
+    // Switch to select tool first
+    this.setTool('select');
+    const selectTool = this.currentTool as SelectTool;
+
+    // Stamp any existing float BEFORE finding position, so grid is up-to-date
+    if (selectTool.getPhase() === 'float') {
+      selectTool.stampFloat(this.getToolContext());
+    }
+
+    // Now find the next empty position
     const pos = this.findEmptyPosition(cols, rows);
 
     const floatData: SelectionData = {
@@ -413,9 +422,6 @@ export class App {
       h: rows,
     };
 
-    // Switch to select tool and enter float phase
-    this.setTool('select');
-    const selectTool = this.currentTool as SelectTool;
     selectTool.startFloat(floatData, this.getToolContext());
   }
 
