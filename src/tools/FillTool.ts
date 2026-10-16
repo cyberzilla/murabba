@@ -201,50 +201,38 @@ export class FillTool extends BaseTool {
   }
 
   /**
-   * Recolors connected gaps between cells in the recolored region to the new color.
+   * Recolors filled gaps only when BOTH cells on either side are in the recolored region.
    */
   private recolorConnectedGaps(model: GridModel, recoloredCells: CellCoord[], newColor: string): void {
-    for (const cell of recoloredCells) {
-      const { x, y } = cell;
+    const cols = model.cols;
+    const inRegion = new Set<number>();
+    for (const { x, y } of recoloredCells) {
+      inRegion.add(y * cols + x);
+    }
 
-      if (model.isGapHInBounds(x, y) && model.isFilledGapH(x, y)) {
-        if (model.getCell(x, y) === 1 && model.getCell(x, y + 1) === 1) {
-          model.setGapHColor(x, y, newColor);
-        }
+    for (const { x, y } of recoloredCells) {
+      // gapH below: connects (x,y) to (x,y+1)
+      if (model.isGapHInBounds(x, y) && model.isFilledGapH(x, y)
+          && inRegion.has((y + 1) * cols + x)) {
+        model.setGapHColor(x, y, newColor);
       }
-
-      if (model.isGapHInBounds(x, y - 1) && model.isFilledGapH(x, y - 1)) {
-        if (model.getCell(x, y - 1) === 1 && model.getCell(x, y) === 1) {
-          model.setGapHColor(x, y - 1, newColor);
-        }
+      // gapV right: connects (x,y) to (x+1,y)
+      if (model.isGapVInBounds(x, y) && model.isFilledGapV(x, y)
+          && inRegion.has(y * cols + (x + 1))) {
+        model.setGapVColor(x, y, newColor);
       }
-
-      if (model.isGapVInBounds(x, y) && model.isFilledGapV(x, y)) {
-        if (model.getCell(x, y) === 1 && model.getCell(x + 1, y) === 1) {
-          model.setGapVColor(x, y, newColor);
-        }
-      }
-
-      if (model.isGapVInBounds(x - 1, y) && model.isFilledGapV(x - 1, y)) {
-        if (model.getCell(x - 1, y) === 1 && model.getCell(x, y) === 1) {
-          model.setGapVColor(x - 1, y, newColor);
-        }
-      }
-
-      const dotCoords = [
-        { gx: x - 1, gy: y - 1 },
-        { gx: x, gy: y - 1 },
-        { gx: x - 1, gy: y },
-        { gx: x, gy: y },
-      ];
-
-      for (const { gx, gy } of dotCoords) {
+      // Corner dots: only if all 4 surrounding cells are in region
+      for (const { gx, gy } of [
+        { gx: x - 1, gy: y - 1 }, { gx: x, gy: y - 1 },
+        { gx: x - 1, gy: y },     { gx: x, gy: y },
+      ]) {
         if (model.isGapDInBounds(gx, gy) && model.isFilledGapD(gx, gy)) {
-          const c00 = model.getCell(gx, gy);
-          const c10 = model.getCell(gx + 1, gy);
-          const c01 = model.getCell(gx, gy + 1);
-          const c11 = model.getCell(gx + 1, gy + 1);
-          if (c00 === 1 || c10 === 1 || c01 === 1 || c11 === 1) {
+          const allInRegion =
+            inRegion.has(gy * cols + gx) &&
+            inRegion.has(gy * cols + (gx + 1)) &&
+            inRegion.has((gy + 1) * cols + gx) &&
+            inRegion.has((gy + 1) * cols + (gx + 1));
+          if (allInRegion) {
             model.setGapDColor(gx, gy, newColor);
           }
         }
