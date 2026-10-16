@@ -39,21 +39,22 @@ export class FillTool extends BaseTool {
     const startX = startCell.x;
     const startY = startCell.y;
     const targetValue = ctx.model.getCell(startX, startY);
+
+    // Only operate on filled cells — ignore empty cells
+    if (targetValue !== 1) return;
+
     const targetColor = ctx.model.getCellColor(startX, startY) || ctx.config.drawColor;
     const activeColor = ctx.config.drawColor;
 
     // Save history state once before mutating the grid
     ctx.history.saveState(ctx.model);
 
-    if (targetValue === 1 && targetColor === activeColor) {
-      // Same color: ERASE the region (toggle off)
+    if (targetColor === activeColor) {
+      // Same color: ERASE the connected region
       this.floodFill(ctx.model, startX, startY, 0, null, targetColor, activeColor);
-    } else if (targetValue === 1) {
-      // Different color: RECOLOR the region
-      this.floodFill(ctx.model, startX, startY, 1, activeColor, targetColor, activeColor);
     } else {
-      // Empty cell: FILL with active color
-      this.floodFill(ctx.model, startX, startY, 1, activeColor, null, activeColor);
+      // Different color: RECOLOR the connected region
+      this.floodFill(ctx.model, startX, startY, 1, activeColor, targetColor, activeColor);
     }
 
     ctx.requestRender();
