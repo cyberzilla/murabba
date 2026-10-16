@@ -60,7 +60,9 @@ export class FillTool extends BaseTool {
   }
 
   /**
-   * Iterative stack-based DFS flood fill for cell regions and connected gaps.
+   * Iterative stack-based DFS flood fill for cell regions.
+   * Only spreads to neighboring cells that are connected via filled gap bridges (gapH/gapV).
+   * Cells without a gap bridge between them are NOT considered connected.
    */
   private floodFill(
     model: GridModel,
@@ -116,11 +118,23 @@ export class FillTool extends BaseTool {
         model.setCellColor(cx, cy, replacementColor);
       }
 
-      // 4-directional connectivity: Up, Down, Left, Right
-      stack.push({ x: cx, y: cy - 1 });
-      stack.push({ x: cx, y: cy + 1 });
-      stack.push({ x: cx - 1, y: cy });
-      stack.push({ x: cx + 1, y: cy });
+      // Only spread to neighbors connected via gap bridges
+      // Up: cell(cx, cy-1) connected via gapH(cx, cy-1)
+      if (cy > 0 && model.isGapHInBounds(cx, cy - 1) && model.isFilledGapH(cx, cy - 1)) {
+        stack.push({ x: cx, y: cy - 1 });
+      }
+      // Down: cell(cx, cy+1) connected via gapH(cx, cy)
+      if (cy < rows - 1 && model.isGapHInBounds(cx, cy) && model.isFilledGapH(cx, cy)) {
+        stack.push({ x: cx, y: cy + 1 });
+      }
+      // Left: cell(cx-1, cy) connected via gapV(cx-1, cy)
+      if (cx > 0 && model.isGapVInBounds(cx - 1, cy) && model.isFilledGapV(cx - 1, cy)) {
+        stack.push({ x: cx - 1, y: cy });
+      }
+      // Right: cell(cx+1, cy) connected via gapV(cx, cy)
+      if (cx < cols - 1 && model.isGapVInBounds(cx, cy) && model.isFilledGapV(cx, cy)) {
+        stack.push({ x: cx + 1, y: cy });
+      }
     }
 
     if (replacementValue === 0) {
