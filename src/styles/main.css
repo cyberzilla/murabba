@@ -478,6 +478,13 @@ body {
   max-width: 460px !important;
   min-width: 360px;
   text-align: start !important;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.le-panel input,
+.le-panel textarea {
+  -webkit-user-select: text;
+  user-select: text;
 }
 .le-header {
   display: flex;
