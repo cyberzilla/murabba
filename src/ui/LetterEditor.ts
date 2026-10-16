@@ -246,22 +246,28 @@ function wireEditorEvents(): void {
 
 // ─── Grid Rendering ────────────────────────────────────
 
+/** Fixed pixel sizes for editor grid elements */
+const CELL_PX = 30;
+const GAP_PX = 10;
+const RADIUS = 5;
+
 function buildEditorGrid(): void {
   editorGrid = document.getElementById('leEditorGrid');
   if (!editorGrid) return;
   editorGrid.innerHTML = '';
 
-  // Use CSS grid: each cell occupies a 2x2 area (cell + gaps between)
-  // Grid template: col pattern = [cellW gapW] * cols - last gapW
-  // Total CSS-grid columns = gridW * 2 - 1
-  // Total CSS-grid rows    = gridH * 2 - 1
+  // CSS grid with fixed px sizes so cells are always square
   const totalCols = gridW * 2 - 1;
   const totalRows = gridH * 2 - 1;
 
   editorGrid.style.gridTemplateColumns =
-    Array.from({ length: totalCols }, (_, i) => (i % 2 === 0) ? '1fr' : '8px').join(' ');
+    Array.from({ length: totalCols }, (_, i) => (i % 2 === 0) ? `${CELL_PX}px` : `${GAP_PX}px`).join(' ');
   editorGrid.style.gridTemplateRows =
-    Array.from({ length: totalRows }, (_, i) => (i % 2 === 0) ? '1fr' : '8px').join(' ');
+    Array.from({ length: totalRows }, (_, i) => (i % 2 === 0) ? `${CELL_PX}px` : `${GAP_PX}px`).join(' ');
+
+  // Remove aspect-ratio since we use fixed sizes
+  editorGrid.style.aspectRatio = 'unset';
+  editorGrid.style.width = 'fit-content';
 
   for (let gr = 0; gr < totalRows; gr++) {
     for (let gc = 0; gc < totalCols; gc++) {
@@ -328,6 +334,8 @@ function buildEditorGrid(): void {
       }
     }
   }
+
+  refreshRadius();
 }
 
 function addPaintListeners(el: HTMLElement): void {
@@ -363,6 +371,71 @@ function paintElement(el: HTMLElement): void {
   }
 
   el.classList.toggle('filled', val === 1);
+  refreshRadius();
+}
+
+// ─── Adaptive Border Radius ────────────────────────────
+
+/** Helper to safely check matrix fill state */
+function isGH(r: number, c: number): boolean { return !!(gHMatrix[r]?.[c]); }
+function isGV(r: number, c: number): boolean { return !!(gVMatrix[r]?.[c]); }
+function isGD(r: number, c: number): boolean { return !!(gDMatrix[r]?.[c]); }
+function isCell(r: number, c: number): boolean { return !!(cellMatrix[r]?.[c]); }
+
+/**
+ * Recomputes border-radius on all filled elements in the editor grid.
+ * Same neighbor logic as RadiusCalculator.ts but operating on local matrices.
+ * Note: (r,c) here = (y,x) in grid coords — r=row, c=col.
+ */
+function refreshRadius(): void {
+  if (!editorGrid) return;
+  const R = RADIUS;
+  const rGap = Math.min(R, Math.floor(GAP_PX / 2));
+
+  const els = editorGrid.children;
+  for (let i = 0; i < els.length; i++) {
+    const el = els[i] as HTMLElement;
+    const type = el.dataset.type;
+    const r = parseInt(el.dataset.r || '0');
+    const c = parseInt(el.dataset.c || '0');
+
+    if (type === 'cell') {
+      if (!cellMatrix[r]?.[c]) { el.style.borderRadius = ''; continue; }
+      // Cell(x=c, y=r): same logic as computeCellRadius
+      const tl = (isGV(r, c - 1) || isGH(r - 1, c) || isGD(r - 1, c - 1)) ? 0 : R;
+      const tr = (isGV(r, c)     || isGH(r - 1, c) || isGD(r - 1, c))     ? 0 : R;
+      const br = (isGV(r, c)     || isGH(r, c)     || isGD(r, c))         ? 0 : R;
+      const bl = (isGV(r, c - 1) || isGH(r, c)     || isGD(r, c - 1))     ? 0 : R;
+      el.style.borderRadius = `${tl}px ${tr}px ${br}px ${bl}px`;
+
+    } else if (type === 'gH') {
+      if (!gHMatrix[r]?.[c]) { el.style.borderRadius = ''; continue; }
+      // GapH(gx=c, gy=r): connects cell(c,r) to cell(c,r+1)
+      const tl = (isCell(r, c)     || isGV(r, c - 1) || isGD(r, c - 1)) ? 0 : rGap;
+      const tr = (isCell(r, c)     || isGV(r, c)     || isGD(r, c))     ? 0 : rGap;
+      const br = (isCell(r + 1, c) || isGV(r + 1, c) || isGD(r, c))     ? 0 : rGap;
+      const bl = (isCell(r + 1, c) || isGV(r + 1, c - 1) || isGD(r, c - 1)) ? 0 : rGap;
+      el.style.borderRadius = `${tl}px ${tr}px ${br}px ${bl}px`;
+
+    } else if (type === 'gV') {
+      if (!gVMatrix[r]?.[c]) { el.style.borderRadius = ''; continue; }
+      // GapV(gx=c, gy=r): connects cell(c,r) to cell(c+1,r)
+      const tl = (isCell(r, c)     || isGH(r - 1, c) || isGD(r - 1, c)) ? 0 : rGap;
+      const tr = (isCell(r, c + 1) || isGH(r - 1, c + 1) || isGD(r - 1, c)) ? 0 : rGap;
+      const br = (isCell(r, c + 1) || isGH(r, c + 1) || isGD(r, c))     ? 0 : rGap;
+      const bl = (isCell(r, c)     || isGH(r, c)     || isGD(r, c))     ? 0 : rGap;
+      el.style.borderRadius = `${tl}px ${tr}px ${br}px ${bl}px`;
+
+    } else if (type === 'gD') {
+      if (!gDMatrix[r]?.[c]) { el.style.borderRadius = ''; continue; }
+      // GapD(gx=c, gy=r)
+      const tl = (isCell(r, c)     || isGH(r, c)     || isGV(r, c))     ? 0 : rGap;
+      const tr = (isCell(r, c + 1) || isGH(r, c + 1) || isGV(r, c))     ? 0 : rGap;
+      const br = (isCell(r + 1, c + 1) || isGH(r, c + 1) || isGV(r + 1, c)) ? 0 : rGap;
+      const bl = (isCell(r + 1, c) || isGH(r, c)     || isGV(r + 1, c)) ? 0 : rGap;
+      el.style.borderRadius = `${tl}px ${tr}px ${br}px ${bl}px`;
+    }
+  }
 }
 
 // ─── Matrix Helpers ────────────────────────────────────

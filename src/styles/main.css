@@ -564,9 +564,6 @@ body {
 .le-editor-grid {
   display: grid;
   gap: 0;
-  width: 100%;
-  aspect-ratio: 1;
-  max-width: 340px;
   margin: 0 auto;
   touch-action: none;
   user-select: none;
@@ -575,9 +572,8 @@ body {
 /* Main cells */
 .le-cell {
   background: var(--surface3);
-  border-radius: 3px;
   cursor: pointer;
-  transition: background 0.1s;
+  transition: background 0.1s, border-radius 0.1s;
   min-width: 0;
   min-height: 0;
 }
@@ -590,8 +586,7 @@ body {
 .le-gH, .le-gV, .le-gD {
   background: transparent;
   cursor: pointer;
-  transition: background 0.1s;
-  border-radius: 2px;
+  transition: background 0.1s, border-radius 0.1s;
   min-width: 0;
   min-height: 0;
 }
