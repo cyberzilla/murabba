@@ -139,7 +139,7 @@ export class FillTool extends BaseTool {
 
     if (replacementValue === 0) {
       this.cleanupGapsAfterErase(model, affectedCells);
-    } else if (replacementValue === 1 && replacementColor && targetColor !== null) {
+    } else if (replacementValue === 1 && replacementColor) {
       this.recolorConnectedGaps(model, affectedCells, replacementColor);
     }
   }
