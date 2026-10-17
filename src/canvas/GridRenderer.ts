@@ -93,7 +93,7 @@ export function renderEmptyCells(
 
   const { cellSize, gapSize, padding, cellRadius, zoom, panX, panY } = config;
   const step = cellSize + gapSize;
-  const emptyRadius = Math.min(cellRadius, Math.floor(cellSize / 2));
+  const emptyRadius = Math.min(cellRadius, cellSize / 2);
   const radii: CornerRadii = [emptyRadius, emptyRadius, emptyRadius, emptyRadius];
 
   // Viewport culling: determine visible cell range
