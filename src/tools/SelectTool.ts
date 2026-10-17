@@ -975,6 +975,7 @@ export class SelectTool extends BaseTool {
           ...mark,
           col: d.ox + mark.col,
           row: d.oy + mark.row,
+          c: mark.c || fallbackColor,
         });
       }
     }

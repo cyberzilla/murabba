@@ -982,7 +982,7 @@ export class GridModel {
     // Load marks
     const rawMarks = (data as { marks?: CellMark[] }).marks;
     if (Array.isArray(rawMarks)) {
-      this._marks = rawMarks.map(m => ({ type: m.type, col: m.col, row: m.row }));
+      this._marks = rawMarks.map(m => ({ ...m }));
     } else {
       this._marks = [];
     }
