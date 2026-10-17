@@ -295,7 +295,7 @@ function wireGridControls(app: App): void {
   /** Update radius slider max to half of current cell size and clamp value */
   const syncRadiusMax = () => {
     if (!cellRadR) return;
-    const maxRad = Math.floor(app.config.cellSize / 2);
+    const maxRad = Math.round(app.config.cellSize / 2);
     cellRadR.max = String(maxRad);
     if (app.config.cellRadius > maxRad) {
       app.config.cellRadius = maxRad;
@@ -363,7 +363,7 @@ function syncSliderUI(app: App): void {
   }
   if (cellRadR) {
     // Radius max = half of cell size
-    const maxRad = Math.floor(app.config.cellSize / 2);
+    const maxRad = Math.round(app.config.cellSize / 2);
     cellRadR.max = String(maxRad);
     if (app.config.cellRadius > maxRad) app.config.cellRadius = maxRad;
     cellRadR.value = String(app.config.cellRadius);
