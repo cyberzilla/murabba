@@ -131,7 +131,7 @@ body {
 .tb-sep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
 
 /* ── Content ── */
-#content { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+#content { display: flex; flex: 1; overflow: hidden; min-height: 0; position: relative; }
 
 /* ── Left Tool Panel ── */
 #toolPanel {
@@ -171,17 +171,20 @@ body {
 #rightPanel {
   width: 280px; background: var(--surface);
   border-inline-start: 1px solid var(--border);
-  display: flex; flex-direction: column; flex-shrink: 0;
-  overflow: hidden;
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 0.25s ease;
-  will-change: width, opacity;
+  display: flex; flex-direction: column;
+  position: absolute; top: 0; bottom: 0; right: 0;
+  z-index: 50;
+  transform: translateX(0);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.2s ease;
+  will-change: transform, opacity;
+  box-shadow: -4px 0 24px rgba(0,0,0,0.3);
 }
 #rightPanel.panel-collapsed {
-  width: 0;
+  transform: translateX(100%);
   opacity: 0;
-  border-inline-start-width: 0;
   pointer-events: none;
+  box-shadow: none;
 }
 .rp-scroll {
   flex: 1; overflow-y: auto; overflow-x: hidden; padding: 4px 0;

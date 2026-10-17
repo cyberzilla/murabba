@@ -154,18 +154,9 @@ function wireActionButtons(app: App): void {
   const rightPanel = document.getElementById('rightPanel');
   if (panelToggle && rightPanel) {
     panelToggle.addEventListener('click', () => {
-      // Pause canvas resize to prevent black flicker during CSS transition
-      app.pauseResize();
       rightPanel.classList.toggle('panel-collapsed');
       const isVisible = !rightPanel.classList.contains('panel-collapsed');
       panelToggle.classList.toggle('active', isVisible);
-
-      // Resume resize only after transition completes
-      const onEnd = () => {
-        rightPanel.removeEventListener('transitionend', onEnd);
-        app.resumeResize();
-      };
-      rightPanel.addEventListener('transitionend', onEnd);
     });
   }
 
