@@ -4,6 +4,7 @@
    ═══════════════════════════════════════════════ */
 
 :root {
+  color-scheme: dark;
   --accent: #22C55E;
   --accent2: #DC2626;
   --bg: #0A0D0B;
@@ -246,12 +247,15 @@ select option {
   padding: 4px 8px;
 }
 
-/* Number input spinner arrows */
+/* Number input — hide native spinners, clean look */
+input[type="number"] {
+  -moz-appearance: textfield;
+  color-scheme: dark;
+}
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
-  opacity: 1;
-  height: 20px;
-  cursor: pointer;
+  -webkit-appearance: none;
+  margin: 0;
 }
 .ctrl-row span { font-size: 13px; color: var(--muted); min-width: 24px; text-align: center; }
 .ctrl-label { font-size: 13px; color: var(--muted); margin-bottom: 4px; display: block; }
