@@ -7,7 +7,7 @@ import type { SupportedLang } from './types';
 import type { LetterEntry } from './types/grid';
 import { initConfirmModal, confirmDialog } from './ui/ConfirmModal';
 import { loadSession, saveSettings } from './storage/SessionManager';
-import { initLetterEditor, openNewLetter, openEditLetter } from './ui/LetterEditor';
+import { initLetterEditor, openNewLetter, openEditLetter, setEditorGridConfig } from './ui/LetterEditor';
 import { initAboutModal, showAbout } from './ui/AboutModal';
 import { exportLibrary, saveLetter, deleteLetter } from './letters/LetterLibrary';
 
@@ -210,6 +210,7 @@ function wireGridControls(app: App): void {
     if (val) val.textContent = cellSizeR.value;
     app.requestRender();
     updateLetterPreviewColors(app);
+    setEditorGridConfig(app.config.cellSize, app.config.gapSize, app.config.cellRadius);
     debouncedSave();
   });
 
@@ -220,6 +221,7 @@ function wireGridControls(app: App): void {
     if (val) val.textContent = gapSizeR.value;
     app.requestRender();
     updateLetterPreviewColors(app);
+    setEditorGridConfig(app.config.cellSize, app.config.gapSize, app.config.cellRadius);
     debouncedSave();
   });
 
@@ -230,6 +232,7 @@ function wireGridControls(app: App): void {
     if (val) val.textContent = cellRadR.value;
     app.requestRender();
     updateLetterPreviewColors(app);
+    setEditorGridConfig(app.config.cellSize, app.config.gapSize, app.config.cellRadius);
     debouncedSave();
   });
 
@@ -262,6 +265,9 @@ function syncSliderUI(app: App): void {
 
   // Also trigger a re-render with loaded settings
   app.requestRender();
+
+  // Sync letter editor grid sizing with current config
+  setEditorGridConfig(app.config.cellSize, app.config.gapSize, app.config.cellRadius);
 }
 
 function wireColorControls(app: App): void {

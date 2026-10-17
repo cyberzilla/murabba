@@ -620,10 +620,17 @@ function hasAnyFill(fd: FormData): boolean {
 
 // ─── Grid Rendering ────────────────────────────────────
 
-/** Fixed pixel sizes for editor grid elements */
-const CELL_PX = 30;
-const GAP_PX = 10;
-const RADIUS = 5;
+/** Pixel sizes for editor grid elements — synced from main editor config */
+let CELL_PX = 19;
+let GAP_PX = 19;
+let RADIUS = 5;
+
+/** Update editor grid sizing to match main editor config */
+export function setEditorGridConfig(cellSize: number, gapSize: number, cellRadius: number): void {
+  CELL_PX = cellSize;
+  GAP_PX = gapSize;
+  RADIUS = cellRadius;
+}
 
 function buildEditorGrid(): void {
   editorGrid = document.getElementById('leEditorGrid');

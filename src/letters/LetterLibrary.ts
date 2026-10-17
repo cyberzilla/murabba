@@ -4,7 +4,7 @@
  * merging, filtering, and JSON import/export.
  */
 
-import type { LetterEntry } from '../types';
+import type { LetterEntry, LetterForm } from '../types';
 import { getAll, put, deleteKey, clearStore } from '../storage/IndexedDBStore';
 
 export type { LetterEntry };
@@ -232,10 +232,20 @@ export function exportLibrary(letters: Record<string, LetterEntry>): string {
       gD: gaps.gD,
     };
     if (entry.forms && Object.keys(entry.forms).length > 0) {
-      item.forms = entry.forms;
+      const normalizedForms: Record<string, LetterForm> = {};
+      for (const [pos, form] of Object.entries(entry.forms)) {
+        if (form) {
+          const fGaps = normalizeGaps(form.m, form.gH, form.gV, form.gD);
+          normalizedForms[pos] = { m: form.m, gH: fGaps.gH, gV: fGaps.gV, gD: fGaps.gD };
+        }
+      }
+      item.forms = normalizedForms;
     }
     if (entry.variations && entry.variations.length > 0) {
-      item.variations = entry.variations;
+      item.variations = entry.variations.map(v => {
+        const vGaps = normalizeGaps(v.m, v.gH, v.gV, v.gD);
+        return { m: v.m, gH: vGaps.gH, gV: vGaps.gV, gD: vGaps.gD };
+      });
     }
     exported[ch] = item;
   }

@@ -22,8 +22,8 @@ import type { ToolType, RenderConfig, BgProps, LetterEntry, SessionData, Selecti
 /** Default render configuration. */
 function defaultConfig(): RenderConfig {
   return {
-    cellSize: 30,
-    gapSize: 15,
+    cellSize: 19,
+    gapSize: 19,
     cellRadius: 5,
     padding: 20,
     zoom: 1,
