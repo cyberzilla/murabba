@@ -6,6 +6,7 @@
 import {
   BgProps,
   BoundingBox,
+  CellMark,
   GridState,
   HistorySnapshot,
   ProjectData,
@@ -30,6 +31,7 @@ export class GridModel {
   private _gapHColors: Map<number, string>;
   private _gapVColors: Map<number, string>;
   private _gapDColors: Map<number, string>;
+  private _marks: CellMark[];
 
   /**
    * Initializes a new GridModel with the specified dimensions.
@@ -50,6 +52,7 @@ export class GridModel {
     this._gapHColors = new Map();
     this._gapVColors = new Map();
     this._gapDColors = new Map();
+    this._marks = [];
   }
 
   // ──────────────────────── Getters ────────────────────────
@@ -82,6 +85,33 @@ export class GridModel {
     return count;
   }
 
+  /** Sub-cell marks (kaf-s, hamzah) on the grid. */
+  public get marks(): CellMark[] {
+    return this._marks;
+  }
+
+  /** Add a mark to the grid. */
+  public addMark(mark: CellMark): void {
+    this._marks.push({ ...mark });
+  }
+
+  /** Add multiple marks to the grid. */
+  public addMarks(marks: CellMark[]): void {
+    for (const m of marks) {
+      this._marks.push({ ...m });
+    }
+  }
+
+  /** Remove marks at a specific cell position. */
+  public removeMarksAt(col: number, row: number): void {
+    this._marks = this._marks.filter(m => !(m.col === col && m.row === row));
+  }
+
+  /** Clear all marks. */
+  public clearMarks(): void {
+    this._marks = [];
+  }
+
   /**
    * Returns a copy of the raw grid state.
    */
@@ -97,6 +127,7 @@ export class GridModel {
       gapHColors: new Map(this._gapHColors),
       gapVColors: new Map(this._gapVColors),
       gapDColors: new Map(this._gapDColors),
+      marks: this._marks.map(m => ({ ...m })),
     };
   }
 
@@ -442,6 +473,7 @@ export class GridModel {
     this._gapHColors.clear();
     this._gapVColors.clear();
     this._gapDColors.clear();
+    this.clearMarks();
   }
 
   /**
@@ -536,6 +568,9 @@ export class GridModel {
     this._gapHColors = newGapHColors;
     this._gapVColors = newGapVColors;
     this._gapDColors = newGapDColors;
+
+    // Filter marks to only keep those within new bounds
+    this._marks = this._marks.filter(m => m.col < newCols && m.row < newRows);
   }
 
   /**
@@ -553,6 +588,7 @@ export class GridModel {
       gapHColors: new Map(this._gapHColors),
       gapVColors: new Map(this._gapVColors),
       gapDColors: new Map(this._gapDColors),
+      marks: this._marks.map(m => ({ ...m })),
     };
   }
 
@@ -577,6 +613,7 @@ export class GridModel {
     this._gapHColors = new Map(snap.gapHColors);
     this._gapVColors = new Map(snap.gapVColors);
     this._gapDColors = new Map(snap.gapDColors);
+    this._marks = (snap.marks || []).map(m => ({ ...m }));
   }
 
   /**
@@ -940,6 +977,14 @@ export class GridModel {
           }
         }
       }
+    }
+
+    // Load marks
+    const rawMarks = (data as { marks?: CellMark[] }).marks;
+    if (Array.isArray(rawMarks)) {
+      this._marks = rawMarks.map(m => ({ type: m.type, col: m.col, row: m.row }));
+    } else {
+      this._marks = [];
     }
   }
 }

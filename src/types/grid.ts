@@ -81,6 +81,7 @@ export interface GridState {
   gapHColors: Map<number, string>;
   gapVColors: Map<number, string>;
   gapDColors: Map<number, string>;
+  marks: CellMark[];
 }
 
 /**
@@ -97,6 +98,23 @@ export interface HistorySnapshot {
   gapHColors: Map<number, string>;
   gapVColors: Map<number, string>;
   gapDColors: Map<number, string>;
+  marks: CellMark[];
+}
+
+/**
+ * Supported sub-cell mark types.
+ * - 'kaf-s': S-shaped zigzag mark for Kaf (ك), spans 2×2 cells (3×3 visual with gaps)
+ * - 'hamzah': Hamzah symbol (ء), 1×1 cell standalone mark
+ */
+export type MarkType = 'kaf-s' | 'hamzah';
+
+/**
+ * A sub-cell mark rendered inside or on top of grid cells.
+ */
+export interface CellMark {
+  type: MarkType;
+  row: number;   // cell row position
+  col: number;   // cell column position
 }
 
 /**
@@ -109,6 +127,7 @@ export interface LetterForm {
   gH: number[][];
   gV: number[][];
   gD: number[][];
+  marks?: CellMark[];
 }
 
 export interface LetterEntry {
@@ -118,6 +137,7 @@ export interface LetterEntry {
   gH: number[][];   // isolated form gap-H matrix
   gV: number[][];   // isolated form gap-V matrix
   gD: number[][];   // isolated form gap-D matrix
+  marks?: CellMark[];  // sub-cell marks (kaf-s, hamzah)
   forms?: Partial<Record<LetterPosition, LetterForm>>;
   variations?: LetterForm[];
   _builtin?: boolean;
@@ -158,6 +178,7 @@ export interface ProjectData {
   version?: number;
   config?: Partial<RenderConfig>;
   cells?: Uint8Array;
+  marks?: CellMark[];
 }
 
 /**
@@ -188,6 +209,7 @@ export interface SelectionData {
   gH: Array<{ lx: number; ly: number; c: string }>;
   gV: Array<{ lx: number; ly: number; c: string }>;
   gD: Array<{ lx: number; ly: number; c: string }>;
+  marks?: CellMark[];
   ox: number;
   oy: number;
   w: number;
@@ -284,5 +306,6 @@ export interface SessionData {
   bgProps: BgProps;
   bgImg?: string | null;
   bgVisible: boolean;
+  marks?: CellMark[];
   ts: number;
 }

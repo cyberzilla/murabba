@@ -5,6 +5,7 @@ import { App } from './ui/App';
 import { initI18n, setLang, getLang, t } from './i18n/I18n';
 import type { SupportedLang } from './types';
 import type { LetterEntry } from './types/grid';
+import { renderPreviewMarks } from './canvas/MarkRenderer';
 import { initConfirmModal, confirmDialog } from './ui/ConfirmModal';
 import { loadSession, saveSettings, SESSION_KEY, migrateStorageKeys } from './storage/SessionManager';
 import { initLetterEditor, openNewLetter, openEditLetter, setEditorGridConfig } from './ui/LetterEditor';
@@ -1248,6 +1249,14 @@ function renderLetterPreview(canvas: HTMLCanvasElement, entry: LetterEntry, colo
         drawRR(x, y, gapPx, gapPx, [tl, tr, br, bl]);
       }
     }
+  }
+
+  // Draw sub-cell marks (kaf-s, hamzah) as negative space
+  if (entry.marks && entry.marks.length > 0) {
+    // Use a dark bg color for negative-space carving in preview
+    // (transparent won't work since marks are "carved" by overpainting)
+    const markBg = '#1a1a2e';
+    renderPreviewMarks(ctx, entry.marks, cellPx, gapPx, markBg);
   }
 }
 

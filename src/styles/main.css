@@ -725,6 +725,39 @@ input[type="number"]::-webkit-outer-spin-button {
   background: var(--accent);
 }
 
+/* -- Mark Indicators -- */
+.le-cell.mark-kaf-s,
+.le-cell.mark-hamzah {
+  position: relative;
+}
+.le-cell.mark-kaf-s::after,
+.le-cell.mark-hamzah::after {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  pointer-events: none;
+  line-height: 1;
+}
+.le-cell.mark-kaf-s::after {
+  content: 'S';
+  font-size: 10px;
+  color: #f59e0b;
+}
+.le-cell.mark-hamzah::after {
+  content: '\0621 ';
+  font-size: 11px;
+  color: #f59e0b;
+}
+.le-cell.filled.mark-kaf-s::after {
+  color: #1a1a2e;
+}
+.le-cell.filled.mark-hamzah::after {
+  color: #1a1a2e;
+}
+
 /* ── Footer Actions ── */
 .le-actions {
   display: flex;

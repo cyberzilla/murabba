@@ -17,7 +17,7 @@ import { downloadPNG, downloadJSON, exportProject, importProject } from '../stor
 import { saveSession, saveSettings, loadSettings, migrateIDBKeys } from '../storage/SessionManager';
 import { openDatabase } from '../storage/IndexedDBStore';
 import { loadMerged } from '../letters/LetterLibrary';
-import type { ToolType, RenderConfig, BgProps, LetterEntry, SessionData, SelectionData } from '../types/grid';
+import type { ToolType, RenderConfig, BgProps, LetterEntry, SessionData, SelectionData, CellMark } from '../types/grid';
 
 /** Default render configuration. */
 function defaultConfig(): RenderConfig {
@@ -376,14 +376,18 @@ export class App {
 
     // Pick the right form based on position or variation index
     let m: number[][], gH: number[][], gV: number[][], gD: number[][];
+    let letterMarks: CellMark[] | undefined;
     if (typeof variationIndex === 'number' && entry.variations?.[variationIndex]) {
       const v = entry.variations[variationIndex];
       m = v.m; gH = v.gH; gV = v.gV; gD = v.gD;
+      letterMarks = v.marks;
     } else if (position !== 'isolated' && entry.forms?.[position as 'initial' | 'medial' | 'final']) {
       const f = entry.forms[position as 'initial' | 'medial' | 'final']!;
       m = f.m; gH = f.gH; gV = f.gV; gD = f.gD;
+      letterMarks = f.marks;
     } else {
       m = entry.m; gH = entry.gH; gV = entry.gV; gD = entry.gD;
+      letterMarks = entry.marks;
     }
     const color = this.config.drawColor;
 
@@ -454,6 +458,7 @@ export class App {
       gH: gHData,
       gV: gVData,
       gD: gDData,
+      marks: letterMarks?.map(m => ({ ...m })),
       ox: pos.x - minLx,
       oy: pos.y - minLy,
       w: cols,

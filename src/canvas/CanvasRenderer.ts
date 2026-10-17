@@ -5,6 +5,7 @@
 import type { GridModel } from '../core/GridModel';
 import type { RenderConfig, BgProps, SelectionData, CellCoord, GapCoord } from '../types/grid';
 import { renderEmptyCells, renderFilledCells, renderFilledGaps, renderAxisLines } from './GridRenderer';
+import { renderMarks } from './MarkRenderer';
 import { renderBackground } from './BackgroundRenderer';
 import { renderSelectionFrame, renderSelectionGhost, renderBrushPreview, renderGapHoverPreview } from './SelectionRenderer';
 
@@ -129,6 +130,9 @@ export class CanvasRenderer {
 
     // 6. Filled cells
     renderFilledCells(ctx, model, config);
+
+    // 6b. Sub-cell marks (kaf-s, hamzah)
+    renderMarks(ctx, model.marks, config);
 
     // 7. Selection overlays
     if (overlay.selectionFrame) {

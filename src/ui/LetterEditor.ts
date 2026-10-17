@@ -5,7 +5,7 @@
  * Supports positional forms (isolated/initial/medial/final) and multiple variations.
  */
 
-import type { LetterEntry, LetterForm, LetterPosition } from '../types/grid';
+import type { LetterEntry, LetterForm, LetterPosition, CellMark } from '../types/grid';
 import { t } from '../i18n/I18n';
 
 export interface LetterEditorCallbacks {
@@ -35,6 +35,7 @@ interface FormData {
   gH: number[][];
   gV: number[][];
   gD: number[][];
+  marks?: CellMark[];
 }
 
 // ─── State ─────────────────────────────────────────────
@@ -49,10 +50,11 @@ let gHMatrix: number[][] = [];
 let gVMatrix: number[][] = [];
 let gDMatrix: number[][] = [];
 
-let editorTool: 'draw' | 'erase' = 'draw';
+let editorTool: 'draw' | 'erase' | 'mark-kaf-s' | 'mark-hamzah' = 'draw';
 let isPointerDown = false;
 let editingCh: string | null = null;
 let callbacks: LetterEditorCallbacks | null = null;
+let editorMarks: CellMark[] = [];
 
 // ─── Form Tabs State ───────────────────────────────────
 
@@ -95,6 +97,7 @@ export function openNewLetter(): void {
   variationsData = [];
   activeVariationIdx = 0;
   activeFormTab = 'isolated';
+  editorMarks = [];
 
   const charInput = document.getElementById('leChar') as HTMLInputElement;
   const nameInput = document.getElementById('leName') as HTMLInputElement;
@@ -135,6 +138,7 @@ export function openEditLetter(ch: string, entry: LetterEntry): void {
     gH: (entry.gH || []).map(r => [...r]),
     gV: (entry.gV || []).map(r => [...r]),
     gD: (entry.gD || []).map(r => [...r]),
+    marks: entry.marks ? entry.marks.map(m => ({ ...m })) : undefined,
   };
 
   // Populate positional forms from entry.forms
@@ -151,6 +155,7 @@ export function openEditLetter(ch: string, entry: LetterEntry): void {
           gH: (form.gH || []).map(r => [...r]),
           gV: (form.gV || []).map(r => [...r]),
           gD: (form.gD || []).map(r => [...r]),
+          marks: form.marks ? form.marks.map(m => ({ ...m })) : undefined,
         };
       }
     }
@@ -167,6 +172,7 @@ export function openEditLetter(ch: string, entry: LetterEntry): void {
         gH: (vf.gH || []).map(r => [...r]),
         gV: (vf.gV || []).map(r => [...r]),
         gD: (vf.gD || []).map(r => [...r]),
+        marks: vf.marks ? vf.marks.map(m => ({ ...m })) : undefined,
       });
     }
   }
@@ -263,6 +269,15 @@ function createModalDOM(): void {
           </button>
         </div>
         <div class="le-toolbar-sep-v"></div>
+        <div class="le-toolbar-group">
+          <button class="le-tool-btn" id="leToolMarkKafS" title="Mark: Kaf-S">
+            <span style="font-size:11px;font-weight:bold">S</span>
+          </button>
+          <button class="le-tool-btn" id="leToolMarkHamzah" title="Mark: Hamzah">
+            <span style="font-size:11px;font-weight:bold">ء</span>
+          </button>
+        </div>
+        <div class="le-toolbar-sep-v"></div>
         <button class="s-btn sm" id="leClearBtn" title="Clear all">Clear</button>
       </div>
 
@@ -310,6 +325,7 @@ function wireEditorEvents(): void {
     const rootGH = iso ? iso.gH.map(r => [...r]) : gHMatrix.map(r => [...r]);
     const rootGV = iso ? iso.gV.map(r => [...r]) : gVMatrix.map(r => [...r]);
     const rootGD = iso ? iso.gD.map(r => [...r]) : gDMatrix.map(r => [...r]);
+    const rootMarks = iso?.marks ? iso.marks.map(m => ({ ...m })) : (editorMarks.length > 0 ? editorMarks.map(m => ({ ...m })) : undefined);
 
     // Build forms object from positional form data (excluding isolated)
     const forms: Partial<Record<LetterPosition, LetterForm>> = {};
@@ -322,6 +338,7 @@ function wireEditorEvents(): void {
           gH: fd.gH.map(r => [...r]),
           gV: fd.gV.map(r => [...r]),
           gD: fd.gD.map(r => [...r]),
+          marks: fd.marks ? fd.marks.map(m => ({ ...m })) : undefined,
         };
       }
     }
@@ -335,6 +352,7 @@ function wireEditorEvents(): void {
           gH: vd.gH.map(r => [...r]),
           gV: vd.gV.map(r => [...r]),
           gD: vd.gD.map(r => [...r]),
+          marks: vd.marks ? vd.marks.map(m => ({ ...m })) : undefined,
         });
       }
     }
@@ -346,6 +364,7 @@ function wireEditorEvents(): void {
       gH: rootGH,
       gV: rootGV,
       gD: rootGD,
+      marks: rootMarks,
       forms: Object.keys(forms).length > 0 ? forms : undefined,
       variations: variations.length > 0 ? variations : undefined,
       _builtin: false,
@@ -372,20 +391,26 @@ function wireEditorEvents(): void {
 
   clear?.addEventListener('click', () => {
     initMatrices();
+    editorMarks = [];
     buildEditorGrid();
   });
 
-  toolDraw?.addEventListener('click', () => {
-    editorTool = 'draw';
-    toolDraw.classList.add('active');
-    toolErase?.classList.remove('active');
-  });
+  const allToolBtns = [toolDraw, toolErase,
+    document.getElementById('leToolMarkKafS'),
+    document.getElementById('leToolMarkHamzah')];
 
-  toolErase?.addEventListener('click', () => {
-    editorTool = 'erase';
-    toolErase.classList.add('active');
-    toolDraw?.classList.remove('active');
-  });
+  const setActiveTool = (tool: typeof editorTool, btn: HTMLElement | null) => {
+    editorTool = tool;
+    for (const b of allToolBtns) b?.classList.remove('active');
+    btn?.classList.add('active');
+  };
+
+  toolDraw?.addEventListener('click', () => setActiveTool('draw', toolDraw));
+  toolErase?.addEventListener('click', () => setActiveTool('erase', toolErase));
+  document.getElementById('leToolMarkKafS')?.addEventListener('click', () =>
+    setActiveTool('mark-kaf-s', document.getElementById('leToolMarkKafS')));
+  document.getElementById('leToolMarkHamzah')?.addEventListener('click', () =>
+    setActiveTool('mark-hamzah', document.getElementById('leToolMarkHamzah')));
 
   // ── Form tab switching ──
   const tabContainer = document.getElementById('leFormTabs');
@@ -425,6 +450,7 @@ function saveCurrentTabData(): void {
     gH: gHMatrix.map(r => [...r]),
     gV: gVMatrix.map(r => [...r]),
     gD: gDMatrix.map(r => [...r]),
+    marks: editorMarks.length > 0 ? editorMarks.map(m => ({ ...m })) : undefined,
   };
 
   if (activeFormTab === 'variation') {
@@ -454,11 +480,13 @@ function loadTabData(tab: FormTab): void {
     gHMatrix = fd.gH.map(r => [...r]);
     gVMatrix = fd.gV.map(r => [...r]);
     gDMatrix = fd.gD.map(r => [...r]);
+    editorMarks = fd.marks ? fd.marks.map(m => ({ ...m })) : [];
   } else {
     // No data — start with empty 5×5
     gridW = 5;
     gridH = 5;
     initMatrices();
+    editorMarks = [];
   }
 
   // Update grid size inputs
@@ -686,6 +714,9 @@ function buildEditorGrid(): void {
         const r = gr / 2, c = gc / 2;
         const el = document.createElement('div');
         el.className = 'le-cell' + (cellMatrix[r]?.[c] ? ' filled' : '');
+        // Apply mark class if a mark exists at this cell
+        const mark = editorMarks.find(m => m.col === c && m.row === r);
+        if (mark) el.classList.add(`mark-${mark.type}`);
         el.dataset.type = 'cell';
         el.dataset.r = String(r);
         el.dataset.c = String(c);
@@ -751,6 +782,26 @@ function paintElement(el: HTMLElement): void {
   const type = el.dataset.type;
   const r = parseInt(el.dataset.r || '0');
   const c = parseInt(el.dataset.c || '0');
+
+  // Mark tools: only work on cells, toggle mark at position
+  if (editorTool === 'mark-kaf-s' || editorTool === 'mark-hamzah') {
+    if (type !== 'cell') return;
+    const markType = editorTool === 'mark-kaf-s' ? 'kaf-s' : 'hamzah';
+    const existIdx = editorMarks.findIndex(m => m.col === c && m.row === r);
+    if (existIdx >= 0) {
+      // Toggle off: remove mark
+      editorMarks.splice(existIdx, 1);
+      el.classList.remove('mark-kaf-s', 'mark-hamzah');
+    } else {
+      // Remove any other mark at this position first
+      editorMarks = editorMarks.filter(m => !(m.col === c && m.row === r));
+      editorMarks.push({ type: markType, col: c, row: r });
+      el.classList.remove('mark-kaf-s', 'mark-hamzah');
+      el.classList.add(`mark-${markType}`);
+    }
+    return;
+  }
+
   const val = editorTool === 'draw' ? 1 : 0;
 
   switch (type) {
@@ -769,6 +820,11 @@ function paintElement(el: HTMLElement): void {
   }
 
   el.classList.toggle('filled', val === 1);
+  // If erasing a cell, also remove any mark at that position
+  if (type === 'cell' && val === 0) {
+    editorMarks = editorMarks.filter(m => !(m.col === c && m.row === r));
+    el.classList.remove('mark-kaf-s', 'mark-hamzah');
+  }
   refreshRadius();
 }
 

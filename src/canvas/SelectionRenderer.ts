@@ -3,6 +3,7 @@
  */
 import type { RenderConfig, SelectionData, CellCoord, GapCoord } from '../types/grid';
 import { drawRoundedRect } from './GridRenderer';
+import { renderMarks } from './MarkRenderer';
 import { elementToPixelRect } from '../core/CoordinateMapper';
 
 /**
@@ -194,6 +195,16 @@ export function renderSelectionGhost(
     } else {
       ctx.fillRect(px, py, gs, gs);
     }
+  }
+
+  // Draw marks on the floating ghost
+  if (data.marks && data.marks.length > 0) {
+    const offsetMarks = data.marks.map(m => ({
+      type: m.type,
+      col: data.ox + m.col,
+      row: data.oy + m.row,
+    }));
+    renderMarks(ctx, offsetMarks, config);
   }
 
   // Border outline

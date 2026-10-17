@@ -180,6 +180,7 @@ export function exportProject(
     },
     bgImg: bgImg || null,
     bgVisible: true,
+    marks: snapshot.marks && snapshot.marks.length > 0 ? snapshot.marks : undefined,
   };
 
   return JSON.stringify(payload, null, 2);
@@ -419,6 +420,7 @@ export function importProject(json: string): ProjectData {
     bgProps,
     bgImg: typeof parsed.bgImg === 'string' ? parsed.bgImg : null,
     bgVisible: parsed.bgVisible !== false,
+    marks: Array.isArray(parsed.marks) ? parsed.marks : undefined,
   };
 
   return projectData;

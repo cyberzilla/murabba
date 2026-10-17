@@ -26,7 +26,7 @@
  */
 
 import { BaseTool, ToolContext } from './BaseTool';
-import type { ToolType, SelectionData, CellCoord } from '../types/grid';
+import type { ToolType, SelectionData, CellCoord, CellMark } from '../types/grid';
 import { screenToCell, screenToElement, elementToPixelRect } from '../core/CoordinateMapper';
 import type { ElementCoord } from '../core/CoordinateMapper';
 import type { GridModel } from '../core/GridModel';
@@ -539,11 +539,25 @@ export class SelectTool extends BaseTool {
       }
     }
 
+    // Extract marks within the selection region
+    const selMarks: CellMark[] = [];
+    const marksToRemove: CellMark[] = [];
+    for (const mark of model.marks) {
+      if (mark.col >= cellX1 && mark.col <= cellX2 && mark.row >= cellY1 && mark.row <= cellY2) {
+        selMarks.push({ type: mark.type, col: mark.col - cellX1, row: mark.row - cellY1 });
+        marksToRemove.push(mark);
+      }
+    }
+    for (const mark of marksToRemove) {
+      model.removeMarksAt(mark.col, mark.row);
+    }
+
     this.floatData = {
       cells,
       gH,
       gV,
       gD,
+      marks: selMarks.length > 0 ? selMarks : undefined,
       ox: cellX1,
       oy: cellY1,
       w: cellX2 - cellX1 + 1,
@@ -636,6 +650,13 @@ export class SelectTool extends BaseTool {
         if (x * 2 + 1 >= ex1 && x * 2 + 1 <= ex2 && y * 2 + 1 >= ey1 && y * 2 + 1 <= ey2) {
           if (model.isGapDInBounds(x, y)) { model.setGapD(x, y, 0); model.clearGapDColor(x, y); }
         }
+      }
+    }
+
+    // Remove marks within the erased region
+    for (const mark of [...model.marks]) {
+      if (mark.col >= cellX1 && mark.col <= cellX2 && mark.row >= cellY1 && mark.row <= cellY2) {
+        model.removeMarksAt(mark.col, mark.row);
       }
     }
 
@@ -922,5 +943,16 @@ export class SelectTool extends BaseTool {
         model.setGapDColor(x, y, c || fallbackColor);
       }
     });
+
+    // Stamp marks with position offset
+    if (d.marks && d.marks.length > 0) {
+      for (const mark of d.marks) {
+        model.addMark({
+          type: mark.type,
+          col: d.ox + mark.col,
+          row: d.oy + mark.row,
+        });
+      }
+    }
   }
 }

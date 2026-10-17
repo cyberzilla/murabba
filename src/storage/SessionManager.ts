@@ -152,6 +152,7 @@ export function saveSession(
       },
       bgVisible: true,
       bgImg: bgImg || undefined,
+      marks: snapshot.marks && snapshot.marks.length > 0 ? snapshot.marks : undefined,
       ts: Date.now(),
     };
 
@@ -298,6 +299,7 @@ export function loadSession(): SessionData | null {
       bgProps,
       bgVisible: parsed.bgVisible !== undefined ? parsed.bgVisible : true,
       bgImg: parsed.bgImg || undefined,
+      marks: Array.isArray(parsed.marks) ? parsed.marks : undefined,
       ts: Number(parsed.ts) || Date.now(),
     };
 
