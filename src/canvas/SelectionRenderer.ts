@@ -30,8 +30,8 @@ export function renderSelectionFrame(
 
   ctx.save();
   ctx.strokeStyle = '#42A5F5';
-  ctx.lineWidth = 2;
-  ctx.setLineDash([6, 4]);
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 3]);
   ctx.lineDashOffset = (Date.now() / 50) % 10; // animated dash
 
   ctx.strokeRect(left, top, width, height);
@@ -193,7 +193,7 @@ export function renderSelectionGhost(
   // Border outline
   ctx.globalAlpha = 1;
   ctx.strokeStyle = '#42A5F5';
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 1;
   ctx.setLineDash([4, 3]);
   ctx.strokeRect(
     pad + data.ox * total,
