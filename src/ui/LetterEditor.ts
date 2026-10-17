@@ -117,38 +117,52 @@ function createModalDOM(): void {
 
   overlay.innerHTML = `
     <div class="modal-box le-panel">
+      <!-- ═══ HEADER: title + char/name fields + close ═══ -->
       <div class="le-header">
-        <h3>Letter Editor</h3>
+        <h3 id="leTitle">Letter Editor</h3>
         <button class="le-close-btn" id="leClose" title="Close">✕</button>
       </div>
 
       <div class="le-meta">
-        <div class="le-meta-row">
-          <label>Char</label>
+        <div class="le-field">
+          <label for="leChar">Char</label>
           <input type="text" id="leChar" maxlength="4" placeholder="ب" />
-          <label>Name</label>
+        </div>
+        <div class="le-field le-field-grow">
+          <label for="leName">Name</label>
           <input type="text" id="leName" placeholder="Letter name" />
         </div>
       </div>
 
-      <div class="le-grid-controls">
-        <label>W</label>
-        <input type="number" id="leGridW" min="1" max="20" value="5" />
-        <label>H</label>
-        <input type="number" id="leGridH" min="1" max="20" value="5" />
-        <button class="s-btn sm" id="leResizeBtn">Apply</button>
-        <button class="s-btn sm" id="leClearBtn">Clear</button>
-      </div>
-
-      <div class="le-tools">
-        <button class="s-btn sm active" id="leToolDraw">Draw</button>
-        <button class="s-btn sm" id="leToolErase">Erase</button>
-      </div>
-
+      <!-- ═══ CANVAS: the main drawing grid ═══ -->
       <div class="le-editor-wrap">
         <div id="leEditorGrid" class="le-editor-grid"></div>
       </div>
 
+      <!-- ═══ TOOLBAR: grid size + tools + clear — one compact row ═══ -->
+      <div class="le-toolbar">
+        <div class="le-toolbar-group">
+          <label>W</label>
+          <input type="number" id="leGridW" min="1" max="20" value="5" />
+          <span class="le-toolbar-sep">×</span>
+          <label>H</label>
+          <input type="number" id="leGridH" min="1" max="20" value="5" />
+          <button class="s-btn sm" id="leResizeBtn" title="Apply grid size">↻</button>
+        </div>
+        <div class="le-toolbar-sep-v"></div>
+        <div class="le-toolbar-group">
+          <button class="le-tool-btn active" id="leToolDraw" title="Draw">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </button>
+          <button class="le-tool-btn" id="leToolErase" title="Erase">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20H7L3 16l9-9 8 8-4 4z"/><path d="m6.5 17.5 4-4"/></svg>
+          </button>
+        </div>
+        <div class="le-toolbar-sep-v"></div>
+        <button class="s-btn sm" id="leClearBtn" title="Clear all">Clear</button>
+      </div>
+
+      <!-- ═══ FOOTER: delete (left) | cancel + save (right) ═══ -->
       <div class="le-actions">
         <button class="s-btn sm danger" id="leDeleteBtn" style="display:none">Delete</button>
         <div class="le-spacer"></div>

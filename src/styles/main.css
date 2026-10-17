@@ -492,7 +492,7 @@ body {
 /* ── Letter Editor Modal ─────────────────────── */
 .le-panel {
   max-width: 460px !important;
-  min-width: 360px;
+  min-width: 340px;
   text-align: start !important;
   -webkit-user-select: none;
   user-select: none;
@@ -502,15 +502,19 @@ body {
   -webkit-user-select: text;
   user-select: text;
 }
+
+/* ── Header ── */
 .le-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
 }
 .le-header h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--text);
 }
@@ -522,78 +526,134 @@ body {
   cursor: pointer;
   padding: 4px;
   line-height: 1;
+  border-radius: 4px;
+  transition: background 0.15s, color 0.15s;
 }
-.le-close-btn:hover { color: var(--text); }
+.le-close-btn:hover { color: var(--text); background: var(--surface2); }
 
-.le-meta { margin-bottom: 10px; }
-.le-meta-row {
+/* ── Meta Fields (Char + Name) ── */
+.le-meta {
   display: flex;
-  gap: 6px;
-  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
 }
-.le-meta-row label {
-  font-size: 13px;
+.le-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.le-field-grow { flex: 1; }
+.le-field label {
+  font-size: 11px;
+  font-weight: 500;
   color: var(--muted);
-  min-width: 34px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
-.le-meta-row input {
-  flex: 1;
-  min-width: 0;
+.le-field input {
   background: var(--surface2);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 6px;
   color: var(--text);
-  padding: 4px 8px;
+  padding: 6px 10px;
   font-size: 14px;
   font-family: 'Noto Sans Arabic', 'Amiri', serif;
+  transition: border-color 0.15s;
 }
-.le-meta-row input:first-of-type { max-width: 60px; }
+.le-field input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+.le-field:first-child input { max-width: 60px; text-align: center; }
 
-.le-grid-controls {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  margin-bottom: 8px;
-}
-.le-grid-controls label {
-  font-size: 13px;
-  color: var(--muted);
-}
-.le-grid-controls input[type="number"] {
-  width: 48px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  color: var(--text);
-  padding: 3px 6px;
-  font-size: 13px;
-  text-align: center;
-}
-
-.le-tools {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 10px;
-}
-
+/* ── Editor Canvas ── */
 .le-editor-wrap {
   background: var(--surface2);
   border: 1px solid var(--border);
-  border-radius: var(--rs);
-  padding: 12px;
-  margin-bottom: 12px;
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 8px;
   overflow: auto;
   max-height: 340px;
+  display: flex;
+  justify-content: center;
 }
 .le-editor-grid {
   display: grid;
   gap: 0;
-  margin: 0 auto;
   touch-action: none;
   user-select: none;
 }
 
-/* Main cells */
+/* ── Toolbar (below canvas) ── */
+.le-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  margin-bottom: 12px;
+}
+.le-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.le-toolbar-group label {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 500;
+}
+.le-toolbar-group input[type="number"] {
+  width: 42px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  padding: 3px 4px;
+  font-size: 12px;
+  text-align: center;
+}
+.le-toolbar-group input[type="number"]:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+.le-toolbar-sep {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0 1px;
+}
+.le-toolbar-sep-v {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  margin: 0 2px;
+}
+
+/* ── Tool buttons (icon style) ── */
+.le-tool-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface2);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.le-tool-btn:hover {
+  background: var(--surface3);
+  color: var(--text);
+}
+.le-tool-btn.active {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+
+/* ── Grid cells ── */
 .le-cell {
   background: var(--surface3);
   cursor: pointer;
@@ -605,8 +665,6 @@ body {
 .le-cell.filled {
   background: var(--accent);
 }
-
-/* Gap bridges — shared base */
 .le-gH, .le-gV, .le-gD {
   background: var(--cell-bg);
   cursor: pointer;
@@ -621,10 +679,13 @@ body {
   background: var(--accent);
 }
 
+/* ── Footer Actions ── */
 .le-actions {
   display: flex;
   gap: 6px;
   align-items: center;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
 }
 .le-spacer { flex: 1; }
 
