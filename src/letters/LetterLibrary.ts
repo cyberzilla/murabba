@@ -32,22 +32,34 @@ function normalizeGaps(
   const rows = m.length;
   const cols = m[0]?.length || 1;
 
-  const normalizedGH =
-    gH && gH.length === rows - 1
-      ? gH
-      : Array.from({ length: Math.max(0, rows - 1) }, () => new Array(cols).fill(0));
+  // gH: accept rows×cols (editor format) or (rows-1)×cols (traditional)
+  const gHRows = Math.max(0, rows - 1);
+  let normalizedGH: number[][];
+  if (gH && gH.length >= gHRows && gHRows > 0) {
+    // Trim to (rows-1)×cols, preserving data
+    normalizedGH = gH.slice(0, gHRows).map(r => r.slice(0, cols));
+  } else {
+    normalizedGH = Array.from({ length: gHRows }, () => new Array(cols).fill(0));
+  }
 
-  const normalizedGV =
-    gV && gV.length === rows
-      ? gV
-      : Array.from({ length: rows }, () => new Array(Math.max(0, cols - 1)).fill(0));
+  // gV: accept rows×cols (editor format) or rows×(cols-1) (traditional)
+  const gVCols = Math.max(0, cols - 1);
+  let normalizedGV: number[][];
+  if (gV && gV.length >= rows && rows > 0) {
+    normalizedGV = gV.slice(0, rows).map(r => r.slice(0, gVCols));
+  } else {
+    normalizedGV = Array.from({ length: rows }, () => new Array(gVCols).fill(0));
+  }
 
-  const normalizedGD =
-    gD && gD.length === rows - 1
-      ? gD
-      : Array.from({ length: Math.max(0, rows - 1) }, () =>
-          new Array(Math.max(0, cols - 1)).fill(0)
-        );
+  // gD: accept rows×cols (editor format) or (rows-1)×(cols-1) (traditional)
+  const gDRows = Math.max(0, rows - 1);
+  const gDCols = Math.max(0, cols - 1);
+  let normalizedGD: number[][];
+  if (gD && gD.length >= gDRows && gDRows > 0) {
+    normalizedGD = gD.slice(0, gDRows).map(r => r.slice(0, gDCols));
+  } else {
+    normalizedGD = Array.from({ length: gDRows }, () => new Array(gDCols).fill(0));
+  }
 
   return { gH: normalizedGH, gV: normalizedGV, gD: normalizedGD };
 }
