@@ -952,7 +952,7 @@ function showLetterPopup(app: App, ch: string, entry: LetterEntry, anchor: HTMLE
   // Build form options
   interface FormOption {
     label: string;
-    formData: { m: number[][]; gH: number[][]; gV: number[][]; gD: number[][] };
+    formData: { m: number[][]; gH: number[][]; gV: number[][]; gD: number[][]; marks?: LetterEntry['marks'] };
     onClick: () => void;
   }
 
@@ -961,7 +961,7 @@ function showLetterPopup(app: App, ch: string, entry: LetterEntry, anchor: HTMLE
   // Isolated (always available)
   options.push({
     label: t('letterEditor.tabSingle'),
-    formData: { m: entry.m, gH: entry.gH, gV: entry.gV, gD: entry.gD },
+    formData: { m: entry.m, gH: entry.gH, gV: entry.gV, gD: entry.gD, marks: entry.marks },
     onClick: () => { app.addLetter(ch, 'isolated'); hideLetterPopup(); },
   });
 
@@ -1005,7 +1005,7 @@ function showLetterPopup(app: App, ch: string, entry: LetterEntry, anchor: HTMLE
 
     const cvs = document.createElement('canvas');
     cvs.className = 'lfp-preview';
-    const previewE = { ...entry, ...opt.formData };
+    const previewE = { ...entry, ...opt.formData, marks: opt.formData.marks };
     renderLetterPreview(cvs, previewE, color, radiusRatio, gapRatio);
     item.appendChild(cvs);
 
