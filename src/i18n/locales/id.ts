@@ -121,6 +121,7 @@ export const id: Record<string, string> = {
   'tools.fillColor': 'Warna Isi',
   'tools.emptyCellColor': 'Warna Sel Kosong',
   'tools.quickColors': 'Warna Cepat',
+  'tools.recentColors': 'Terbaru',
   'tools.addColor': 'Tambah warna baru',
   'tools.export': 'Ekspor',
   'tools.exportPNG': 'Ekspor PNG',

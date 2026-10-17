@@ -183,37 +183,38 @@ function wireActionButtons(app: App): void {
   }
 }
 
+/** Highlight the preset button matching current grid size (or none if custom). */
+function syncPresetActive(cols: number, rows: number): void {
+  const key = `${cols},${rows}`;
+  document.querySelectorAll<HTMLElement>('[data-preset]').forEach(b =>
+    b.classList.toggle('active', b.dataset.preset === key)
+  );
+}
+
 function wireGridControls(app: App): void {
   const colsInput = document.getElementById('gridCols') as HTMLInputElement | null;
   const rowsInput = document.getElementById('gridRows') as HTMLInputElement | null;
-  const presetBtns = document.querySelectorAll<HTMLElement>('[data-preset]');
-
-  const setPresetActive = (cols: number, rows: number) => {
-    const key = `${cols},${rows}`;
-    presetBtns.forEach(b => b.classList.toggle('active', b.dataset.preset === key));
-  };
 
   const applyGridSize = () => {
     const cols = parseInt(colsInput?.value || '24');
     const rows = parseInt(rowsInput?.value || '24');
     app.resizeGrid(cols, rows);
-    setPresetActive(cols, rows);
+    syncPresetActive(cols, rows);
   };
 
   colsInput?.addEventListener('change', applyGridSize);
   rowsInput?.addEventListener('change', applyGridSize);
 
   // Presets
-  presetBtns.forEach(btn => {
+  document.querySelectorAll<HTMLElement>('[data-preset]').forEach(btn => {
     btn.addEventListener('click', () => {
       const [c, r] = btn.dataset.preset!.split(',').map(Number);
       app.initGrid(c, r);
-      setPresetActive(c, r);
+      if (colsInput) colsInput.value = String(c);
+      if (rowsInput) rowsInput.value = String(r);
+      syncPresetActive(c, r);
     });
   });
-
-  // Set initial active based on default grid size
-  setPresetActive(app.model.cols, app.model.rows);
 
   // Debounced settings save
   let settingsTimer: ReturnType<typeof setTimeout> | null = null;
@@ -286,15 +287,89 @@ function syncSliderUI(app: App): void {
   // Also trigger a re-render with loaded settings
   app.requestRender();
 
+  // Sync grid preset active highlight with actual model size
+  syncPresetActive(app.model.cols, app.model.rows);
+
   // Sync letter editor grid sizing with current config
   setEditorGridConfig(app.config.cellSize, app.config.gapSize, app.config.cellRadius);
 }
 
+// ─── Color History ────────────────────────────────────────
+
+const COLOR_HISTORY_KEY = 'murabba_recentColors';
+const MAX_RECENT_COLORS = 9;
+
+/** Built-in swatch colors (uppercase) to exclude from recent history */
+const BUILTIN_COLORS = new Set(
+  ['#22C55E','#DC2626','#FFFFFF','#111827','#3B82F6','#7C3AED','#EC4899','#14B8A6','#F59E0B']
+);
+
+function loadRecentColors(): string[] {
+  try {
+    const raw = localStorage.getItem(COLOR_HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveRecentColors(colors: string[]): void {
+  try { localStorage.setItem(COLOR_HISTORY_KEY, JSON.stringify(colors)); } catch { /* ok */ }
+}
+
+function pushRecentColor(hex: string): void {
+  const upper = hex.toUpperCase();
+  if (BUILTIN_COLORS.has(upper)) return; // skip built-in swatches
+  const list = loadRecentColors().filter(c => c.toUpperCase() !== upper);
+  list.unshift(upper);
+  if (list.length > MAX_RECENT_COLORS) list.length = MAX_RECENT_COLORS;
+  saveRecentColors(list);
+}
+
+function rebuildRecentSwatches(app: App): void {
+  const container = document.getElementById('recentColorsContainer');
+  if (!container) return;
+  const colors = loadRecentColors();
+  const label = container.previousElementSibling as HTMLElement | null;
+
+  if (colors.length === 0) {
+    container.innerHTML = '';
+    if (label) label.style.display = 'none';
+    return;
+  }
+  if (label) label.style.display = '';
+
+  container.innerHTML = '';
+  for (const color of colors) {
+    const div = document.createElement('div');
+    div.className = 'swatch';
+    div.style.background = color;
+    div.dataset.color = color;
+    div.setAttribute('role', 'button');
+    div.setAttribute('tabindex', '0');
+    // Dark colors get a border
+    if (color === '#111827' || color === '#000000') {
+      div.style.border = '1px solid #333';
+    }
+    div.addEventListener('click', () => {
+      app.setDrawColor(color);
+      syncColorUI(app);
+    });
+    container.appendChild(div);
+  }
+}
+
 function wireColorControls(app: App): void {
   const fillColor = document.getElementById('fillColor') as HTMLInputElement | null;
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
   fillColor?.addEventListener('input', () => {
     app.setDrawColor(fillColor.value);
     syncColorUI(app);
+    // Debounce recent color save (user is dragging picker)
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      pushRecentColor(fillColor.value);
+      rebuildRecentSwatches(app);
+    }, 600);
   });
 
   // Swatches
@@ -307,6 +382,9 @@ function wireColorControls(app: App): void {
       }
     });
   });
+
+  // Initial render of recent colors
+  rebuildRecentSwatches(app);
 }
 
 /**
@@ -497,6 +575,7 @@ function wireWelcomeScreen(app: App): void {
     const rowsInput = document.getElementById('gridRows') as HTMLInputElement | null;
     if (colsInput) colsInput.value = String(sessionData.cols);
     if (rowsInput) rowsInput.value = String(sessionData.rows);
+    syncPresetActive(sessionData.cols, sessionData.rows);
     syncColorUI(app);
     enter();
     return; // skip welcome screen setup
@@ -527,6 +606,7 @@ function wireWelcomeScreen(app: App): void {
       const rowsInput = document.getElementById('gridRows') as HTMLInputElement | null;
       if (colsInput) colsInput.value = String(sessionData.cols);
       if (rowsInput) rowsInput.value = String(sessionData.rows);
+      syncPresetActive(sessionData.cols, sessionData.rows);
       // Sync color picker & swatches with restored session color
       syncColorUI(app);
       enter();

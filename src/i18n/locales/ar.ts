@@ -121,6 +121,7 @@ export const ar: Record<string, string> = {
   'tools.fillColor': 'لون الحشو',
   'tools.emptyCellColor': 'لون الخلايا الفارغة',
   'tools.quickColors': 'ألوان سريعة',
+  'tools.recentColors': 'الأخيرة',
   'tools.addColor': 'إضافة لون جديد',
   'tools.export': 'تصدير',
   'tools.exportPNG': 'تصدير PNG',

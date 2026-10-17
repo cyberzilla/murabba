@@ -121,6 +121,7 @@ export const en: Record<string, string> = {
   'tools.fillColor': 'Fill Color',
   'tools.emptyCellColor': 'Empty Cell Color',
   'tools.quickColors': 'Quick Colors',
+  'tools.recentColors': 'Recent',
   'tools.addColor': 'Add new color',
   'tools.export': 'Export',
   'tools.exportPNG': 'Export PNG',
