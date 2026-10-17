@@ -125,6 +125,10 @@ function wireBrushModes(app: App): void {
 function wireActionButtons(app: App): void {
   document.getElementById('btnUndo')?.addEventListener('click', () => app.undo());
   document.getElementById('btnRedo')?.addEventListener('click', () => app.redo());
+  document.getElementById('btnRotateCW')?.addEventListener('click', () => app.rotateSelectionCW());
+  document.getElementById('btnRotateCCW')?.addEventListener('click', () => app.rotateSelectionCCW());
+  document.getElementById('btnFlipH')?.addEventListener('click', () => app.flipSelectionH());
+  document.getElementById('btnFlipV')?.addEventListener('click', () => app.flipSelectionV());
   document.getElementById('btnClear')?.addEventListener('click', async () => {
     const ok = await confirmDialog(t('confirm.clearAll'));
     if (ok) app.clearGrid();

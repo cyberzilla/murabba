@@ -565,6 +565,7 @@ export class App {
   requestRender(): void {
     this.renderer.requestRender();
     this.updateUndoRedoButtons();
+    this.updateTransformButtons();
   }
 
   /** Update disabled state of undo/redo toolbar buttons based on history stack. */
@@ -573,6 +574,49 @@ export class App {
     const btnRedo = document.getElementById('btnRedo') as HTMLButtonElement | null;
     if (btnUndo) btnUndo.disabled = !this.history.canUndo;
     if (btnRedo) btnRedo.disabled = !this.history.canRedo;
+  }
+
+  /** Update disabled state of transform buttons (rotate/flip) based on select tool phase. */
+  updateTransformButtons(): void {
+    const selectTool = this.tools.get('select') as SelectTool;
+    const enabled = this.currentToolType === 'select' && selectTool?.getPhase() === 'float';
+    const ids = ['btnRotateCW', 'btnRotateCCW', 'btnFlipH', 'btnFlipV'];
+    for (const id of ids) {
+      const btn = document.getElementById(id) as HTMLButtonElement | null;
+      if (btn) btn.disabled = !enabled;
+    }
+  }
+
+  /** Rotate the floating selection clockwise. */
+  rotateSelectionCW(): void {
+    const sel = this.tools.get('select') as SelectTool;
+    if (sel?.getPhase() === 'float') {
+      sel.rotateFloat(this.getToolContext());
+    }
+  }
+
+  /** Rotate the floating selection counter-clockwise. */
+  rotateSelectionCCW(): void {
+    const sel = this.tools.get('select') as SelectTool;
+    if (sel?.getPhase() === 'float') {
+      sel.rotateFloatCCW(this.getToolContext());
+    }
+  }
+
+  /** Flip the floating selection horizontally. */
+  flipSelectionH(): void {
+    const sel = this.tools.get('select') as SelectTool;
+    if (sel?.getPhase() === 'float') {
+      sel.flipFloatH(this.getToolContext());
+    }
+  }
+
+  /** Flip the floating selection vertically. */
+  flipSelectionV(): void {
+    const sel = this.tools.get('select') as SelectTool;
+    if (sel?.getPhase() === 'float') {
+      sel.flipFloatV(this.getToolContext());
+    }
   }
 
   // ─── Public API for external access ─────────────────────
