@@ -357,7 +357,7 @@ body {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0,0,0,0.6);
     z-index: 199;
   }
   .mobile-panel-overlay.visible {
@@ -692,16 +692,16 @@ body {
 /* ── Letter card edit overlay ────────────────── */
 .letter-btn .letter-edit {
   position: absolute;
-  top: 2px;
-  inset-inline-end: 2px;
-  font-size: 10px;
+  bottom: 3px;
+  inset-inline-start: 3px;
+  font-size: 12px;
   color: var(--muted);
-  background: rgba(0,0,0,0.5);
-  border-radius: 3px;
-  padding: 1px 3px;
+  background: rgba(0,0,0,0.6);
+  border-radius: 4px;
+  padding: 2px 4px;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.15s;
+  transition: opacity 0.15s, color 0.15s;
   line-height: 1;
   z-index: 1;
 }
@@ -783,7 +783,7 @@ body {
   font-size: 12px;
   color: var(--accent);
   text-decoration: none;
-  transition: opacity 0.15s;
+  transition: opacity 0.15s, color 0.15s;
 }
 .about-link:hover { opacity: 0.8; }
 .about-link-sep {
@@ -878,29 +878,3 @@ body {
   text-decoration: underline;
 }
 
-/* ═══════ FLOATING LETTER EDITOR BUTTON ═══════ */
-.fab-letter {
-  position: fixed;
-  bottom: 42px;
-  left: 16px;
-  z-index: 100;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: none;
-  background: var(--accent);
-  color: #fff;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-  transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
-}
-.fab-letter:hover {
-  transform: scale(1.1);
-  box-shadow: 0 4px 16px rgba(34,197,94,0.3);
-}
-.fab-letter:active {
-  transform: scale(0.95);
-}
