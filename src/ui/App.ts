@@ -525,16 +525,17 @@ export class App {
 
   setZoom(z: number): void {
     this.config.zoom = Math.max(0.25, Math.min(5, z));
+    const el = document.getElementById('zoomLevel');
+    if (el) el.textContent = `${Math.round(this.config.zoom * 100)}%`;
     this.requestRender();
   }
 
   zoomIn(): void { this.setZoom(this.config.zoom + 0.1); }
   zoomOut(): void { this.setZoom(this.config.zoom - 0.1); }
   zoomFit(): void {
-    this.config.zoom = 1;
     this.config.panX = 0;
     this.config.panY = 0;
-    this.requestRender();
+    this.setZoom(1);
   }
 
   // ─── Render ─────────────────────────────────────────────

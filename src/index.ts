@@ -290,10 +290,26 @@ function wireGridControls(app: App): void {
 
   // Sliders
   const cellSizeR = document.getElementById('cellSizeR') as HTMLInputElement | null;
+  const cellRadR = document.getElementById('cellRadR') as HTMLInputElement | null;
+
+  /** Update radius slider max to half of current cell size and clamp value */
+  const syncRadiusMax = () => {
+    if (!cellRadR) return;
+    const maxRad = Math.floor(app.config.cellSize / 2);
+    cellRadR.max = String(maxRad);
+    if (app.config.cellRadius > maxRad) {
+      app.config.cellRadius = maxRad;
+      cellRadR.value = String(maxRad);
+      const val = document.getElementById('cellRadVal');
+      if (val) val.textContent = String(maxRad);
+    }
+  };
+
   cellSizeR?.addEventListener('input', () => {
     app.config.cellSize = +cellSizeR.value;
     const val = document.getElementById('cellSizeVal');
     if (val) val.textContent = cellSizeR.value;
+    syncRadiusMax();
     app.requestRender();
     updateLetterPreviewColors(app);
     setEditorGridConfig(app.config.cellSize, app.config.gapSize, app.config.cellRadius);
@@ -311,7 +327,6 @@ function wireGridControls(app: App): void {
     debouncedSave();
   });
 
-  const cellRadR = document.getElementById('cellRadR') as HTMLInputElement | null;
   cellRadR?.addEventListener('input', () => {
     app.config.cellRadius = +cellRadR.value;
     const val = document.getElementById('cellRadVal');
@@ -321,6 +336,9 @@ function wireGridControls(app: App): void {
     setEditorGridConfig(app.config.cellSize, app.config.gapSize, app.config.cellRadius);
     debouncedSave();
   });
+
+  // Set initial radius max
+  syncRadiusMax();
 
 }
 
@@ -344,6 +362,10 @@ function syncSliderUI(app: App): void {
     if (v) v.textContent = String(app.config.gapSize);
   }
   if (cellRadR) {
+    // Radius max = half of cell size
+    const maxRad = Math.floor(app.config.cellSize / 2);
+    cellRadR.max = String(maxRad);
+    if (app.config.cellRadius > maxRad) app.config.cellRadius = maxRad;
     cellRadR.value = String(app.config.cellRadius);
     const v = document.getElementById('cellRadVal');
     if (v) v.textContent = String(app.config.cellRadius);
