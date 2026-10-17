@@ -1065,21 +1065,21 @@ body {
   flex-wrap: wrap;
   gap: 4px;
   padding: 6px;
-  padding-top: 8px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   max-width: 220px;
 }
-/* Invisible bridge above popup to catch mouse crossing the gap */
+/* Invisible bridge around popup to catch mouse crossing gaps */
 .letter-form-popup::before {
   content: '';
   position: absolute;
-  top: -6px;
-  left: 0;
-  right: 0;
-  height: 6px;
+  top: -8px;
+  left: -8px;
+  right: -8px;
+  bottom: -8px;
+  z-index: -1;
 }
 
 .lfp-item {
@@ -1111,3 +1111,17 @@ body {
   line-height: 1;
   white-space: nowrap;
 }
+
+/* ── Letter grid blur when popup is active ── */
+#letterGrid.lfp-active .letter-btn {
+  opacity: 0.25;
+  filter: blur(1px);
+  transition: opacity 0.15s, filter 0.15s;
+  pointer-events: none;
+}
+#letterGrid.lfp-active .letter-btn.lfp-anchor {
+  opacity: 1;
+  filter: none;
+  pointer-events: auto;
+}
+

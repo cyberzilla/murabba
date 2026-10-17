@@ -845,29 +845,67 @@ function showLetterPopup(app: App, ch: string, entry: LetterEntry, anchor: HTMLE
     popup.appendChild(item);
   }
 
-  // Position popup relative to anchor
+  // Position popup relative to anchor — prefer left side of card
   const rect = anchor.getBoundingClientRect();
   popup.style.display = 'flex';
-  popup.style.left = `${rect.left}px`;
-  popup.style.top = `${rect.bottom}px`;
 
-  // Adjust if overflowing right edge
+  // Calculate popup size (render off-screen first)
+  popup.style.left = '-9999px';
+  popup.style.top = '-9999px';
+
   requestAnimationFrame(() => {
     const pr = popup.getBoundingClientRect();
-    if (pr.right > window.innerWidth - 8) {
-      popup.style.left = `${window.innerWidth - pr.width - 8}px`;
+    const pw = pr.width;
+    const ph = pr.height;
+
+    let left: number;
+    let top: number;
+
+    // Try left of card
+    if (rect.left - pw - 4 > 8) {
+      left = rect.left - pw - 4;
+      top = rect.top;
     }
-    // If overflowing bottom, show above
-    if (pr.bottom > window.innerHeight - 8) {
-      popup.style.top = `${rect.top - pr.height}px`;
+    // Try right of card
+    else if (rect.right + pw + 4 < window.innerWidth - 8) {
+      left = rect.right + 4;
+      top = rect.top;
     }
+    // Fallback: below card
+    else {
+      left = rect.left;
+      top = rect.bottom;
+    }
+
+    // Clamp vertical to viewport
+    if (top + ph > window.innerHeight - 8) {
+      top = window.innerHeight - ph - 8;
+    }
+    if (top < 8) top = 8;
+
+    popup.style.left = `${left}px`;
+    popup.style.top = `${top}px`;
   });
+
+  // Blur the letter grid except active card
+  const grid = document.getElementById('letterGrid');
+  if (grid) {
+    grid.classList.add('lfp-active');
+    anchor.classList.add('lfp-anchor');
+  }
 }
 
 function hideLetterPopup(): void {
   popupTimer = setTimeout(() => {
     const popup = document.getElementById('letterFormPopup');
     if (popup) popup.style.display = 'none';
+    // Remove blur effect
+    const grid = document.getElementById('letterGrid');
+    if (grid) {
+      grid.classList.remove('lfp-active');
+      const anchor = grid.querySelector('.lfp-anchor');
+      if (anchor) anchor.classList.remove('lfp-anchor');
+    }
     popupTimer = null;
   }, 100);
 }
