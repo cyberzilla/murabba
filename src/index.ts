@@ -186,23 +186,34 @@ function wireActionButtons(app: App): void {
 function wireGridControls(app: App): void {
   const colsInput = document.getElementById('gridCols') as HTMLInputElement | null;
   const rowsInput = document.getElementById('gridRows') as HTMLInputElement | null;
+  const presetBtns = document.querySelectorAll<HTMLElement>('[data-preset]');
+
+  const setPresetActive = (cols: number, rows: number) => {
+    const key = `${cols},${rows}`;
+    presetBtns.forEach(b => b.classList.toggle('active', b.dataset.preset === key));
+  };
 
   const applyGridSize = () => {
     const cols = parseInt(colsInput?.value || '24');
     const rows = parseInt(rowsInput?.value || '24');
     app.resizeGrid(cols, rows);
+    setPresetActive(cols, rows);
   };
 
   colsInput?.addEventListener('change', applyGridSize);
   rowsInput?.addEventListener('change', applyGridSize);
 
   // Presets
-  document.querySelectorAll<HTMLElement>('[data-preset]').forEach(btn => {
+  presetBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       const [c, r] = btn.dataset.preset!.split(',').map(Number);
       app.initGrid(c, r);
+      setPresetActive(c, r);
     });
   });
+
+  // Set initial active based on default grid size
+  setPresetActive(app.model.cols, app.model.rows);
 
   // Debounced settings save
   let settingsTimer: ReturnType<typeof setTimeout> | null = null;

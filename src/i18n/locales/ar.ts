@@ -126,6 +126,7 @@ export const ar: Record<string, string> = {
   'tools.exportPNG': 'تصدير PNG',
   'tools.exportSVG': 'تصدير SVG',
   'tools.exportWebP': 'تصدير WebP',
+  'tools.resolution': 'الدقة',
   'tools.addBgImage': 'اضافة صورة كخلفية رسم',
   'tools.clickToUpload': 'انقر لرفع صورة مرجعية',
   'tools.hide': 'إخفاء',

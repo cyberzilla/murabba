@@ -126,6 +126,7 @@ export const id: Record<string, string> = {
   'tools.exportPNG': 'Ekspor PNG',
   'tools.exportSVG': 'Ekspor SVG',
   'tools.exportWebP': 'Ekspor WebP',
+  'tools.resolution': 'Resolusi',
   'tools.addBgImage': 'Tambahkan gambar sebagai latar',
   'tools.clickToUpload': 'Klik untuk unggah gambar referensi',
   'tools.hide': 'Sembunyikan',

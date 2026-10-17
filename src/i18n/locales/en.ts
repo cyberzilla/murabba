@@ -126,6 +126,7 @@ export const en: Record<string, string> = {
   'tools.exportPNG': 'Export PNG',
   'tools.exportSVG': 'Export SVG',
   'tools.exportWebP': 'Export WebP',
+  'tools.resolution': 'Resolution',
   'tools.addBgImage': 'Add image as drawing background',
   'tools.clickToUpload': 'Click to upload reference image',
   'tools.hide': 'Hide',
