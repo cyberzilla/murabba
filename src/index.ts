@@ -598,12 +598,18 @@ function renderLetterPreview(canvas: HTMLCanvasElement, entry: LetterEntry): voi
   const cols = rows > 0 ? m[0].length : 1;
   const color = '#22C55E';
 
+  // Helpers to safely read matrices
+  const cell = (c: number, r: number) => m[r]?.[c] ? 1 : 0;
+  const gh = (c: number, r: number) => gH?.[r]?.[c] ? 1 : 0;
+  const gv = (c: number, r: number) => gV?.[r]?.[c] ? 1 : 0;
+  const gd = (c: number, r: number) => gD?.[r]?.[c] ? 1 : 0;
+
   // Size calculations — fit within compact card
   const maxDim = Math.max(cols, rows);
   const totalPx = 28;
   const cellPx = Math.max(2, Math.floor(totalPx / (maxDim + (maxDim - 1) * 0.4)));
   const gapPx = Math.max(1, Math.round(cellPx * 0.35));
-  const radius = Math.max(0.5, cellPx * 0.3);
+  const R = Math.max(0.5, cellPx * 0.3);
 
   const canvasW = cols * cellPx + (cols - 1) * gapPx;
   const canvasH = rows * cellPx + (rows - 1) * gapPx;
@@ -620,59 +626,91 @@ function renderLetterPreview(canvas: HTMLCanvasElement, entry: LetterEntry): voi
   ctx.clearRect(0, 0, canvasW, canvasH);
   ctx.fillStyle = color;
 
-  // Helper: draw rounded rect with fallback
-  const rRect = (x: number, y: number, w: number, h: number, r: number) => {
+  // Draw rounded rect with per-corner radii [tl, tr, br, bl]
+  const drawRR = (x: number, y: number, w: number, h: number, radii: number[]) => {
+    let [tl, tr, br, bl] = radii;
+    const f = Math.min(1, w / (tl + tr || 1), w / (bl + br || 1), h / (tl + bl || 1), h / (tr + br || 1));
+    if (f < 1) { tl *= f; tr *= f; br *= f; bl *= f; }
     ctx.beginPath();
-    if (ctx.roundRect) {
-      ctx.roundRect(x, y, w, h, Math.min(r, w / 2, h / 2));
-    } else {
+    if (tl === 0 && tr === 0 && br === 0 && bl === 0) {
       ctx.rect(x, y, w, h);
+    } else {
+      ctx.moveTo(x + tl, y);
+      ctx.lineTo(x + w - tr, y);
+      ctx.arcTo(x + w, y, x + w, y + tr, tr);
+      ctx.lineTo(x + w, y + h - br);
+      ctx.arcTo(x + w, y + h, x + w - br, y + h, br);
+      ctx.lineTo(x + bl, y + h);
+      ctx.arcTo(x, y + h, x, y + h - bl, bl);
+      ctx.lineTo(x, y + tl);
+      ctx.arcTo(x, y, x + tl, y, tl);
+      ctx.closePath();
     }
     ctx.fill();
   };
 
-  // Draw cells
+  // Draw cells with smart corner radii
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      if (!m[r]?.[c]) continue;
+      if (!cell(c, r)) continue;
       const x = c * (cellPx + gapPx);
       const y = r * (cellPx + gapPx);
-      rRect(x, y, cellPx, cellPx, radius);
+      // Corner blocked if adjacent gap/diagonal is filled
+      const tl = (gv(c - 1, r) || gh(c, r - 1) || gd(c - 1, r - 1)) ? 0 : R;
+      const tr = (gv(c, r)     || gh(c, r - 1) || gd(c, r - 1))     ? 0 : R;
+      const br = (gv(c, r)     || gh(c, r)      || gd(c, r))         ? 0 : R;
+      const bl = (gv(c - 1, r) || gh(c, r)      || gd(c - 1, r))    ? 0 : R;
+      drawRR(x, y, cellPx, cellPx, [tl, tr, br, bl]);
     }
   }
 
-  // Draw gapH (vertical bridges between rows)
+  // Draw gapH (bridges between row r and r+1) with smart radii
   if (gH) {
+    const gR = Math.min(R, gapPx / 2);
     for (let r = 0; r < rows - 1; r++) {
       for (let c = 0; c < cols; c++) {
-        if (!gH[r]?.[c]) continue;
+        if (!gh(c, r)) continue;
         const x = c * (cellPx + gapPx);
         const y = r * (cellPx + gapPx) + cellPx;
-        rRect(x, y, cellPx, gapPx, Math.min(radius, gapPx / 2));
+        const tl = (cell(c, r)     || gv(c - 1, r)     || gd(c - 1, r)) ? 0 : gR;
+        const tr = (cell(c, r)     || gv(c, r)          || gd(c, r))     ? 0 : gR;
+        const br = (cell(c, r + 1) || gv(c, r + 1)      || gd(c, r))     ? 0 : gR;
+        const bl = (cell(c, r + 1) || gv(c - 1, r + 1)  || gd(c - 1, r)) ? 0 : gR;
+        drawRR(x, y, cellPx, gapPx, [tl, tr, br, bl]);
       }
     }
   }
 
-  // Draw gapV (horizontal bridges between columns)
+  // Draw gapV (bridges between col c and c+1) with smart radii
   if (gV) {
+    const gR = Math.min(R, gapPx / 2);
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols - 1; c++) {
-        if (!gV[r]?.[c]) continue;
+        if (!gv(c, r)) continue;
         const x = c * (cellPx + gapPx) + cellPx;
         const y = r * (cellPx + gapPx);
-        rRect(x, y, gapPx, cellPx, Math.min(radius, gapPx / 2));
+        const tl = (cell(c, r)     || gh(c, r - 1)     || gd(c, r - 1)) ? 0 : gR;
+        const tr = (cell(c + 1, r) || gh(c + 1, r - 1) || gd(c, r - 1)) ? 0 : gR;
+        const br = (cell(c + 1, r) || gh(c + 1, r)     || gd(c, r))     ? 0 : gR;
+        const bl = (cell(c, r)     || gh(c, r)          || gd(c, r))     ? 0 : gR;
+        drawRR(x, y, gapPx, cellPx, [tl, tr, br, bl]);
       }
     }
   }
 
-  // Draw gapD (corner dots)
+  // Draw gapD (corner dots) with smart radii
   if (gD) {
+    const gR = Math.min(R, gapPx / 2);
     for (let r = 0; r < rows - 1; r++) {
       for (let c = 0; c < cols - 1; c++) {
-        if (!gD[r]?.[c]) continue;
+        if (!gd(c, r)) continue;
         const x = c * (cellPx + gapPx) + cellPx;
         const y = r * (cellPx + gapPx) + cellPx;
-        rRect(x, y, gapPx, gapPx, Math.min(radius, gapPx / 2));
+        const tl = (cell(c, r)         || gh(c, r)     || gv(c, r))     ? 0 : gR;
+        const tr = (cell(c + 1, r)     || gh(c + 1, r) || gv(c, r))     ? 0 : gR;
+        const br = (cell(c + 1, r + 1) || gh(c + 1, r) || gv(c, r + 1)) ? 0 : gR;
+        const bl = (cell(c, r + 1)     || gh(c, r)     || gv(c, r + 1)) ? 0 : gR;
+        drawRR(x, y, gapPx, gapPx, [tl, tr, br, bl]);
       }
     }
   }
