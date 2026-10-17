@@ -448,6 +448,79 @@ export function hitTest(
 }
 
 /**
+ * Element coordinate in the expanded 2x grid.
+ * Even indices map to cells, odd to gaps:
+ *   (2*x,   2*y)   → cell(x,y)
+ *   (2*x+1, 2*y)   → gapV(x,y)
+ *   (2*x,   2*y+1) → gapH(x,y)
+ *   (2*x+1, 2*y+1) → gapD(x,y)
+ */
+export interface ElementCoord {
+  ex: number;
+  ey: number;
+}
+
+/**
+ * Converts screen pixel coordinates to element coordinate in the 2x grid.
+ * This gives per-element granularity (cells, gapV, gapH, gapD each addressable).
+ */
+export function screenToElement(
+  screenX: number,
+  screenY: number,
+  config: RenderConfig
+): ElementCoord | null {
+  const world = screenToWorld(screenX, screenY, config);
+  const relX = world.x - config.padding;
+  const relY = world.y - config.padding;
+
+  if (relX < 0 || relY < 0) return null;
+
+  const step = config.cellSize + config.gapSize;
+  if (step <= 0) return null;
+
+  const col = Math.floor(relX / step);
+  const row = Math.floor(relY / step);
+
+  const localX = relX - col * step;
+  const localY = relY - row * step;
+
+  const inCellX = localX <= config.cellSize;
+  const inCellY = localY <= config.cellSize;
+
+  const ex = inCellX ? col * 2 : col * 2 + 1;
+  const ey = inCellY ? row * 2 : row * 2 + 1;
+
+  return { ex, ey };
+}
+
+/**
+ * Converts an element coordinate to its pixel rectangle in world space.
+ * Used for rendering selection frames at element granularity.
+ */
+export function elementToPixelRect(
+  ex: number,
+  ey: number,
+  config: RenderConfig
+): Rect {
+  const total = config.cellSize + config.gapSize;
+  const cs = config.cellSize;
+  const gs = config.gapSize;
+  const pad = config.padding;
+
+  const cellX = Math.floor(ex / 2);
+  const cellY = Math.floor(ey / 2);
+  const isGapX = ex % 2 === 1;
+  const isGapY = ey % 2 === 1;
+
+  return {
+    x: pad + cellX * total + (isGapX ? cs : 0),
+    y: pad + cellY * total + (isGapY ? cs : 0),
+    w: isGapX ? gs : cs,
+    h: isGapY ? gs : cs,
+  };
+}
+
+/**
  * CoordinateMapper namespace containing all coordinate translation utilities.
  */
 export const CoordinateMapper = {
@@ -466,6 +539,8 @@ export const CoordinateMapper = {
   getGapVScreenRect,
   getGapDScreenRect,
   hitTest,
+  screenToElement,
+  elementToPixelRect,
 };
 
 export default CoordinateMapper;

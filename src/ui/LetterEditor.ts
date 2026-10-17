@@ -80,25 +80,13 @@ export function openEditLetter(ch: string, entry: LetterEntry): void {
   gridW = m[0]?.length || 1;
   initMatrices();
 
-  // Copy data
+  // Copy data — old entries may have smaller gap matrices, safe-read with ?.
   for (let r = 0; r < gridH; r++) {
     for (let c = 0; c < gridW; c++) {
       cellMatrix[r][c] = m[r]?.[c] || 0;
-    }
-  }
-  if (entry.gH) for (let r = 0; r < gridH - 1; r++) {
-    for (let c = 0; c < gridW; c++) {
-      gHMatrix[r][c] = entry.gH[r]?.[c] || 0;
-    }
-  }
-  if (entry.gV) for (let r = 0; r < gridH; r++) {
-    for (let c = 0; c < gridW - 1; c++) {
-      gVMatrix[r][c] = entry.gV[r]?.[c] || 0;
-    }
-  }
-  if (entry.gD) for (let r = 0; r < gridH - 1; r++) {
-    for (let c = 0; c < gridW - 1; c++) {
-      gDMatrix[r][c] = entry.gD[r]?.[c] || 0;
+      if (entry.gH) gHMatrix[r][c] = entry.gH[r]?.[c] || 0;
+      if (entry.gV) gVMatrix[r][c] = entry.gV[r]?.[c] || 0;
+      if (entry.gD) gDMatrix[r][c] = entry.gD[r]?.[c] || 0;
     }
   }
 
@@ -256,9 +244,10 @@ function buildEditorGrid(): void {
   if (!editorGrid) return;
   editorGrid.innerHTML = '';
 
-  // CSS grid with fixed px sizes so cells are always square
-  const totalCols = gridW * 2 - 1;
-  const totalRows = gridH * 2 - 1;
+  // Each cell block = cell + right gapV + bottom gapH + corner gapD
+  // So total grid = 2*W columns (cell,gap,cell,gap,...) × 2*H rows
+  const totalCols = gridW * 2;
+  const totalRows = gridH * 2;
 
   editorGrid.style.gridTemplateColumns =
     Array.from({ length: totalCols }, (_, i) => (i % 2 === 0) ? `${CELL_PX}px` : `${GAP_PX}px`).join(' ');
@@ -278,7 +267,7 @@ function buildEditorGrid(): void {
         // Main cell
         const r = gr / 2, c = gc / 2;
         const el = document.createElement('div');
-        el.className = 'le-cell' + (cellMatrix[r][c] ? ' filled' : '');
+        el.className = 'le-cell' + (cellMatrix[r]?.[c] ? ' filled' : '');
         el.dataset.type = 'cell';
         el.dataset.r = String(r);
         el.dataset.c = String(c);
@@ -288,49 +277,43 @@ function buildEditorGrid(): void {
         editorGrid.appendChild(el);
 
       } else if (isEvenR && !isEvenC) {
-        // gapV: between cell (r, c) and cell (r, c+1)
+        // gapV: right of cell (r, c)
         const r = gr / 2, c = (gc - 1) / 2;
-        if (c < gridW - 1) {
-          const el = document.createElement('div');
-          el.className = 'le-gV' + (gVMatrix[r]?.[c] ? ' filled' : '');
-          el.dataset.type = 'gV';
-          el.dataset.r = String(r);
-          el.dataset.c = String(c);
-          el.style.gridColumn = String(gc + 1);
-          el.style.gridRow = String(gr + 1);
-          addPaintListeners(el);
-          editorGrid.appendChild(el);
-        }
+        const el = document.createElement('div');
+        el.className = 'le-gV' + (gVMatrix[r]?.[c] ? ' filled' : '');
+        el.dataset.type = 'gV';
+        el.dataset.r = String(r);
+        el.dataset.c = String(c);
+        el.style.gridColumn = String(gc + 1);
+        el.style.gridRow = String(gr + 1);
+        addPaintListeners(el);
+        editorGrid.appendChild(el);
 
       } else if (!isEvenR && isEvenC) {
-        // gapH: between cell (r, c) and cell (r+1, c)
+        // gapH: below cell (r, c)
         const r = (gr - 1) / 2, c = gc / 2;
-        if (r < gridH - 1) {
-          const el = document.createElement('div');
-          el.className = 'le-gH' + (gHMatrix[r]?.[c] ? ' filled' : '');
-          el.dataset.type = 'gH';
-          el.dataset.r = String(r);
-          el.dataset.c = String(c);
-          el.style.gridColumn = String(gc + 1);
-          el.style.gridRow = String(gr + 1);
-          addPaintListeners(el);
-          editorGrid.appendChild(el);
-        }
+        const el = document.createElement('div');
+        el.className = 'le-gH' + (gHMatrix[r]?.[c] ? ' filled' : '');
+        el.dataset.type = 'gH';
+        el.dataset.r = String(r);
+        el.dataset.c = String(c);
+        el.style.gridColumn = String(gc + 1);
+        el.style.gridRow = String(gr + 1);
+        addPaintListeners(el);
+        editorGrid.appendChild(el);
 
       } else {
-        // gapD: diagonal corner
+        // gapD: bottom-right corner of cell (r, c)
         const r = (gr - 1) / 2, c = (gc - 1) / 2;
-        if (r < gridH - 1 && c < gridW - 1) {
-          const el = document.createElement('div');
-          el.className = 'le-gD' + (gDMatrix[r]?.[c] ? ' filled' : '');
-          el.dataset.type = 'gD';
-          el.dataset.r = String(r);
-          el.dataset.c = String(c);
-          el.style.gridColumn = String(gc + 1);
-          el.style.gridRow = String(gr + 1);
-          addPaintListeners(el);
-          editorGrid.appendChild(el);
-        }
+        const el = document.createElement('div');
+        el.className = 'le-gD' + (gDMatrix[r]?.[c] ? ' filled' : '');
+        el.dataset.type = 'gD';
+        el.dataset.r = String(r);
+        el.dataset.c = String(c);
+        el.style.gridColumn = String(gc + 1);
+        el.style.gridRow = String(gr + 1);
+        addPaintListeners(el);
+        editorGrid.appendChild(el);
       }
     }
   }
@@ -442,9 +425,9 @@ function refreshRadius(): void {
 
 function initMatrices(): void {
   cellMatrix = Array.from({ length: gridH }, () => new Array(gridW).fill(0));
-  gHMatrix = Array.from({ length: Math.max(0, gridH - 1) }, () => new Array(gridW).fill(0));
-  gVMatrix = Array.from({ length: gridH }, () => new Array(Math.max(0, gridW - 1)).fill(0));
-  gDMatrix = Array.from({ length: Math.max(0, gridH - 1) }, () => new Array(Math.max(0, gridW - 1)).fill(0));
+  gHMatrix = Array.from({ length: gridH }, () => new Array(gridW).fill(0));
+  gVMatrix = Array.from({ length: gridH }, () => new Array(gridW).fill(0));
+  gDMatrix = Array.from({ length: gridH }, () => new Array(gridW).fill(0));
 }
 
 function resizeMatrices(newW: number, newH: number): void {
@@ -460,22 +443,8 @@ function resizeMatrices(newW: number, newH: number): void {
   for (let r = 0; r < minH; r++) {
     for (let c = 0; c < minW; c++) {
       cellMatrix[r][c] = oldCM[r]?.[c] || 0;
-    }
-  }
-  const minGHR = Math.min(Math.max(0, oldH - 1), Math.max(0, newH - 1));
-  for (let r = 0; r < minGHR; r++) {
-    for (let c = 0; c < minW; c++) {
       gHMatrix[r][c] = oldGH[r]?.[c] || 0;
-    }
-  }
-  const minGVC = Math.min(Math.max(0, oldW - 1), Math.max(0, newW - 1));
-  for (let r = 0; r < minH; r++) {
-    for (let c = 0; c < minGVC; c++) {
       gVMatrix[r][c] = oldGV[r]?.[c] || 0;
-    }
-  }
-  for (let r = 0; r < minGHR; r++) {
-    for (let c = 0; c < minGVC; c++) {
       gDMatrix[r][c] = oldGD[r]?.[c] || 0;
     }
   }

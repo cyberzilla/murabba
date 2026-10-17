@@ -12,6 +12,7 @@ import { FillTool } from '../tools/FillTool';
 import { BrushTool } from '../tools/BrushTool';
 import { PanTool } from '../tools/PanTool';
 import { SelectTool } from '../tools/SelectTool';
+import { CursorTool } from '../tools/CursorTool';
 import { downloadPNG, downloadJSON, exportProject, importProject } from '../storage/ProjectIO';
 import { saveSession, saveSettings, loadSettings } from '../storage/SessionManager';
 import { openDatabase } from '../storage/IndexedDBStore';
@@ -62,6 +63,9 @@ export class App {
   // Auto-save timer
   private autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // Internal clipboard for copy/paste
+  private clipboard: SelectionData | null = null;
+
   // Cached DOM elements
   private coordsDisplay: HTMLElement | null = null;
 
@@ -75,6 +79,7 @@ export class App {
     this.coordsDisplay = document.getElementById('coordsDisplay');
 
     // Create tools
+    const cursorTool = new CursorTool();
     const drawTool = new DrawTool('draw');
     const eraseTool = new DrawTool('erase');
     const fillTool = new FillTool();
@@ -83,6 +88,7 @@ export class App {
     const selectTool = new SelectTool();
 
     this.tools = new Map<ToolType, BaseTool>([
+      ['cursor', cursorTool],
       ['draw', drawTool],
       ['erase', eraseTool],
       ['fill', fillTool],
@@ -91,7 +97,8 @@ export class App {
       ['select', selectTool],
     ]);
 
-    this.currentTool = drawTool;
+    this.currentToolType = 'cursor';
+    this.currentTool = cursorTool;
   }
 
   async init(): Promise<void> {
@@ -549,6 +556,142 @@ export class App {
     this.requestRender();
   }
 
+  // ─── Clipboard: Copy / Cut / Paste ─────────────────────
+
+  /**
+   * Copies the current selection to the internal clipboard.
+   * Works from both 'define' (reads from grid) and 'float' (reads existing float data) phases.
+   */
+  copySelection(): void {
+    const selectTool = this.tools.get('select') as SelectTool;
+    if (!selectTool) return;
+
+    if (selectTool.getPhase() === 'float') {
+      // Already floating — deep-copy the float data
+      const fd = selectTool.getFloatData();
+      if (fd) {
+        this.clipboard = {
+          cells: fd.cells.map(c => ({ ...c })),
+          gH: fd.gH.map(g => ({ ...g })),
+          gV: fd.gV.map(g => ({ ...g })),
+          gD: fd.gD.map(g => ({ ...g })),
+          ox: fd.ox, oy: fd.oy, w: fd.w, h: fd.h,
+        };
+      }
+    } else if (selectTool.getPhase() === 'define') {
+      // Extract from grid without cutting — using element-level bounds
+      const { x1: ex1, y1: ey1, x2: ex2, y2: ey2 } = selectTool.getSelectionBounds();
+      const cellX1 = Math.floor(ex1 / 2);
+      const cellY1 = Math.floor(ey1 / 2);
+      const cellX2 = Math.floor(ex2 / 2);
+      const cellY2 = Math.floor(ey2 / 2);
+
+      const cells: SelectionData['cells'] = [];
+      const gH: SelectionData['gH'] = [];
+      const gV: SelectionData['gV'] = [];
+      const gD: SelectionData['gD'] = [];
+
+      for (let y = cellY1; y <= cellY2; y++) {
+        for (let x = cellX1; x <= cellX2; x++) {
+          const lx = x - cellX1;
+          const ly = y - cellY1;
+          if (x * 2 >= ex1 && x * 2 <= ex2 && y * 2 >= ey1 && y * 2 <= ey2) {
+            if (this.model.isFilledCell(x, y)) {
+              cells.push({ lx, ly, c: this.model.getCellColor(x, y) || this.config.drawColor });
+            }
+          }
+          if (x * 2 + 1 >= ex1 && x * 2 + 1 <= ex2 && y * 2 >= ey1 && y * 2 <= ey2) {
+            if (this.model.isGapVInBounds(x, y) && this.model.isFilledGapV(x, y)) {
+              gV.push({ lx, ly, c: this.model.getGapVColor(x, y) || this.config.drawColor });
+            }
+          }
+          if (x * 2 >= ex1 && x * 2 <= ex2 && y * 2 + 1 >= ey1 && y * 2 + 1 <= ey2) {
+            if (this.model.isGapHInBounds(x, y) && this.model.isFilledGapH(x, y)) {
+              gH.push({ lx, ly, c: this.model.getGapHColor(x, y) || this.config.drawColor });
+            }
+          }
+          if (x * 2 + 1 >= ex1 && x * 2 + 1 <= ex2 && y * 2 + 1 >= ey1 && y * 2 + 1 <= ey2) {
+            if (this.model.isGapDInBounds(x, y) && this.model.isFilledGapD(x, y)) {
+              gD.push({ lx, ly, c: this.model.getGapDColor(x, y) || this.config.drawColor });
+            }
+          }
+        }
+      }
+
+      if (cells.length || gH.length || gV.length || gD.length) {
+        this.clipboard = {
+          cells, gH, gV, gD,
+          ox: cellX1, oy: cellY1,
+          w: cellX2 - cellX1 + 1,
+          h: cellY2 - cellY1 + 1,
+        };
+      }
+    }
+  }
+
+  /**
+   * Cuts the current selection: copies to clipboard then removes from grid.
+   * In 'define' phase it commits (which cuts), in 'float' it copies the float data.
+   */
+  cutSelection(): void {
+    const selectTool = this.tools.get('select') as SelectTool;
+    if (!selectTool) return;
+
+    if (selectTool.getPhase() === 'define') {
+      // Copy first, then commit (which cuts the region from the grid)
+      this.copySelection();
+      selectTool.commitSelection(this.getToolContext());
+    } else if (selectTool.getPhase() === 'float') {
+      this.copySelection();
+      // Cancel the float (undo the cut) — the clipboard now holds the data
+      selectTool.cancelFloat(this.getToolContext());
+    }
+  }
+
+  /**
+   * Pastes the clipboard as a new floating selection near the viewport center.
+   */
+  pasteSelection(): void {
+    if (!this.clipboard) return;
+    const selectTool = this.tools.get('select') as SelectTool;
+    if (!selectTool) return;
+
+    // Switch to select tool if not already
+    if (this.currentToolType !== 'select') {
+      this.setTool('select');
+    }
+
+    // Calculate paste position: center of current viewport
+    const canvasEl = this.renderer.getCanvas();
+    const centerScreen = {
+      x: canvasEl.clientWidth / 2,
+      y: canvasEl.clientHeight / 2,
+    };
+    const canvasPos = this.renderer.screenToCanvas(
+      canvasEl.getBoundingClientRect().left + centerScreen.x,
+      canvasEl.getBoundingClientRect().top + centerScreen.y,
+      this.config
+    );
+    const cell = screenToCell(canvasPos.x, canvasPos.y, this.config);
+
+    // Offset so the pasted content is centered on the viewport center cell
+    const ox = cell ? Math.round(cell.x - this.clipboard.w / 2) : this.clipboard.ox;
+    const oy = cell ? Math.round(cell.y - this.clipboard.h / 2) : this.clipboard.oy;
+
+    // Deep-copy clipboard data with new origin
+    const pasteData: SelectionData = {
+      cells: this.clipboard.cells.map(c => ({ ...c })),
+      gH: this.clipboard.gH.map(g => ({ ...g })),
+      gV: this.clipboard.gV.map(g => ({ ...g })),
+      gD: this.clipboard.gD.map(g => ({ ...g })),
+      ox, oy,
+      w: this.clipboard.w,
+      h: this.clipboard.h,
+    };
+
+    selectTool.startFloat(pasteData, this.getToolContext());
+  }
+
   // ─── Private: Tool Context ──────────────────────────────
 
   private getToolContext(): ToolContext {
@@ -606,6 +749,12 @@ export class App {
 
     canvas.addEventListener('pointerdown', (e) => {
       e.preventDefault();
+
+      // Release focus from any input/settings so keyboard shortcuts work on canvas
+      const active = document.activeElement as HTMLElement | null;
+      if (active && active !== canvas && typeof active.blur === 'function') {
+        active.blur();
+      }
 
       // Right-click: reset/cancel current tool state
       if (e.button === 2) {
@@ -705,9 +854,13 @@ export class App {
       if (ctrl && e.key === 'z') { e.preventDefault(); this.undo(); return; }
       if (ctrl && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) { e.preventDefault(); this.redo(); return; }
       if (ctrl && e.key === 's') { e.preventDefault(); this.exportPNG(); return; }
+      if (ctrl && e.key === 'c') { e.preventDefault(); this.copySelection(); return; }
+      if (ctrl && e.key === 'x') { e.preventDefault(); this.cutSelection(); return; }
+      if (ctrl && e.key === 'v') { e.preventDefault(); this.pasteSelection(); return; }
 
       if (!ctrl) {
         switch (e.key.toLowerCase()) {
+          case 'v': this.setTool('cursor'); break;
           case 'b': this.setTool('draw'); break;
           case 'e': this.setTool('erase'); break;
           case 'f': this.setTool('fill'); break;
@@ -775,9 +928,14 @@ export class App {
   // ─── Private: Resize ────────────────────────────────────
 
   private setupResize(): void {
+    let resizeTimer: ReturnType<typeof setTimeout> | null = null;
     const ro = new ResizeObserver(() => {
-      this.renderer.resize();
-      this.requestRender();
+      // Debounce to avoid canvas flicker during animated panel transitions
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        this.renderer.resize();
+        this.requestRender();
+      }, 50);
     });
     ro.observe(this.container);
   }

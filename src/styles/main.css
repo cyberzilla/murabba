@@ -172,6 +172,15 @@ body {
   border-inline-start: 1px solid var(--border);
   display: flex; flex-direction: column; flex-shrink: 0;
   overflow: hidden;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.25s ease;
+  will-change: width, opacity;
+}
+#rightPanel.panel-collapsed {
+  width: 0;
+  opacity: 0;
+  border-inline-start-width: 0;
+  pointer-events: none;
 }
 .rp-scroll {
   flex: 1; overflow-y: auto; overflow-x: hidden; padding: 4px 0;
@@ -230,6 +239,11 @@ body {
 }
 .s-btn.danger:hover {
   background: rgba(220, 38, 38, 0.15);
+}
+.s-btn.active {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 /* ── Swatches ── */
@@ -321,13 +335,16 @@ body {
 
 /* ═══════ RESPONSIVE ═══════ */
 @media (max-width: 768px) {
-  #rightPanel {
+  #rightPanel, #rightPanel.panel-collapsed {
     position: fixed;
     right: 0;
     top: 0;
     bottom: 0;
     z-index: 200;
     width: 280px;
+    opacity: 1;
+    border-inline-start-width: 1px;
+    pointer-events: auto;
     transform: translateX(100%);
     transition: transform 0.3s ease;
     overflow-y: auto;
@@ -401,7 +418,7 @@ body {
 }
 .letter-preview {
   display: block;
-  image-rendering: pixelated;
+  image-rendering: auto;
 }
 .letter-btn .letter-name {
   font-size: 9px;
@@ -591,14 +608,14 @@ body {
 
 /* Gap bridges — shared base */
 .le-gH, .le-gV, .le-gD {
-  background: transparent;
+  background: var(--cell-bg);
   cursor: pointer;
   transition: background 0.1s, border-radius 0.1s;
   min-width: 0;
   min-height: 0;
 }
 .le-gH:hover, .le-gV:hover, .le-gD:hover {
-  background: rgba(34,197,94,0.15);
+  background: rgba(34,197,94,0.2);
 }
 .le-gH.filled, .le-gV.filled, .le-gD.filled {
   background: var(--accent);

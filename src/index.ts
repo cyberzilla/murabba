@@ -6,7 +6,7 @@ import { initI18n, setLang, getLang, t } from './i18n/I18n';
 import type { SupportedLang } from './types';
 import type { LetterEntry } from './types/grid';
 import { initConfirmModal, confirmDialog } from './ui/ConfirmModal';
-import { loadSession } from './storage/SessionManager';
+import { loadSession, saveSettings } from './storage/SessionManager';
 import { initLetterEditor, openNewLetter, openEditLetter } from './ui/LetterEditor';
 import { exportLibrary, saveLetter, deleteLetter } from './letters/LetterLibrary';
 
@@ -59,6 +59,8 @@ document.addEventListener('DOMContentLoaded', () => {
     wireLetterPanel(app);
     // Sync color UI with loaded settings (drawColor from localStorage)
     syncColorUI(app);
+    // Sync slider UI with loaded settings (cellSize, gapSize, cellRadius)
+    syncSliderUI(app);
   }).catch(console.error);
 
   // Language switcher
@@ -80,6 +82,7 @@ function wireToolButtons(app: App): void {
         const statusEl = document.getElementById('statusTool');
         if (statusEl) {
           const toolNames: Record<string, string> = {
+            cursor: 'toolName.cursor',
             draw: 'toolName.draw', erase: 'toolName.erase',
             fill: 'toolName.fill', brush: 'toolName.brush',
             pan: 'toolName.pan', select: 'toolName.select',
@@ -137,9 +140,9 @@ function wireActionButtons(app: App): void {
   const rightPanel = document.getElementById('rightPanel');
   if (panelToggle && rightPanel) {
     panelToggle.addEventListener('click', () => {
-      const isHidden = rightPanel.style.display === 'none';
-      rightPanel.style.display = isHidden ? '' : 'none';
-      panelToggle.classList.toggle('active', isHidden);
+      rightPanel.classList.toggle('panel-collapsed');
+      const isVisible = !rightPanel.classList.contains('panel-collapsed');
+      panelToggle.classList.toggle('active', isVisible);
     });
   }
 
@@ -187,6 +190,13 @@ function wireGridControls(app: App): void {
     });
   });
 
+  // Debounced settings save
+  let settingsTimer: ReturnType<typeof setTimeout> | null = null;
+  const debouncedSave = () => {
+    if (settingsTimer) clearTimeout(settingsTimer);
+    settingsTimer = setTimeout(() => { saveSettings(app.config); }, 500);
+  };
+
   // Sliders
   const cellSizeR = document.getElementById('cellSizeR') as HTMLInputElement | null;
   cellSizeR?.addEventListener('input', () => {
@@ -194,6 +204,8 @@ function wireGridControls(app: App): void {
     const val = document.getElementById('cellSizeVal');
     if (val) val.textContent = cellSizeR.value;
     app.requestRender();
+    updateLetterPreviewColors(app);
+    debouncedSave();
   });
 
   const gapSizeR = document.getElementById('gapSizeR') as HTMLInputElement | null;
@@ -202,6 +214,8 @@ function wireGridControls(app: App): void {
     const val = document.getElementById('gapSizeVal');
     if (val) val.textContent = gapSizeR.value;
     app.requestRender();
+    updateLetterPreviewColors(app);
+    debouncedSave();
   });
 
   const cellRadR = document.getElementById('cellRadR') as HTMLInputElement | null;
@@ -210,7 +224,39 @@ function wireGridControls(app: App): void {
     const val = document.getElementById('cellRadVal');
     if (val) val.textContent = cellRadR.value;
     app.requestRender();
+    updateLetterPreviewColors(app);
+    debouncedSave();
   });
+
+}
+
+/**
+ * Syncs slider DOM elements with current app.config values.
+ * Must be called AFTER app.init() so loadSettings() has applied saved values.
+ */
+function syncSliderUI(app: App): void {
+  const cellSizeR = document.getElementById('cellSizeR') as HTMLInputElement | null;
+  const gapSizeR = document.getElementById('gapSizeR') as HTMLInputElement | null;
+  const cellRadR = document.getElementById('cellRadR') as HTMLInputElement | null;
+
+  if (cellSizeR) {
+    cellSizeR.value = String(app.config.cellSize);
+    const v = document.getElementById('cellSizeVal');
+    if (v) v.textContent = String(app.config.cellSize);
+  }
+  if (gapSizeR) {
+    gapSizeR.value = String(app.config.gapSize);
+    const v = document.getElementById('gapSizeVal');
+    if (v) v.textContent = String(app.config.gapSize);
+  }
+  if (cellRadR) {
+    cellRadR.value = String(app.config.cellRadius);
+    const v = document.getElementById('cellRadVal');
+    if (v) v.textContent = String(app.config.cellRadius);
+  }
+
+  // Also trigger a re-render with loaded settings
+  app.requestRender();
 }
 
 function wireColorControls(app: App): void {
@@ -279,7 +325,7 @@ function updateLetterPreviewColors(app: App): void {
     if (!ch) return;
     const canvas = btn.querySelector<HTMLCanvasElement>('.letter-preview');
     if (canvas) {
-      renderLetterPreview(canvas, app.letters[ch], color);
+      renderLetterPreview(canvas, app.letters[ch], color, app.config.cellRadius / app.config.cellSize);
     }
   });
 }
@@ -590,7 +636,7 @@ function rebuildLetterGrid(app: App): void {
     // Canvas preview of the letter shape
     const canvas = document.createElement('canvas');
     canvas.className = 'letter-preview';
-    renderLetterPreview(canvas, entry, app.config.drawColor);
+    renderLetterPreview(canvas, entry, app.config.drawColor, app.config.cellRadius / app.config.cellSize);
     btn.appendChild(canvas);
 
     const nameSpan = document.createElement('span');
@@ -620,7 +666,7 @@ function rebuildLetterGrid(app: App): void {
 /**
  * Renders a small preview of a letter entry onto a canvas element.
  */
-function renderLetterPreview(canvas: HTMLCanvasElement, entry: LetterEntry, color = '#22C55E'): void {
+function renderLetterPreview(canvas: HTMLCanvasElement, entry: LetterEntry, color = '#22C55E', radiusRatio = 0.167): void {
   const { m, gH, gV, gD } = entry;
   const rows = m.length;
   const cols = rows > 0 ? m[0].length : 1;
@@ -633,10 +679,10 @@ function renderLetterPreview(canvas: HTMLCanvasElement, entry: LetterEntry, colo
 
   // Size calculations — fit within compact card
   const maxDim = Math.max(cols, rows);
-  const totalPx = 28;
+  const totalPx = 24;
   const cellPx = Math.max(2, Math.floor(totalPx / (maxDim + (maxDim - 1) * 0.55)));
   const gapPx = Math.max(1, Math.round(cellPx * 0.5));
-  const R = Math.max(0.5, cellPx * 0.3);
+  const R = Math.max(0, cellPx * radiusRatio);
 
   const canvasW = cols * cellPx + (cols - 1) * gapPx;
   const canvasH = rows * cellPx + (rows - 1) * gapPx;

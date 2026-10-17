@@ -40,6 +40,7 @@ export const ar: Record<string, string> = {
   'tip.brush': 'قلم متواصل (W)',
   'tip.pan': 'تحريك (H)',
   'tip.select': 'تحديد ونقل (S)',
+  'tip.cursor': 'مؤشر (V)',
   'tip.bgDrag': 'تفعيل/تعطيل سحب الصورة',
   'tip.pickColor': 'اختر لوناً',
   'tip.customColor': 'لون مخصص',
@@ -187,6 +188,7 @@ export const ar: Record<string, string> = {
   'toolName.pan': 'تحريك',
   'toolName.select': 'تحديد',
   'toolName.brush': 'قلم متواصل',
+  'toolName.cursor': 'مؤشر',
 
   /* ── Modal / Dialogs (النوافذ الحوارية) ── */
   'modal.confirm': 'تأكيد',

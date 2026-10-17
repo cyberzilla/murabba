@@ -3,9 +3,11 @@
  */
 import type { RenderConfig, SelectionData, CellCoord, GapCoord } from '../types/grid';
 import { drawRoundedRect } from './GridRenderer';
+import { elementToPixelRect } from '../core/CoordinateMapper';
 
 /**
  * Draws a dashed marquee selection frame.
+ * Bounds (x1,y1,x2,y2) are in element coordinates (2x grid).
  */
 export function renderSelectionFrame(
   ctx: CanvasRenderingContext2D,
@@ -15,18 +17,19 @@ export function renderSelectionFrame(
   y2: number,
   config: RenderConfig
 ): void {
-  const total = config.cellSize + config.gapSize;
-  const pad = config.padding;
-
   const nx1 = Math.min(x1, x2);
   const ny1 = Math.min(y1, y2);
   const nx2 = Math.max(x1, x2);
   const ny2 = Math.max(y1, y2);
 
-  const left = pad + nx1 * total;
-  const top = pad + ny1 * total;
-  const width = (nx2 - nx1 + 1) * total;
-  const height = (ny2 - ny1 + 1) * total;
+  // Compute pixel bounds from element coords
+  const topLeft = elementToPixelRect(nx1, ny1, config);
+  const botRight = elementToPixelRect(nx2, ny2, config);
+
+  const left = topLeft.x;
+  const top = topLeft.y;
+  const width = (botRight.x + botRight.w) - topLeft.x;
+  const height = (botRight.y + botRight.h) - topLeft.y;
 
   ctx.save();
   ctx.strokeStyle = '#42A5F5';
@@ -56,8 +59,10 @@ export function renderSelectionFrame(
     ctx.fill();
   }
 
-  // Dimension badge
-  const label = `${nx2 - nx1 + 1} × ${ny2 - ny1 + 1}`;
+  // Dimension badge — show element-level dimensions
+  const ew = nx2 - nx1 + 1;
+  const eh = ny2 - ny1 + 1;
+  const label = `${ew} × ${eh}`;
   ctx.font = '11px Tajawal, sans-serif';
   ctx.fillStyle = 'rgba(66, 165, 245, 0.85)';
   const textW = ctx.measureText(label).width + 12;

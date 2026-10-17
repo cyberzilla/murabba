@@ -40,6 +40,7 @@ export const en: Record<string, string> = {
   'tip.brush': 'Continuous Pen (W)',
   'tip.pan': 'Pan (H)',
   'tip.select': 'Select & Move (S)',
+  'tip.cursor': 'Cursor (V)',
   'tip.bgDrag': 'Toggle image drag',
   'tip.pickColor': 'Pick a color',
   'tip.customColor': 'Custom color',
@@ -187,6 +188,7 @@ export const en: Record<string, string> = {
   'toolName.pan': 'Pan',
   'toolName.select': 'Select',
   'toolName.brush': 'Continuous Pen',
+  'toolName.cursor': 'Cursor',
 
   /* ── Modal / Dialogs ── */
   'modal.confirm': 'Confirm',

@@ -124,7 +124,11 @@
   <div id="content">
     <!-- LEFT TOOL PANEL -->
     <aside id="toolPanel">
-      <button class="tool-btn active" data-tool="draw" title="Draw (B)" data-i18n-tip="tip.draw" aria-label="Draw tool">
+      <button class="tool-btn active" data-tool="cursor" title="Cursor (V)" data-i18n-tip="tip.cursor" aria-label="Cursor tool">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l7.07 17 2.51-7.39L21 11.07z"/></svg>
+      </button>
+      <div class="tool-sep"></div>
+      <button class="tool-btn" data-tool="draw" title="Draw (B)" data-i18n-tip="tip.draw" aria-label="Draw tool">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
       </button>
       <button class="tool-btn" data-tool="erase" title="Eraser (E)" data-i18n-tip="tip.erase" aria-label="Eraser tool">
@@ -288,7 +292,7 @@
   <footer id="statusBar">
     <span id="coordsDisplay">X: 0 — Y: 0</span>
     <span class="sb-sep">|</span>
-    <span id="statusTool" data-i18n="toolName.draw">Draw</span>
+    <span id="statusTool" data-i18n="toolName.cursor">Cursor</span>
     <div class="sb-spacer"></div>
     <div class="zoom-controls">
       <button class="zoom-btn" id="zoomOut" title="Zoom Out" data-i18n-tip="tip.zoomOut">−</button>

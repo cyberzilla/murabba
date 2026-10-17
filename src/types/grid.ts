@@ -14,7 +14,7 @@ export type GapType = 'h' | 'v' | 'd';
 /**
  * Available editor tools.
  */
-export type ToolType = 'draw' | 'erase' | 'fill' | 'brush' | 'pan' | 'select';
+export type ToolType = 'cursor' | 'draw' | 'erase' | 'fill' | 'brush' | 'pan' | 'select';
 
 /**
  * Brush thickness mode: 1 (single cell), 2 (2x2), 3 (3x3).

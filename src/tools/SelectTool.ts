@@ -27,7 +27,8 @@
 
 import { BaseTool, ToolContext } from './BaseTool';
 import type { ToolType, SelectionData, CellCoord } from '../types/grid';
-import { screenToCell } from '../core/CoordinateMapper';
+import { screenToCell, screenToElement } from '../core/CoordinateMapper';
+import type { ElementCoord } from '../core/CoordinateMapper';
 import type { GridModel } from '../core/GridModel';
 import {
   rotateSelectionCW,
@@ -43,7 +44,8 @@ export class SelectTool extends BaseTool {
 
   private phase: SelectPhase = 'idle';
 
-  // Selection rectangle bounds (in cell coordinates)
+  // Selection rectangle bounds (in element coordinates — 2x grid)
+  // Even = cell position, Odd = gap position
   private x1 = 0;
   private y1 = 0;
   private x2 = 0;
@@ -57,7 +59,7 @@ export class SelectTool extends BaseTool {
 
   // Frame dragging state
   private isDraggingFrame = false;
-  private frameDragStartCell: CellCoord | null = null;
+  private frameDragStartElement: ElementCoord | null = null;
   private dragStartBounds: { x1: number; y1: number; x2: number; y2: number } | null = null;
 
   // Floating selection state
@@ -107,8 +109,9 @@ export class SelectTool extends BaseTool {
 
   onPointerDown(x: number, y: number, ctx: ToolContext): void {
     const cell = this.getCellFromPos(x, y, ctx);
+    const elem = this.getElementFromPos(x, y, ctx);
 
-    // Case 1: FLOAT phase
+    // Case 1: FLOAT phase (uses cell coords — floatData is cell-based)
     if (this.phase === 'float') {
       if (cell && this.isInsideFloat(cell.x, cell.y)) {
         // Start dragging the floating content
@@ -126,17 +129,17 @@ export class SelectTool extends BaseTool {
 
     // Case 2: DEFINE phase
     if (this.phase === 'define') {
-      if (cell && this.isInsideFrame(cell.x, cell.y)) {
+      if (elem && this.isInsideFrameElement(elem.ex, elem.ey)) {
         if (this.shiftKey) {
           // Shift+drag: move frame only (reposition selection rectangle)
           this.isDraggingFrame = true;
-          this.frameDragStartCell = { x: cell.x, y: cell.y };
+          this.frameDragStartElement = { ex: elem.ex, ey: elem.ey };
           this.dragStartBounds = this.getSelectionBounds();
         } else {
           // Normal drag: auto-commit selection → cut content → start float drag
           this.commitSelection(ctx);
           // commitSelection mutates phase to 'float' and sets floatData
-          if (this.floatData) {
+          if (this.floatData && cell) {
             this.isDraggingFloat = true;
             this.floatDragStartCell = { x: cell.x, y: cell.y };
             this.dragStartFloatOrigin = { ox: this.floatData.ox, oy: this.floatData.oy };
@@ -145,36 +148,32 @@ export class SelectTool extends BaseTool {
         return;
       }
 
-      // Pointer down OUTSIDE frame:
-      // If clicked outside active grid bounds, cancel to idle
-      if (!cell) {
+      // Pointer down OUTSIDE frame: cancel to idle
+      if (!elem) {
         this.reset();
         ctx.requestRender();
         return;
       }
-
-      // Pointer down OUTSIDE frame: cancel selection, go back to idle
       this.reset();
       ctx.requestRender();
       return;
     }
 
-    // Case 3: IDLE phase
-    if (!cell) return;
+    // Case 3: IDLE phase — start new selection using element coords
+    if (!elem) return;
     this.phase = 'define';
     this.isDefining = true;
-    this.x1 = cell.x;
-    this.y1 = cell.y;
-    this.x2 = cell.x;
-    this.y2 = cell.y;
+    this.x1 = elem.ex;
+    this.y1 = elem.ey;
+    this.x2 = elem.ex;
+    this.y2 = elem.ey;
     ctx.requestRender();
   }
 
   onPointerMove(x: number, y: number, ctx: ToolContext): void {
     const cell = this.getCellFromPos(x, y, ctx);
-    if (!cell) return;
 
-    // Moving a floating selection
+    // Moving a floating selection (cell-based)
     if (
       this.phase === 'float' &&
       this.isDraggingFloat &&
@@ -182,6 +181,7 @@ export class SelectTool extends BaseTool {
       this.dragStartFloatOrigin &&
       this.floatData
     ) {
+      if (!cell) return;
       const dx = cell.x - this.floatDragStartCell.x;
       const dy = cell.y - this.floatDragStartCell.y;
       const targetOx = this.dragStartFloatOrigin.ox + dx;
@@ -194,21 +194,25 @@ export class SelectTool extends BaseTool {
       return;
     }
 
-    // Moving an existing define selection frame
+    // Moving an existing define selection frame (element-based)
     if (
       this.phase === 'define' &&
       this.isDraggingFrame &&
-      this.frameDragStartCell &&
+      this.frameDragStartElement &&
       this.dragStartBounds
     ) {
-      const dx = cell.x - this.frameDragStartCell.x;
-      const dy = cell.y - this.frameDragStartCell.y;
+      const elem = this.getElementFromPos(x, y, ctx);
+      if (!elem) return;
+      const dx = elem.ex - this.frameDragStartElement.ex;
+      const dy = elem.ey - this.frameDragStartElement.ey;
       const w = this.dragStartBounds.x2 - this.dragStartBounds.x1;
       const h = this.dragStartBounds.y2 - this.dragStartBounds.y1;
+      const maxEx = (ctx.model.cols - 1) * 2 + 1;
+      const maxEy = (ctx.model.rows - 1) * 2 + 1;
       const targetX1 = this.dragStartBounds.x1 + dx;
       const targetY1 = this.dragStartBounds.y1 + dy;
-      const nx1 = Math.max(0, Math.min(ctx.model.cols - 1 - w, targetX1));
-      const ny1 = Math.max(0, Math.min(ctx.model.rows - 1 - h, targetY1));
+      const nx1 = Math.max(0, Math.min(maxEx - w, targetX1));
+      const ny1 = Math.max(0, Math.min(maxEy - h, targetY1));
       this.x1 = nx1;
       this.y1 = ny1;
       this.x2 = nx1 + w;
@@ -217,12 +221,12 @@ export class SelectTool extends BaseTool {
       return;
     }
 
-    // Dragging to define rectangle bounds
+    // Dragging to define rectangle bounds (element-based)
     if (this.phase === 'define' && this.isDefining) {
-
-
-      this.x2 = cell.x;
-      this.y2 = cell.y;
+      const elem = this.getElementFromPos(x, y, ctx);
+      if (!elem) return;
+      this.x2 = elem.ex;
+      this.y2 = elem.ey;
       ctx.requestRender();
     }
   }
@@ -238,7 +242,7 @@ export class SelectTool extends BaseTool {
 
     if (this.isDraggingFrame) {
       this.isDraggingFrame = false;
-      this.frameDragStartCell = null;
+      this.frameDragStartElement = null;
       this.dragStartBounds = null;
       ctx.requestRender();
       return;
@@ -291,7 +295,17 @@ export class SelectTool extends BaseTool {
   isInsideFrame(cellX: number, cellY: number): boolean {
     if (this.phase !== 'define') return false;
     const { x1, y1, x2, y2 } = this.getSelectionBounds();
-    return cellX >= x1 && cellX <= x2 && cellY >= y1 && cellY <= y2;
+    // Convert cell coords to element coords for comparison
+    const ex = cellX * 2;
+    const ey = cellY * 2;
+    return ex >= x1 && ex <= x2 && ey >= y1 && ey <= y2;
+  }
+
+  /** Checks if given element coordinate is inside the current define frame. */
+  isInsideFrameElement(ex: number, ey: number): boolean {
+    if (this.phase !== 'define') return false;
+    const { x1, y1, x2, y2 } = this.getSelectionBounds();
+    return ex >= x1 && ex <= x2 && ey >= y1 && ey <= y2;
   }
 
   /** Checks if given cell coordinate is inside the current floating selection bounds. */
@@ -322,40 +336,52 @@ export class SelectTool extends BaseTool {
   /**
    * Commits the defined frame: extracts content from the grid, cuts original cells,
    * creates floating selection data, and enters the 'float' phase.
+   * Uses element-level bounds for per-element granularity.
    */
   commitSelection(ctx: ToolContext): void {
     if (this.phase !== 'define') return;
-    const { x1, y1, x2, y2 } = this.getSelectionBounds();
+    const { x1: ex1, y1: ey1, x2: ex2, y2: ey2 } = this.getSelectionBounds();
     const model = ctx.model;
+
+    // Convert element bounds to cell ranges
+    const cellX1 = Math.floor(ex1 / 2);
+    const cellY1 = Math.floor(ey1 / 2);
+    const cellX2 = Math.floor(ex2 / 2);
+    const cellY2 = Math.floor(ey2 / 2);
 
     const cells: SelectionData['cells'] = [];
     const gH: SelectionData['gH'] = [];
     const gV: SelectionData['gV'] = [];
     const gD: SelectionData['gD'] = [];
 
-    // Collect cells and gaps from defined region.
-    // Include ALL gaps that visually appear inside the selection frame:
-    //   gapH(x,y) = horizontal connector below cell(x,y) → include if in grid bounds
-    //   gapV(x,y) = vertical connector right of cell(x,y) → include if in grid bounds
-    //   gapD(x,y) = corner connector bottom-right of cell(x,y) → include if in grid bounds
-    for (let y = y1; y <= y2; y++) {
-      for (let x = x1; x <= x2; x++) {
-        const lx = x - x1;
-        const ly = y - y1;
-        if (model.isFilledCell(x, y)) {
-          cells.push({ lx, ly, c: model.getCellColor(x, y) || ctx.config.drawColor });
+    // Check each element type individually against element bounds
+    for (let y = cellY1; y <= cellY2; y++) {
+      for (let x = cellX1; x <= cellX2; x++) {
+        const lx = x - cellX1;
+        const ly = y - cellY1;
+        // cell at element (2x, 2y)
+        if (x * 2 >= ex1 && x * 2 <= ex2 && y * 2 >= ey1 && y * 2 <= ey2) {
+          if (model.isFilledCell(x, y)) {
+            cells.push({ lx, ly, c: model.getCellColor(x, y) || ctx.config.drawColor });
+          }
         }
-        // gapV at (x,y) → right side connector
-        if (model.isGapVInBounds(x, y) && model.isFilledGapV(x, y)) {
-          gV.push({ lx, ly, c: model.getGapVColor(x, y) || ctx.config.drawColor });
+        // gapV at element (2x+1, 2y)
+        if (x * 2 + 1 >= ex1 && x * 2 + 1 <= ex2 && y * 2 >= ey1 && y * 2 <= ey2) {
+          if (model.isGapVInBounds(x, y) && model.isFilledGapV(x, y)) {
+            gV.push({ lx, ly, c: model.getGapVColor(x, y) || ctx.config.drawColor });
+          }
         }
-        // gapH at (x,y) → bottom side connector
-        if (model.isGapHInBounds(x, y) && model.isFilledGapH(x, y)) {
-          gH.push({ lx, ly, c: model.getGapHColor(x, y) || ctx.config.drawColor });
+        // gapH at element (2x, 2y+1)
+        if (x * 2 >= ex1 && x * 2 <= ex2 && y * 2 + 1 >= ey1 && y * 2 + 1 <= ey2) {
+          if (model.isGapHInBounds(x, y) && model.isFilledGapH(x, y)) {
+            gH.push({ lx, ly, c: model.getGapHColor(x, y) || ctx.config.drawColor });
+          }
         }
-        // gapD at (x,y) → bottom-right corner connector
-        if (model.isGapDInBounds(x, y) && model.isFilledGapD(x, y)) {
-          gD.push({ lx, ly, c: model.getGapDColor(x, y) || ctx.config.drawColor });
+        // gapD at element (2x+1, 2y+1)
+        if (x * 2 + 1 >= ex1 && x * 2 + 1 <= ex2 && y * 2 + 1 >= ey1 && y * 2 + 1 <= ey2) {
+          if (model.isGapDInBounds(x, y) && model.isFilledGapD(x, y)) {
+            gD.push({ lx, ly, c: model.getGapDColor(x, y) || ctx.config.drawColor });
+          }
         }
       }
     }
@@ -368,27 +394,35 @@ export class SelectTool extends BaseTool {
     }
 
     // Save selection bounds for undo restoration
-    this.preCommitBounds = { x1, y1, x2, y2 };
+    this.preCommitBounds = { x1: ex1, y1: ey1, x2: ex2, y2: ey2 };
 
     // Save undo history before cutting
     ctx.history.saveState(model);
 
-    // Clear original extracted elements from the grid
-    for (let y = y1; y <= y2; y++) {
-      for (let x = x1; x <= x2; x++) {
-        model.setCell(x, y, 0);
-        model.clearCellColor(x, y);
-        if (model.isGapVInBounds(x, y)) {
-          model.setGapV(x, y, 0);
-          model.clearGapVColor(x, y);
+    // Clear only extracted elements from the grid
+    for (let y = cellY1; y <= cellY2; y++) {
+      for (let x = cellX1; x <= cellX2; x++) {
+        if (x * 2 >= ex1 && x * 2 <= ex2 && y * 2 >= ey1 && y * 2 <= ey2) {
+          model.setCell(x, y, 0);
+          model.clearCellColor(x, y);
         }
-        if (model.isGapHInBounds(x, y)) {
-          model.setGapH(x, y, 0);
-          model.clearGapHColor(x, y);
+        if (x * 2 + 1 >= ex1 && x * 2 + 1 <= ex2 && y * 2 >= ey1 && y * 2 <= ey2) {
+          if (model.isGapVInBounds(x, y)) {
+            model.setGapV(x, y, 0);
+            model.clearGapVColor(x, y);
+          }
         }
-        if (model.isGapDInBounds(x, y)) {
-          model.setGapD(x, y, 0);
-          model.clearGapDColor(x, y);
+        if (x * 2 >= ex1 && x * 2 <= ex2 && y * 2 + 1 >= ey1 && y * 2 + 1 <= ey2) {
+          if (model.isGapHInBounds(x, y)) {
+            model.setGapH(x, y, 0);
+            model.clearGapHColor(x, y);
+          }
+        }
+        if (x * 2 + 1 >= ex1 && x * 2 + 1 <= ex2 && y * 2 + 1 >= ey1 && y * 2 + 1 <= ey2) {
+          if (model.isGapDInBounds(x, y)) {
+            model.setGapD(x, y, 0);
+            model.clearGapDColor(x, y);
+          }
         }
       }
     }
@@ -398,10 +432,10 @@ export class SelectTool extends BaseTool {
       gH,
       gV,
       gD,
-      ox: x1,
-      oy: y1,
-      w: x2 - x1 + 1,
-      h: y2 - y1 + 1,
+      ox: cellX1,
+      oy: cellY1,
+      w: cellX2 - cellX1 + 1,
+      h: cellY2 - cellY1 + 1,
     };
     this.phase = 'float';
     ctx.requestRender();
@@ -466,26 +500,29 @@ export class SelectTool extends BaseTool {
    */
   eraseRegion(ctx: ToolContext): void {
     if (this.phase !== 'define') return;
-    const { x1, y1, x2, y2 } = this.getSelectionBounds();
+    const { x1: ex1, y1: ey1, x2: ex2, y2: ey2 } = this.getSelectionBounds();
     const model = ctx.model;
+    const cellX1 = Math.floor(ex1 / 2);
+    const cellY1 = Math.floor(ey1 / 2);
+    const cellX2 = Math.floor(ex2 / 2);
+    const cellY2 = Math.floor(ey2 / 2);
 
     ctx.history.saveState(model);
 
-    for (let y = y1; y <= y2; y++) {
-      for (let x = x1; x <= x2; x++) {
-        model.setCell(x, y, 0);
-        model.clearCellColor(x, y);
-        if (model.isGapVInBounds(x, y)) {
-          model.setGapV(x, y, 0);
-          model.clearGapVColor(x, y);
+    for (let y = cellY1; y <= cellY2; y++) {
+      for (let x = cellX1; x <= cellX2; x++) {
+        if (x * 2 >= ex1 && x * 2 <= ex2 && y * 2 >= ey1 && y * 2 <= ey2) {
+          model.setCell(x, y, 0);
+          model.clearCellColor(x, y);
         }
-        if (model.isGapHInBounds(x, y)) {
-          model.setGapH(x, y, 0);
-          model.clearGapHColor(x, y);
+        if (x * 2 + 1 >= ex1 && x * 2 + 1 <= ex2 && y * 2 >= ey1 && y * 2 <= ey2) {
+          if (model.isGapVInBounds(x, y)) { model.setGapV(x, y, 0); model.clearGapVColor(x, y); }
         }
-        if (model.isGapDInBounds(x, y)) {
-          model.setGapD(x, y, 0);
-          model.clearGapDColor(x, y);
+        if (x * 2 >= ex1 && x * 2 <= ex2 && y * 2 + 1 >= ey1 && y * 2 + 1 <= ey2) {
+          if (model.isGapHInBounds(x, y)) { model.setGapH(x, y, 0); model.clearGapHColor(x, y); }
+        }
+        if (x * 2 + 1 >= ex1 && x * 2 + 1 <= ex2 && y * 2 + 1 >= ey1 && y * 2 + 1 <= ey2) {
+          if (model.isGapDInBounds(x, y)) { model.setGapD(x, y, 0); model.clearGapDColor(x, y); }
         }
       }
     }
@@ -499,24 +536,28 @@ export class SelectTool extends BaseTool {
    */
   recolorRegion(color: string, ctx: ToolContext): void {
     if (this.phase !== 'define') return;
-    const { x1, y1, x2, y2 } = this.getSelectionBounds();
+    const { x1: ex1, y1: ey1, x2: ex2, y2: ey2 } = this.getSelectionBounds();
     const model = ctx.model;
+    const cellX1 = Math.floor(ex1 / 2);
+    const cellY1 = Math.floor(ey1 / 2);
+    const cellX2 = Math.floor(ex2 / 2);
+    const cellY2 = Math.floor(ey2 / 2);
 
     ctx.history.saveState(model);
 
-    for (let y = y1; y <= y2; y++) {
-      for (let x = x1; x <= x2; x++) {
-        if (model.isFilledCell(x, y)) {
-          model.setCellColor(x, y, color);
+    for (let y = cellY1; y <= cellY2; y++) {
+      for (let x = cellX1; x <= cellX2; x++) {
+        if (x * 2 >= ex1 && x * 2 <= ex2 && y * 2 >= ey1 && y * 2 <= ey2) {
+          if (model.isFilledCell(x, y)) model.setCellColor(x, y, color);
         }
-        if (model.isGapVInBounds(x, y) && model.isFilledGapV(x, y)) {
-          model.setGapVColor(x, y, color);
+        if (x * 2 + 1 >= ex1 && x * 2 + 1 <= ex2 && y * 2 >= ey1 && y * 2 <= ey2) {
+          if (model.isGapVInBounds(x, y) && model.isFilledGapV(x, y)) model.setGapVColor(x, y, color);
         }
-        if (model.isGapHInBounds(x, y) && model.isFilledGapH(x, y)) {
-          model.setGapHColor(x, y, color);
+        if (x * 2 >= ex1 && x * 2 <= ex2 && y * 2 + 1 >= ey1 && y * 2 + 1 <= ey2) {
+          if (model.isGapHInBounds(x, y) && model.isFilledGapH(x, y)) model.setGapHColor(x, y, color);
         }
-        if (model.isGapDInBounds(x, y) && model.isFilledGapD(x, y)) {
-          model.setGapDColor(x, y, color);
+        if (x * 2 + 1 >= ex1 && x * 2 + 1 <= ex2 && y * 2 + 1 >= ey1 && y * 2 + 1 <= ey2) {
+          if (model.isGapDInBounds(x, y) && model.isFilledGapD(x, y)) model.setGapDColor(x, y, color);
         }
       }
     }
@@ -525,15 +566,18 @@ export class SelectTool extends BaseTool {
   }
 
   /**
-   * Moves the selection frame (in define phase) or the floating selection (in float phase) by delta cells.
+   * Moves the selection frame (element coords) or the floating selection by delta.
+   * For define phase, nudge moves by 1 element position.
    */
   nudge(dx: number, dy: number, ctx: ToolContext): void {
     if (this.phase === 'define') {
       const bounds = this.getSelectionBounds();
       const w = bounds.x2 - bounds.x1;
       const h = bounds.y2 - bounds.y1;
-      const nx1 = Math.max(0, Math.min(ctx.model.cols - 1 - w, bounds.x1 + dx));
-      const ny1 = Math.max(0, Math.min(ctx.model.rows - 1 - h, bounds.y1 + dy));
+      const maxEx = (ctx.model.cols - 1) * 2 + 1;
+      const maxEy = (ctx.model.rows - 1) * 2 + 1;
+      const nx1 = Math.max(0, Math.min(maxEx - w, bounds.x1 + dx));
+      const ny1 = Math.max(0, Math.min(maxEy - h, bounds.y1 + dy));
       this.x1 = nx1;
       this.y1 = ny1;
       this.x2 = nx1 + w;
@@ -607,7 +651,7 @@ export class SelectTool extends BaseTool {
     this.isDefining = false;
 
     this.isDraggingFrame = false;
-    this.frameDragStartCell = null;
+    this.frameDragStartElement = null;
     this.dragStartBounds = null;
 
     this.floatData = null;
@@ -667,6 +711,54 @@ export class SelectTool extends BaseTool {
     // For pointer-down initiation, only return if strictly within active grid dimensions
     if (col >= 0 && col < ctx.model.cols && row >= 0 && row < ctx.model.rows) {
       return { x: col, y: row };
+    }
+
+    return null;
+  }
+
+  /**
+   * Resolves screen coordinates to element coordinates (2x grid).
+   * Used for selection bounds at per-element granularity.
+   */
+  private getElementFromPos(x: number, y: number, ctx: ToolContext): ElementCoord | null {
+    const el = screenToElement(x, y, ctx.config);
+    if (el) {
+      const maxEx = (ctx.model.cols - 1) * 2 + 1; // last gapV column
+      const maxEy = (ctx.model.rows - 1) * 2 + 1; // last gapH row
+      return {
+        ex: Math.max(0, Math.min(maxEx, el.ex)),
+        ey: Math.max(0, Math.min(maxEy, el.ey)),
+      };
+    }
+
+    // Fallback: continuous calculation for dragging
+    const zoom = ctx.config.zoom || 1;
+    const wx = (x - ctx.config.panX) / zoom - ctx.config.padding;
+    const wy = (y - ctx.config.panY) / zoom - ctx.config.padding;
+    const step = ctx.config.cellSize + ctx.config.gapSize;
+    if (step <= 0) return null;
+
+    const col = Math.floor(wx / step);
+    const row = Math.floor(wy / step);
+    const localX = wx - col * step;
+    const localY = wy - row * step;
+    const inCellX = localX <= ctx.config.cellSize;
+    const inCellY = localY <= ctx.config.cellSize;
+    const ex = inCellX ? col * 2 : col * 2 + 1;
+    const ey = inCellY ? row * 2 : row * 2 + 1;
+
+    const maxEx = (ctx.model.cols - 1) * 2 + 1;
+    const maxEy = (ctx.model.rows - 1) * 2 + 1;
+
+    if (this.isDefining || this.isDraggingFrame) {
+      return {
+        ex: Math.max(0, Math.min(maxEx, ex)),
+        ey: Math.max(0, Math.min(maxEy, ey)),
+      };
+    }
+
+    if (ex >= 0 && ex <= maxEx && ey >= 0 && ey <= maxEy) {
+      return { ex, ey };
     }
 
     return null;

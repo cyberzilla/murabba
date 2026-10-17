@@ -40,6 +40,7 @@ export const id: Record<string, string> = {
   'tip.brush': 'Pena Kontinu (W)',
   'tip.pan': 'Geser (H)',
   'tip.select': 'Pilih & Pindah (S)',
+  'tip.cursor': 'Kursor (V)',
   'tip.bgDrag': 'Aktifkan/Nonaktifkan geser gambar',
   'tip.pickColor': 'Pilih warna',
   'tip.customColor': 'Warna kustom',
@@ -187,6 +188,7 @@ export const id: Record<string, string> = {
   'toolName.pan': 'Geser',
   'toolName.select': 'Pilih',
   'toolName.brush': 'Pena Kontinu',
+  'toolName.cursor': 'Kursor',
 
   /* ── Modal / Dialogs ── */
   'modal.confirm': 'Konfirmasi',
