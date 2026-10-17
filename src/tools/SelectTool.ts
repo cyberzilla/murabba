@@ -27,7 +27,7 @@
 
 import { BaseTool, ToolContext } from './BaseTool';
 import type { ToolType, SelectionData, CellCoord } from '../types/grid';
-import { screenToCell, screenToElement } from '../core/CoordinateMapper';
+import { screenToCell, screenToElement, elementToPixelRect } from '../core/CoordinateMapper';
 import type { ElementCoord } from '../core/CoordinateMapper';
 import type { GridModel } from '../core/GridModel';
 import {
@@ -38,6 +38,13 @@ import {
 } from '../core/SelectionTransform';
 
 export type SelectPhase = 'idle' | 'define' | 'float';
+export type HandleType = 'tl' | 'tc' | 'tr' | 'ml' | 'mr' | 'bl' | 'bc' | 'br';
+
+const HANDLE_CURSORS: Record<HandleType, string> = {
+  tl: 'nwse-resize', tc: 'ns-resize', tr: 'nesw-resize',
+  ml: 'ew-resize',                     mr: 'ew-resize',
+  bl: 'nesw-resize', bc: 'ns-resize', br: 'nwse-resize',
+};
 
 export class SelectTool extends BaseTool {
   readonly type: ToolType = 'select';
@@ -71,9 +78,17 @@ export class SelectTool extends BaseTool {
   // Saved selection bounds before commit (for undo back to define phase)
   private preCommitBounds: { x1: number; y1: number; x2: number; y2: number } | null = null;
 
+  // Resize handle state
+  private isResizingFrame = false;
+  private activeHandle: HandleType | null = null;
+  private resizeStartBounds: { x1: number; y1: number; x2: number; y2: number } | null = null;
+
   // ─── BaseTool Overrides ──────────────────────────────────
 
   getCursor(): string {
+    if (this.isResizingFrame && this.activeHandle) {
+      return HANDLE_CURSORS[this.activeHandle];
+    }
     if (this.isDraggingFloat || this.isDraggingFrame) {
       return 'grabbing';
     }
@@ -88,6 +103,9 @@ export class SelectTool extends BaseTool {
    * Called on every pointermove to provide interactive cursor feedback.
    */
   getHoverCursor(x: number, y: number, ctx: ToolContext): string {
+    if (this.isResizingFrame && this.activeHandle) {
+      return HANDLE_CURSORS[this.activeHandle];
+    }
     if (this.isDraggingFloat || this.isDraggingFrame) {
       return 'grabbing';
     }
@@ -99,12 +117,60 @@ export class SelectTool extends BaseTool {
       return this.isInsideFloat(cell.x, cell.y) ? 'grab' : 'default';
     }
 
-    if (this.phase === 'define') {
-      if (this.isDefining) return 'crosshair';
+    if (this.phase === 'define' && !this.isDefining) {
+      // Check handles first
+      const handle = this.getHandleAtScreenPos(x, y, ctx);
+      if (handle) return HANDLE_CURSORS[handle];
       return this.isInsideFrame(cell.x, cell.y) ? 'grab' : 'crosshair';
     }
 
     return 'crosshair';
+  }
+
+  /**
+   * Hit-test the 8 resize handles. Returns handle type or null.
+   * Uses screen (pixel) coordinates for accurate hit detection.
+   */
+  private getHandleAtScreenPos(sx: number, sy: number, ctx: ToolContext): HandleType | null {
+    if (this.phase !== 'define' || this.isDefining) return null;
+
+    const bounds = this.getSelectionBounds();
+    const tl = elementToPixelRect(bounds.x1, bounds.y1, ctx.config);
+    const br = elementToPixelRect(bounds.x2, bounds.y2, ctx.config);
+
+    const left = tl.x;
+    const top = tl.y;
+    const right = br.x + br.w;
+    const bottom = br.y + br.h;
+    const midX = (left + right) / 2;
+    const midY = (top + bottom) / 2;
+
+    // Convert screen coords to canvas coords
+    const cx = (sx - ctx.config.panX);
+    const cy = (sy - ctx.config.panY);
+
+    const minDim = Math.min(right - left, bottom - top);
+    const handleR = Math.max(3, Math.min(8, minDim * 0.18)) / 2 + 4; // hit radius = visual + 4px padding
+
+    const handles: [HandleType, number, number][] = [
+      ['tl', left, top],
+      ['tc', midX, top],
+      ['tr', right, top],
+      ['ml', left, midY],
+      ['mr', right, midY],
+      ['bl', left, bottom],
+      ['bc', midX, bottom],
+      ['br', right, bottom],
+    ];
+
+    for (const [type, hx, hy] of handles) {
+      const dx = cx - hx;
+      const dy = cy - hy;
+      if (dx * dx + dy * dy <= handleR * handleR) {
+        return type;
+      }
+    }
+    return null;
   }
 
   onPointerDown(x: number, y: number, ctx: ToolContext): void {
@@ -129,6 +195,15 @@ export class SelectTool extends BaseTool {
 
     // Case 2: DEFINE phase
     if (this.phase === 'define') {
+      // Check resize handles first (priority over frame drag)
+      const handle = this.getHandleAtScreenPos(x, y, ctx);
+      if (handle) {
+        this.isResizingFrame = true;
+        this.activeHandle = handle;
+        this.resizeStartBounds = this.getSelectionBounds();
+        return;
+      }
+
       if (elem && this.isInsideFrameElement(elem.ex, elem.ey)) {
         if (this.shiftKey) {
           // Shift+drag: move frame only (reposition selection rectangle)
@@ -172,6 +247,26 @@ export class SelectTool extends BaseTool {
 
   onPointerMove(x: number, y: number, ctx: ToolContext): void {
     const cell = this.getCellFromPos(x, y, ctx);
+
+    // Resizing the selection frame via handle drag
+    if (this.isResizingFrame && this.activeHandle && this.resizeStartBounds) {
+      const elem = this.getElementFromPos(x, y, ctx);
+      if (!elem) return;
+      const sb = this.resizeStartBounds;
+      let { x1, y1, x2, y2 } = sb;
+
+      // Update edges based on handle type
+      const h = this.activeHandle;
+      if (h === 'tl' || h === 'tc' || h === 'tr') y1 = Math.min(elem.ey, sb.y2);
+      if (h === 'bl' || h === 'bc' || h === 'br') y2 = Math.max(elem.ey, sb.y1);
+      if (h === 'tl' || h === 'ml' || h === 'bl') x1 = Math.min(elem.ex, sb.x2);
+      if (h === 'tr' || h === 'mr' || h === 'br') x2 = Math.max(elem.ex, sb.x1);
+
+      this.x1 = x1; this.y1 = y1;
+      this.x2 = x2; this.y2 = y2;
+      ctx.requestRender();
+      return;
+    }
 
     // Moving a floating selection (cell-based)
     if (
@@ -232,6 +327,20 @@ export class SelectTool extends BaseTool {
   }
 
   onPointerUp(ctx: ToolContext): void {
+    if (this.isResizingFrame) {
+      this.isResizingFrame = false;
+      this.activeHandle = null;
+      this.resizeStartBounds = null;
+      // Normalize bounds after resize
+      const bounds = this.getSelectionBounds();
+      this.x1 = bounds.x1;
+      this.y1 = bounds.y1;
+      this.x2 = bounds.x2;
+      this.y2 = bounds.y2;
+      ctx.requestRender();
+      return;
+    }
+
     if (this.isDraggingFloat) {
       this.isDraggingFloat = false;
       this.floatDragStartCell = null;
@@ -659,6 +768,10 @@ export class SelectTool extends BaseTool {
     this.floatDragStartCell = null;
     this.dragStartFloatOrigin = null;
     this.preCommitBounds = null;
+
+    this.isResizingFrame = false;
+    this.activeHandle = null;
+    this.resizeStartBounds = null;
   }
 
   // ─── Private Helpers ─────────────────────────────────────
