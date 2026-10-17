@@ -145,12 +145,15 @@ export class SelectTool extends BaseTool {
     const midX = (left + right) / 2;
     const midY = (top + bottom) / 2;
 
-    // Convert screen coords to canvas coords
-    const cx = (sx - ctx.config.panX);
-    const cy = (sy - ctx.config.panY);
+    // Convert screen coords to world (grid-local) coords
+    const cx = (sx - ctx.config.panX) / (ctx.config.zoom || 1);
+    const cy = (sy - ctx.config.panY) / (ctx.config.zoom || 1);
 
     const minDim = Math.min(right - left, bottom - top);
-    const handleR = Math.max(3, Math.min(8, minDim * 0.18)) / 2 + 4; // hit radius = visual + 4px padding
+    const visualR = Math.max(3, Math.min(8, minDim * 0.18)) / 2;
+    // Pad hit area: add screen-space padding (converted to world coords)
+    const zoom = ctx.config.zoom || 1;
+    const handleR = visualR + 6 / zoom; // 6 CSS-pixel padding regardless of zoom
 
     const handles: [HandleType, number, number][] = [
       ['tl', left, top],
