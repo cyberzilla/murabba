@@ -598,12 +598,12 @@ function renderLetterPreview(canvas: HTMLCanvasElement, entry: LetterEntry): voi
   const cols = rows > 0 ? m[0].length : 1;
   const color = '#22C55E';
 
-  // Size calculations — fit within ~48px
+  // Size calculations — fit within compact card
   const maxDim = Math.max(cols, rows);
-  const totalPx = 36;
-  const cellPx = Math.max(3, Math.floor(totalPx / (maxDim + (maxDim - 1) * 0.4)));
+  const totalPx = 28;
+  const cellPx = Math.max(2, Math.floor(totalPx / (maxDim + (maxDim - 1) * 0.4)));
   const gapPx = Math.max(1, Math.round(cellPx * 0.35));
-  const radius = Math.max(1, Math.round(cellPx * 0.2));
+  const radius = Math.max(0.5, cellPx * 0.3);
 
   const canvasW = cols * cellPx + (cols - 1) * gapPx;
   const canvasH = rows * cellPx + (rows - 1) * gapPx;
@@ -620,15 +620,24 @@ function renderLetterPreview(canvas: HTMLCanvasElement, entry: LetterEntry): voi
   ctx.clearRect(0, 0, canvasW, canvasH);
   ctx.fillStyle = color;
 
+  // Helper: draw rounded rect with fallback
+  const rRect = (x: number, y: number, w: number, h: number, r: number) => {
+    ctx.beginPath();
+    if (ctx.roundRect) {
+      ctx.roundRect(x, y, w, h, Math.min(r, w / 2, h / 2));
+    } else {
+      ctx.rect(x, y, w, h);
+    }
+    ctx.fill();
+  };
+
   // Draw cells
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       if (!m[r]?.[c]) continue;
       const x = c * (cellPx + gapPx);
       const y = r * (cellPx + gapPx);
-      ctx.beginPath();
-      ctx.roundRect(x, y, cellPx, cellPx, radius);
-      ctx.fill();
+      rRect(x, y, cellPx, cellPx, radius);
     }
   }
 
@@ -639,7 +648,7 @@ function renderLetterPreview(canvas: HTMLCanvasElement, entry: LetterEntry): voi
         if (!gH[r]?.[c]) continue;
         const x = c * (cellPx + gapPx);
         const y = r * (cellPx + gapPx) + cellPx;
-        ctx.fillRect(x, y, cellPx, gapPx);
+        rRect(x, y, cellPx, gapPx, Math.min(radius, gapPx / 2));
       }
     }
   }
@@ -651,7 +660,7 @@ function renderLetterPreview(canvas: HTMLCanvasElement, entry: LetterEntry): voi
         if (!gV[r]?.[c]) continue;
         const x = c * (cellPx + gapPx) + cellPx;
         const y = r * (cellPx + gapPx);
-        ctx.fillRect(x, y, gapPx, cellPx);
+        rRect(x, y, gapPx, cellPx, Math.min(radius, gapPx / 2));
       }
     }
   }
@@ -663,7 +672,7 @@ function renderLetterPreview(canvas: HTMLCanvasElement, entry: LetterEntry): voi
         if (!gD[r]?.[c]) continue;
         const x = c * (cellPx + gapPx) + cellPx;
         const y = r * (cellPx + gapPx) + cellPx;
-        ctx.fillRect(x, y, gapPx, gapPx);
+        rRect(x, y, gapPx, gapPx, Math.min(radius, gapPx / 2));
       }
     }
   }
