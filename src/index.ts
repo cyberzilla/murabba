@@ -217,15 +217,7 @@ function wireColorControls(app: App): void {
   const fillColor = document.getElementById('fillColor') as HTMLInputElement | null;
   fillColor?.addEventListener('input', () => {
     app.setDrawColor(fillColor.value);
-    // Sync swatch highlight when color picker changes
-    const picked = fillColor.value.toUpperCase();
-    document.querySelectorAll<HTMLElement>('.swatch').forEach(s => {
-      if (s.dataset.color?.toUpperCase() === picked) {
-        s.classList.add('selected');
-      } else {
-        s.classList.remove('selected');
-      }
-    });
+    syncColorUI(app);
   });
 
   // Swatches
@@ -234,11 +226,8 @@ function wireColorControls(app: App): void {
       const color = s.dataset.color;
       if (color) {
         app.setDrawColor(color);
-        // Sync toolbar color picker
-        if (fillColor) fillColor.value = color;
+        syncColorUI(app);
       }
-      document.querySelectorAll('.swatch').forEach(el => el.classList.remove('selected'));
-      s.classList.add('selected');
     });
   });
 }
@@ -271,8 +260,28 @@ function syncColorUI(app: App): void {
     swatches.forEach(s => s.classList.remove('selected'));
   }
 
-  // 3. Update letter preview colors
-  rebuildLetterGrid(app);
+  // 3. Update letter preview colors (lightweight repaint, no DOM rebuild)
+  updateLetterPreviewColors(app);
+}
+
+/**
+ * Repaints all existing letter preview canvases with the current draw color.
+ * Much cheaper than rebuildLetterGrid — only redraws canvas pixels.
+ */
+function updateLetterPreviewColors(app: App): void {
+  const grid = document.getElementById('letterGrid');
+  if (!grid) return;
+  const color = app.config.drawColor;
+  const buttons = grid.querySelectorAll<HTMLElement>('.letter-btn');
+  const keys = Object.keys(app.letters);
+  buttons.forEach((btn, i) => {
+    const ch = keys[i];
+    if (!ch) return;
+    const canvas = btn.querySelector<HTMLCanvasElement>('.letter-preview');
+    if (canvas) {
+      renderLetterPreview(canvas, app.letters[ch], color);
+    }
+  });
 }
 
 function wireZoomControls(app: App): void {
