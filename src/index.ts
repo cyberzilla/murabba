@@ -4,6 +4,7 @@
 import { App } from './ui/App';
 import { initI18n, setLang, getLang, t } from './i18n/I18n';
 import type { SupportedLang } from './types';
+import type { LetterEntry } from './types/grid';
 import { initConfirmModal, confirmDialog } from './ui/ConfirmModal';
 import { loadSession } from './storage/SessionManager';
 import { initLetterEditor, openNewLetter, openEditLetter } from './ui/LetterEditor';
@@ -558,13 +559,15 @@ function rebuildLetterGrid(app: App): void {
     btn.className = 'letter-btn';
     btn.title = entry.name || ch;
 
-    const charSpan = document.createElement('span');
-    charSpan.textContent = ch;
-    btn.appendChild(charSpan);
+    // Canvas preview of the letter shape
+    const canvas = document.createElement('canvas');
+    canvas.className = 'letter-preview';
+    renderLetterPreview(canvas, entry);
+    btn.appendChild(canvas);
 
     const nameSpan = document.createElement('span');
     nameSpan.className = 'letter-name';
-    nameSpan.textContent = entry.name || '';
+    nameSpan.textContent = entry.name || ch;
     btn.appendChild(nameSpan);
 
     // Edit button overlay
@@ -583,6 +586,86 @@ function rebuildLetterGrid(app: App): void {
     });
 
     grid.appendChild(btn);
+  }
+}
+
+/**
+ * Renders a small preview of a letter entry onto a canvas element.
+ */
+function renderLetterPreview(canvas: HTMLCanvasElement, entry: LetterEntry): void {
+  const { m, gH, gV, gD } = entry;
+  const rows = m.length;
+  const cols = rows > 0 ? m[0].length : 1;
+  const color = '#22C55E';
+
+  // Size calculations — fit within ~48px
+  const maxDim = Math.max(cols, rows);
+  const totalPx = 44;
+  const cellPx = Math.max(3, Math.floor(totalPx / (maxDim + (maxDim - 1) * 0.4)));
+  const gapPx = Math.max(1, Math.round(cellPx * 0.35));
+  const radius = Math.max(1, Math.round(cellPx * 0.2));
+
+  const canvasW = cols * cellPx + (cols - 1) * gapPx;
+  const canvasH = rows * cellPx + (rows - 1) * gapPx;
+  const dpr = window.devicePixelRatio || 1;
+
+  canvas.width = canvasW * dpr;
+  canvas.height = canvasH * dpr;
+  canvas.style.width = canvasW + 'px';
+  canvas.style.height = canvasH + 'px';
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, canvasW, canvasH);
+  ctx.fillStyle = color;
+
+  // Draw cells
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (!m[r]?.[c]) continue;
+      const x = c * (cellPx + gapPx);
+      const y = r * (cellPx + gapPx);
+      ctx.beginPath();
+      ctx.roundRect(x, y, cellPx, cellPx, radius);
+      ctx.fill();
+    }
+  }
+
+  // Draw gapH (vertical bridges between rows)
+  if (gH) {
+    for (let r = 0; r < rows - 1; r++) {
+      for (let c = 0; c < cols; c++) {
+        if (!gH[r]?.[c]) continue;
+        const x = c * (cellPx + gapPx);
+        const y = r * (cellPx + gapPx) + cellPx;
+        ctx.fillRect(x, y, cellPx, gapPx);
+      }
+    }
+  }
+
+  // Draw gapV (horizontal bridges between columns)
+  if (gV) {
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols - 1; c++) {
+        if (!gV[r]?.[c]) continue;
+        const x = c * (cellPx + gapPx) + cellPx;
+        const y = r * (cellPx + gapPx);
+        ctx.fillRect(x, y, gapPx, cellPx);
+      }
+    }
+  }
+
+  // Draw gapD (corner dots)
+  if (gD) {
+    for (let r = 0; r < rows - 1; r++) {
+      for (let c = 0; c < cols - 1; c++) {
+        if (!gD[r]?.[c]) continue;
+        const x = c * (cellPx + gapPx) + cellPx;
+        const y = r * (cellPx + gapPx) + cellPx;
+        ctx.fillRect(x, y, gapPx, gapPx);
+      }
+    }
   }
 }
 

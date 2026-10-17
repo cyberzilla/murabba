@@ -377,16 +377,18 @@ body {
   gap: 6px;
 }
 .letter-btn {
-  aspect-ratio: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 2px;
+  padding: 4px;
+  min-width: 54px;
+  min-height: 54px;
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: var(--rs);
   cursor: pointer;
-  font-size: 22px;
-  font-family: 'Noto Sans Arabic', 'Amiri', serif;
   color: var(--text);
   transition: all 0.15s ease;
   position: relative;
@@ -394,25 +396,25 @@ body {
 .letter-btn:hover {
   background: var(--surface3);
   border-color: var(--accent);
-  color: var(--accent);
   transform: scale(1.08);
 }
 .letter-btn:active {
   transform: scale(0.95);
   background: var(--accent);
-  color: var(--bg);
+}
+.letter-preview {
+  display: block;
+  image-rendering: pixelated;
 }
 .letter-btn .letter-name {
-  position: absolute;
-  bottom: 2px;
-  left: 0;
-  right: 0;
   font-size: 9px;
   text-align: center;
   color: var(--muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 100%;
+  line-height: 1;
 }
 
 /* Photoshop-style tool flyout */
