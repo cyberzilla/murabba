@@ -102,7 +102,7 @@ export interface HistorySnapshot {
 /**
  * Letter glyph entry stored in library.
  */
-export type LetterPosition = 'isolated' | 'initial' | 'medial' | 'final';
+export type LetterPosition = 'isolated' | 'initial' | 'medial' | 'final' | 'variation';
 
 export interface LetterForm {
   m: number[][];

@@ -922,3 +922,46 @@ body {
   letter-spacing: 0.5px;
   pointer-events: none;
 }
+
+/* ── Letter Editor Form Tabs ── */
+.le-form-tabs {
+  display: flex;
+  gap: 2px;
+  margin: 0 0 8px 0;
+  background: var(--bg);
+  border-radius: 6px;
+  padding: 2px;
+}
+.le-form-tab {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 11px;
+  padding: 5px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+  position: relative;
+}
+.le-form-tab:hover {
+  color: var(--text);
+  background: var(--surface);
+}
+.le-form-tab.active {
+  color: var(--bg);
+  background: var(--accent);
+  font-weight: 600;
+}
+/* Dot indicator for tabs that have data */
+.le-form-tab.has-data::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}

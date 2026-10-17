@@ -2,15 +2,38 @@
  * LetterEditor — Modal-based interactive letter editor.
  * Create, edit, and delete custom Kufic letter definitions.
  * Supports drawing/erasing cells + gap bridges via DOM grid.
+ * Supports positional forms (isolated/initial/medial/final) and variation tabs.
  */
 
-import type { LetterEntry } from '../types/grid';
+import type { LetterEntry, LetterForm, LetterPosition } from '../types/grid';
 
 export interface LetterEditorCallbacks {
   /** Called when a letter is saved. ch is the letter key. */
   onSave(ch: string, entry: LetterEntry): void;
   /** Called when a letter is deleted. ch is the letter key. */
   onDelete(ch: string): void;
+}
+
+// ─── Form Tab Definitions ──────────────────────────────
+
+type FormTab = 'isolated' | 'initial' | 'medial' | 'final' | 'variation';
+const FORM_TABS: { key: FormTab; label: string }[] = [
+  { key: 'isolated', label: 'Single' },
+  { key: 'initial', label: 'Start' },
+  { key: 'medial', label: 'Center' },
+  { key: 'final', label: 'End' },
+  { key: 'variation', label: 'Variation' },
+];
+
+// ─── Form Data Type ────────────────────────────────────
+
+interface FormData {
+  w: number;
+  h: number;
+  m: number[][];
+  gH: number[][];
+  gV: number[][];
+  gD: number[][];
 }
 
 // ─── State ─────────────────────────────────────────────
@@ -29,6 +52,17 @@ let editorTool: 'draw' | 'erase' = 'draw';
 let isPointerDown = false;
 let editingCh: string | null = null;
 let callbacks: LetterEditorCallbacks | null = null;
+
+// ─── Form Tabs State ───────────────────────────────────
+
+let activeFormTab: FormTab = 'isolated';
+
+/** Stores the matrix data for each positional form */
+let formsData: Record<FormTab, FormData | null> = {
+  isolated: null, initial: null, medial: null, final: null, variation: null,
+};
+
+
 
 // ─── Public API ────────────────────────────────────────
 
@@ -53,6 +87,12 @@ export function openNewLetter(): void {
   gridH = 5;
   initMatrices();
 
+  // Reset all forms data
+  for (const tab of FORM_TABS) {
+    formsData[tab.key] = null;
+  }
+  activeFormTab = 'isolated';
+
   const charInput = document.getElementById('leChar') as HTMLInputElement;
   const nameInput = document.getElementById('leName') as HTMLInputElement;
   const wInput = document.getElementById('leGridW') as HTMLInputElement;
@@ -65,6 +105,7 @@ export function openNewLetter(): void {
   const delBtn = document.getElementById('leDeleteBtn');
   if (delBtn) delBtn.style.display = 'none';
 
+  updateFormTabsUI();
   buildEditorGrid();
   showModal();
 }
@@ -75,20 +116,45 @@ export function openNewLetter(): void {
 export function openEditLetter(ch: string, entry: LetterEntry): void {
   editingCh = ch;
 
-  const m = entry.m;
-  gridH = m.length;
-  gridW = m[0]?.length || 1;
-  initMatrices();
+  // Reset all forms data
+  for (const tab of FORM_TABS) {
+    formsData[tab.key] = null;
+  }
 
-  // Copy data — old entries may have smaller gap matrices, safe-read with ?.
-  for (let r = 0; r < gridH; r++) {
-    for (let c = 0; c < gridW; c++) {
-      cellMatrix[r][c] = m[r]?.[c] || 0;
-      if (entry.gH) gHMatrix[r][c] = entry.gH[r]?.[c] || 0;
-      if (entry.gV) gVMatrix[r][c] = entry.gV[r]?.[c] || 0;
-      if (entry.gD) gDMatrix[r][c] = entry.gD[r]?.[c] || 0;
+  // Populate isolated form from root entry data
+  const isoM = entry.m;
+  const isoH = isoM.length;
+  const isoW = isoM[0]?.length || 1;
+  formsData.isolated = {
+    w: isoW, h: isoH,
+    m: isoM.map(r => [...r]),
+    gH: (entry.gH || []).map(r => [...r]),
+    gV: (entry.gV || []).map(r => [...r]),
+    gD: (entry.gD || []).map(r => [...r]),
+  };
+
+  // Populate other forms from entry.forms
+  if (entry.forms) {
+    const positions: FormTab[] = ['initial', 'medial', 'final', 'variation'];
+    for (const pos of positions) {
+      const form = entry.forms[pos as LetterPosition];
+      if (form) {
+        const fH = form.m.length;
+        const fW = form.m[0]?.length || 1;
+        formsData[pos] = {
+          w: fW, h: fH,
+          m: form.m.map(r => [...r]),
+          gH: (form.gH || []).map(r => [...r]),
+          gV: (form.gV || []).map(r => [...r]),
+          gD: (form.gD || []).map(r => [...r]),
+        };
+      }
     }
   }
+
+  // Load isolated tab as active
+  activeFormTab = 'isolated';
+  loadTabData('isolated');
 
   const charInput = document.getElementById('leChar') as HTMLInputElement;
   const nameInput = document.getElementById('leName') as HTMLInputElement;
@@ -102,6 +168,7 @@ export function openEditLetter(ch: string, entry: LetterEntry): void {
   const delBtn = document.getElementById('leDeleteBtn');
   if (delBtn) delBtn.style.display = '';
 
+  updateFormTabsUI();
   buildEditorGrid();
   showModal();
 }
@@ -114,6 +181,11 @@ function createModalDOM(): void {
   overlay.className = 'modal-overlay';
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
+
+  // Build form tabs HTML
+  const tabsHTML = FORM_TABS.map(t =>
+    `<button class="le-form-tab${t.key === 'isolated' ? ' active' : ''}" data-form="${t.key}">${t.label}</button>`
+  ).join('');
 
   overlay.innerHTML = `
     <div class="modal-box le-panel">
@@ -132,6 +204,11 @@ function createModalDOM(): void {
           <label for="leName">Name</label>
           <input type="text" id="leName" placeholder="Letter name" />
         </div>
+      </div>
+
+      <!-- ═══ FORM TABS: positional form selector ═══ -->
+      <div class="le-form-tabs" id="leFormTabs">
+        ${tabsHTML}
       </div>
 
       <!-- ═══ CANVAS: the main drawing grid ═══ -->
@@ -190,19 +267,46 @@ function wireEditorEvents(): void {
   close?.addEventListener('click', hideModal);
   cancel?.addEventListener('click', hideModal);
 
+  // ── Save: assemble all forms into one LetterEntry ──
   save?.addEventListener('click', () => {
     const charInput = document.getElementById('leChar') as HTMLInputElement;
     const nameInput = document.getElementById('leName') as HTMLInputElement;
     const ch = charInput?.value.trim();
     if (!ch) { charInput?.focus(); return; }
 
+    // Save current active tab data first
+    saveCurrentTabData();
+
+    // Build root entry from isolated form
+    const iso = formsData.isolated;
+    const rootM = iso ? iso.m.map(r => [...r]) : cellMatrix.map(r => [...r]);
+    const rootGH = iso ? iso.gH.map(r => [...r]) : gHMatrix.map(r => [...r]);
+    const rootGV = iso ? iso.gV.map(r => [...r]) : gVMatrix.map(r => [...r]);
+    const rootGD = iso ? iso.gD.map(r => [...r]) : gDMatrix.map(r => [...r]);
+
+    // Build forms object from non-null form data (excluding isolated)
+    const forms: Partial<Record<LetterPosition, LetterForm>> = {};
+    const otherTabs: FormTab[] = ['initial', 'medial', 'final', 'variation'];
+    for (const tab of otherTabs) {
+      const fd = formsData[tab];
+      if (fd && hasAnyFill(fd)) {
+        forms[tab as LetterPosition] = {
+          m: fd.m.map(r => [...r]),
+          gH: fd.gH.map(r => [...r]),
+          gV: fd.gV.map(r => [...r]),
+          gD: fd.gD.map(r => [...r]),
+        };
+      }
+    }
+
     const entry: LetterEntry = {
       ch,
       name: nameInput?.value.trim() || ch,
-      m: cellMatrix.map(r => [...r]),
-      gH: gHMatrix.map(r => [...r]),
-      gV: gVMatrix.map(r => [...r]),
-      gD: gDMatrix.map(r => [...r]),
+      m: rootM,
+      gH: rootGH,
+      gV: rootGV,
+      gD: rootGD,
+      forms: Object.keys(forms).length > 0 ? forms : undefined,
       _builtin: false,
     };
 
@@ -242,8 +346,98 @@ function wireEditorEvents(): void {
     toolDraw?.classList.remove('active');
   });
 
+  // ── Form tab switching ──
+  const tabContainer = document.getElementById('leFormTabs');
+  tabContainer?.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest('.le-form-tab') as HTMLElement;
+    if (!btn) return;
+    const targetTab = btn.dataset.form as FormTab;
+    if (!targetTab || targetTab === activeFormTab) return;
+    switchFormTab(targetTab);
+  });
+
   // Pointer up anywhere stops painting
   document.addEventListener('pointerup', () => { isPointerDown = false; });
+}
+
+// ─── Form Tab Logic ────────────────────────────────────
+
+/** Saves current working matrices into formsData for the active tab */
+function saveCurrentTabData(): void {
+  formsData[activeFormTab] = {
+    w: gridW,
+    h: gridH,
+    m: cellMatrix.map(r => [...r]),
+    gH: gHMatrix.map(r => [...r]),
+    gV: gVMatrix.map(r => [...r]),
+    gD: gDMatrix.map(r => [...r]),
+  };
+}
+
+/** Loads matrix data from formsData for a given tab into the working matrices */
+function loadTabData(tab: FormTab): void {
+  const fd = formsData[tab];
+  if (fd) {
+    gridW = fd.w;
+    gridH = fd.h;
+    cellMatrix = fd.m.map(r => [...r]);
+    gHMatrix = fd.gH.map(r => [...r]);
+    gVMatrix = fd.gV.map(r => [...r]);
+    gDMatrix = fd.gD.map(r => [...r]);
+  } else {
+    // No data for this tab — start with empty 5×5
+    gridW = 5;
+    gridH = 5;
+    initMatrices();
+  }
+
+  // Update grid size inputs
+  const wInput = document.getElementById('leGridW') as HTMLInputElement;
+  const hInput = document.getElementById('leGridH') as HTMLInputElement;
+  if (wInput) wInput.value = String(gridW);
+  if (hInput) hInput.value = String(gridH);
+}
+
+/** Switches from current tab to target tab, saving and loading data */
+function switchFormTab(tab: FormTab): void {
+  // Save current tab
+  saveCurrentTabData();
+
+  // Switch
+  activeFormTab = tab;
+  loadTabData(tab);
+
+  // Update UI
+  updateFormTabsUI();
+  buildEditorGrid();
+}
+
+/** Updates form tab button active states and has-data indicators */
+function updateFormTabsUI(): void {
+  const tabContainer = document.getElementById('leFormTabs');
+  if (!tabContainer) return;
+
+  const buttons = tabContainer.querySelectorAll('.le-form-tab');
+  buttons.forEach(btn => {
+    const el = btn as HTMLElement;
+    const tabKey = el.dataset.form as FormTab;
+    el.classList.toggle('active', tabKey === activeFormTab);
+
+    // Show dot indicator if this tab has data
+    const fd = formsData[tabKey];
+    const hasData = fd ? hasAnyFill(fd) : false;
+    el.classList.toggle('has-data', hasData && tabKey !== activeFormTab);
+  });
+}
+
+/** Checks if a FormData has any filled cells */
+function hasAnyFill(fd: FormData): boolean {
+  for (const row of fd.m) {
+    for (const v of row) {
+      if (v) return true;
+    }
+  }
+  return false;
 }
 
 // ─── Grid Rendering ────────────────────────────────────

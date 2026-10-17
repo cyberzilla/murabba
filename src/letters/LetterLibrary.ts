@@ -16,6 +16,7 @@ export interface LetterRecord {
   gH: number[][];
   gV: number[][];
   gD: number[][];
+  forms?: LetterEntry['forms'];
 }
 
 let cachedDefaults: Record<string, LetterEntry> | null = null;
@@ -143,6 +144,7 @@ export async function loadMerged(db: IDBDatabase): Promise<Record<string, Letter
       gH: gaps.gH,
       gV: gaps.gV,
       gD: gaps.gD,
+      forms: override.forms,
       _builtin: false,
     };
   }
@@ -160,6 +162,7 @@ export async function loadMerged(db: IDBDatabase): Promise<Record<string, Letter
  * @param gH - 2D matrix of horizontal gap fills ((rows-1) x cols)
  * @param gV - 2D matrix of vertical gap fills (rows x (cols-1))
  * @param gD - 2D matrix of diagonal corner gap fills ((rows-1) x (cols-1))
+ * @param forms - Optional positional forms (initial, medial, final, variation)
  */
 export async function saveLetter(
   db: IDBDatabase,
@@ -168,7 +171,8 @@ export async function saveLetter(
   m: number[][],
   gH: number[][] = [],
   gV: number[][] = [],
-  gD: number[][] = []
+  gD: number[][] = [],
+  forms?: LetterEntry['forms']
 ): Promise<void> {
   const gaps = normalizeGaps(m, gH, gV, gD);
   const record: LetterRecord = {
@@ -178,6 +182,7 @@ export async function saveLetter(
     gH: gaps.gH,
     gV: gaps.gV,
     gD: gaps.gD,
+    forms,
   };
 
   await put<LetterRecord>(db, 'letters', record);

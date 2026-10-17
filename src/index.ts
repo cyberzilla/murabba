@@ -548,7 +548,7 @@ function wireLetterPanel(app: App): void {
       rebuildLetterGrid(app);
       // Persist to IndexedDB
       if (app.db) {
-        saveLetter(app.db, ch, entry.name, entry.m, entry.gH, entry.gV, entry.gD)
+        saveLetter(app.db, ch, entry.name, entry.m, entry.gH, entry.gV, entry.gD, entry.forms)
           .catch(err => console.warn('[Murabba] Failed to persist letter:', err));
       }
     },
@@ -607,7 +607,7 @@ function wireLetterPanel(app: App): void {
             app.letters[ch] = entry;
             // Persist imported letter to IndexedDB
             if (app.db) {
-              saveLetter(app.db, ch, entry.name, entry.m, entry.gH, entry.gV, entry.gD)
+              saveLetter(app.db, ch, entry.name, entry.m, entry.gH, entry.gV, entry.gD, entry.forms)
                 .catch(err => console.warn('[Murabba] Failed to persist imported letter:', err));
             }
           }
