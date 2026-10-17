@@ -503,7 +503,7 @@ export class SelectTool extends BaseTool {
     const marksToRemove: CellMark[] = [];
     for (const mark of model.marks) {
       if (mark.col >= cellX1 && mark.col <= cellX2 && mark.row >= cellY1 && mark.row <= cellY2) {
-        selMarks.push({ type: mark.type, col: mark.col - cellX1, row: mark.row - cellY1 });
+        selMarks.push({ ...mark, col: mark.col - cellX1, row: mark.row - cellY1 });
         marksToRemove.push(mark);
       }
     }
@@ -950,7 +950,7 @@ export class SelectTool extends BaseTool {
     if (d.marks && d.marks.length > 0) {
       for (const mark of d.marks) {
         model.addMark({
-          type: mark.type,
+          ...mark,
           col: d.ox + mark.col,
           row: d.oy + mark.row,
         });

@@ -323,6 +323,7 @@ export function exportToSVG(
   if (model.marks && model.marks.length > 0) {
     let clipId = 0;
     for (const mark of model.marks) {
+      const markColor = mark.c || config.drawColor;
       if (mark.type === 'kaf-s') {
         const areaW = 2 * cs + gs;
         const areaH = 2 * cs + gs;
@@ -366,7 +367,7 @@ export function exportToSVG(
         const xR = sx + sw;
 
         const sPath = `M${xR},${y1} L${xL},${y1} L${xL},${y3} L${xR},${y3} L${xR},${y5} L${xL},${y5}`;
-        elements.push(`<path d="${sPath}" fill="none" stroke="${config.drawColor}" stroke-width="${lineW}" stroke-linecap="square" stroke-linejoin="miter"${clipAttr}/>`);
+        elements.push(`<path d="${sPath}" fill="none" stroke="${markColor}" stroke-width="${lineW}" stroke-linecap="square" stroke-linejoin="miter"${clipAttr}/>`);
 
         if (transformAttr) elements.push(`</g>`);
 
@@ -421,7 +422,7 @@ export function exportToSVG(
           cPath = `M${right},${top} L${left},${top} L${left},${bottom} L${right},${bottom}`;
         }
 
-        elements.push(`<path d="${cPath}" fill="none" stroke="${config.drawColor}" stroke-width="${lineW}" stroke-linecap="square" stroke-linejoin="miter"${clipAttr}/>`);
+        elements.push(`<path d="${cPath}" fill="none" stroke="${markColor}" stroke-width="${lineW}" stroke-linecap="square" stroke-linejoin="miter"${clipAttr}/>`);
 
         if (transformAttr) elements.push(`</g>`);
       }

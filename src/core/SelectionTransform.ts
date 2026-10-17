@@ -41,7 +41,7 @@ export function rotateSelectionCW(data: SelectionData): SelectionData {
 
   // Marks: same mapping as cells (1×1) or adjusted for 2×2 (kaf-s)
   const marks = data.marks?.map(m => ({
-    type: m.type,
+    ...m,
     col: m.type === 'kaf-s' ? h - 2 - m.row : h - 1 - m.row,
     row: m.col,
     rot: ((m.rot || 0) + 1) % 4,
@@ -90,7 +90,7 @@ export function rotateSelectionCCW(data: SelectionData): SelectionData {
 
   // Marks: same mapping as cells (1×1) or adjusted for 2×2 (kaf-s)
   const marks = data.marks?.map(m => ({
-    type: m.type,
+    ...m,
     col: m.row,
     row: m.type === 'kaf-s' ? w - 2 - m.col : w - 1 - m.col,
     rot: ((m.rot || 0) + 3) % 4,
@@ -135,7 +135,7 @@ export function flipSelectionH(data: SelectionData): SelectionData {
 
   // Marks: mirror col position, kaf-s (2×2) uses w-2
   const marks = data.marks?.map(m => ({
-    type: m.type,
+    ...m,
     col: m.type === 'kaf-s' ? w - 2 - m.col : w - 1 - m.col,
     row: m.row,
     rot: m.rot,
@@ -176,7 +176,7 @@ export function flipSelectionV(data: SelectionData): SelectionData {
   // Marks: mirror row position, kaf-s (2×2) uses h-2
   // Flip V = flip H + rotate 180°
   const marks = data.marks?.map(m => ({
-    type: m.type,
+    ...m,
     col: m.col,
     row: m.type === 'kaf-s' ? h - 2 - m.row : h - 1 - m.row,
     rot: ((m.rot || 0) + 2) % 4,

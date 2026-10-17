@@ -115,6 +115,7 @@ export interface CellMark {
   type: MarkType;
   row: number;   // cell row position
   col: number;   // cell column position
+  c?: string;    // mark color (hex); if omitted, uses drawColor
   rot?: number;  // rotation state: 0|1|2|3 → 0°|90°|180°|270° CW
   flipH?: boolean; // horizontal flip
 }

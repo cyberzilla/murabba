@@ -200,11 +200,9 @@ export function renderSelectionGhost(
   // Draw marks on the floating ghost
   if (data.marks && data.marks.length > 0) {
     const offsetMarks = data.marks.map(m => ({
-      type: m.type,
+      ...m,
       col: data.ox + m.col,
       row: data.oy + m.row,
-      rot: m.rot,
-      flipH: m.flipH,
     }));
     renderMarks(ctx, offsetMarks, config);
   }

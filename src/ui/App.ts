@@ -470,7 +470,7 @@ export class App {
       gH: gHData,
       gV: gVData,
       gD: gDData,
-      marks: letterMarks?.map(m => ({ ...m })),
+      marks: letterMarks?.map(m => ({ ...m, c: color })),
       ox: pos.x - minLx,
       oy: pos.y - minLy,
       w: cols,

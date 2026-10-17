@@ -21,12 +21,13 @@ export function renderMarks(
   if (!marks || marks.length === 0) return;
 
   for (const mark of marks) {
+    const color = mark.c || config.drawColor;
     switch (mark.type) {
       case 'kaf-s':
-        drawKafS(ctx, mark.col, mark.row, config, mark.rot, mark.flipH);
+        drawKafS(ctx, mark.col, mark.row, config, mark.rot, mark.flipH, color);
         break;
       case 'hamzah':
-        drawHamzah(ctx, mark.col, mark.row, config, mark.rot, mark.flipH);
+        drawHamzah(ctx, mark.col, mark.row, config, mark.rot, mark.flipH, color);
         break;
     }
   }
@@ -52,9 +53,11 @@ function drawKafS(
   row: number,
   config: RenderConfig,
   rot?: number,
-  flipH?: boolean
+  flipH?: boolean,
+  color?: string
 ): void {
   const { cellSize, gapSize, padding, cellRadius, canvasBgColor, drawColor } = config;
+  const strokeColor = color || drawColor;
 
   // Full area of 2×2 cells including gap
   const areaW = 2 * cellSize + gapSize;
@@ -118,7 +121,7 @@ function drawKafS(
   ctx.lineTo(xR, y5);   // right vertical ↓ to bottom
   ctx.lineTo(xL, y5);   // bottom bar → left
 
-  ctx.strokeStyle = drawColor;
+  ctx.strokeStyle = strokeColor;
   ctx.lineWidth = lineW;
   ctx.lineCap = 'square';
   ctx.lineJoin = 'miter';
@@ -143,9 +146,11 @@ function drawHamzah(
   row: number,
   config: RenderConfig,
   rot?: number,
-  flipH?: boolean
+  flipH?: boolean,
+  color?: string
 ): void {
   const { cellSize, gapSize, padding, cellRadius, canvasBgColor, drawColor } = config;
+  const strokeColor = color || drawColor;
 
   // Cell pixel position
   const x0 = padding + col * (cellSize + gapSize);
@@ -205,7 +210,7 @@ function drawHamzah(
 
   ctx.lineTo(right, bottom);      // end: bottom-right (2/3 point)
 
-  ctx.strokeStyle = drawColor;
+  ctx.strokeStyle = strokeColor;
   ctx.lineWidth = lineW;
   ctx.lineCap = 'square';
   ctx.lineJoin = 'miter';
