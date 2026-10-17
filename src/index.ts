@@ -849,6 +849,9 @@ function showLetterPopup(app: App, ch: string, entry: LetterEntry, anchor: HTMLE
   const rect = anchor.getBoundingClientRect();
   const panel = document.getElementById('rightPanel');
   const panelRect = panel ? panel.getBoundingClientRect() : { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight, width: window.innerWidth, height: window.innerHeight };
+  // Set grid columns based on actual item count (max 4)
+  const cols = Math.min(options.length, 4);
+  popup.style.gridTemplateColumns = `repeat(${cols}, 50px)`;
   popup.style.display = 'grid';
 
   // Measure popup off-screen first
