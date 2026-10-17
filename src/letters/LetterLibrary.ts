@@ -220,18 +220,24 @@ export async function resetToDefaults(db: IDBDatabase): Promise<void> {
  * @returns Serialized JSON string
  */
 export function exportLibrary(letters: Record<string, LetterEntry>): string {
-  const exported: Record<string, { name: string; m: number[][]; gH: number[][]; gV: number[][]; gD: number[][] }> =
-    {};
+  const exported: Record<string, Record<string, unknown>> = {};
 
   for (const [ch, entry] of Object.entries(letters)) {
     const gaps = normalizeGaps(entry.m, entry.gH, entry.gV, entry.gD);
-    exported[ch] = {
+    const item: Record<string, unknown> = {
       name: entry.name,
       m: entry.m,
       gH: gaps.gH,
       gV: gaps.gV,
       gD: gaps.gD,
     };
+    if (entry.forms && Object.keys(entry.forms).length > 0) {
+      item.forms = entry.forms;
+    }
+    if (entry.variations && entry.variations.length > 0) {
+      item.variations = entry.variations;
+    }
+    exported[ch] = item;
   }
 
   return JSON.stringify({ letters: exported }, null, 2);
@@ -285,6 +291,8 @@ export async function importLibrary(db: IDBDatabase, json: string): Promise<numb
       gH: gaps.gH,
       gV: gaps.gV,
       gD: gaps.gD,
+      forms: entry.forms,
+      variations: entry.variations,
     };
 
     await put<LetterRecord>(db, 'letters', record);
