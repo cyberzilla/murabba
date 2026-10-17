@@ -78,7 +78,7 @@ export const en: Record<string, string> = {
   'grid.apply': 'Apply',
   'grid.quickTemplates': 'Quick Templates',
   'grid.cellSize': 'Cell Size',
-  'grid.gapSize': 'Gap Between Cells',
+  'grid.gapSize': 'Cell Gap',
   'grid.cornerRadius': 'Corner Radius',
   'grid.canvasBg': 'Canvas Background',
   'grid.dark': 'Dark',

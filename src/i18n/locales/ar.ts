@@ -78,7 +78,7 @@ export const ar: Record<string, string> = {
   'grid.apply': 'تطبيق',
   'grid.quickTemplates': 'قوالب سريعة',
   'grid.cellSize': 'حجم الخلية',
-  'grid.gapSize': 'فجوة بين الخلايا',
+  'grid.gapSize': 'فجوة الخلية',
   'grid.cornerRadius': 'استدارة الأركان',
   'grid.canvasBg': 'خلفية اللوحة',
   'grid.dark': 'داكنة',

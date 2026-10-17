@@ -78,7 +78,7 @@ export const id: Record<string, string> = {
   'grid.apply': 'Terapkan',
   'grid.quickTemplates': 'Template Cepat',
   'grid.cellSize': 'Ukuran Sel',
-  'grid.gapSize': 'Jarak Antar Sel',
+  'grid.gapSize': 'Celah Sel',
   'grid.cornerRadius': 'Radius Sudut',
   'grid.canvasBg': 'Latar Kanvas',
   'grid.dark': 'Gelap',
