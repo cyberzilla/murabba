@@ -14,7 +14,7 @@
     // Sync lang/dir and page state from localStorage before first paint
     (function(){
       try {
-        var lang = localStorage.getItem('kufi_lang');
+        var lang = localStorage.getItem('murabba_lang');
         if (lang === 'ar') {
           document.documentElement.lang = 'ar';
           document.documentElement.dir = 'rtl';
@@ -22,7 +22,7 @@
           document.documentElement.lang = 'id';
         }
         // If user was in editor, hide welcome and show editor before paint
-        if (localStorage.getItem('kufi_in_editor') === '1') {
+        if (localStorage.getItem('murabba_editorState') === '1') {
           document.documentElement.classList.add('restore-editor');
         }
       } catch(e) {}
