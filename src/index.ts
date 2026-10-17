@@ -270,6 +270,9 @@ function syncColorUI(app: App): void {
   if (!found) {
     swatches.forEach(s => s.classList.remove('selected'));
   }
+
+  // 3. Update letter preview colors
+  rebuildLetterGrid(app);
 }
 
 function wireZoomControls(app: App): void {
@@ -578,7 +581,7 @@ function rebuildLetterGrid(app: App): void {
     // Canvas preview of the letter shape
     const canvas = document.createElement('canvas');
     canvas.className = 'letter-preview';
-    renderLetterPreview(canvas, entry);
+    renderLetterPreview(canvas, entry, app.config.drawColor);
     btn.appendChild(canvas);
 
     const nameSpan = document.createElement('span');
@@ -608,11 +611,10 @@ function rebuildLetterGrid(app: App): void {
 /**
  * Renders a small preview of a letter entry onto a canvas element.
  */
-function renderLetterPreview(canvas: HTMLCanvasElement, entry: LetterEntry): void {
+function renderLetterPreview(canvas: HTMLCanvasElement, entry: LetterEntry, color = '#22C55E'): void {
   const { m, gH, gV, gD } = entry;
   const rows = m.length;
   const cols = rows > 0 ? m[0].length : 1;
-  const color = '#22C55E';
 
   // Helpers to safely read matrices
   const cell = (c: number, r: number) => m[r]?.[c] ? 1 : 0;
