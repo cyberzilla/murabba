@@ -498,8 +498,18 @@ export class SelectTool extends BaseTool {
       }
     }
 
-    // If region contains no elements, cancel selection
-    if (cells.length === 0 && gH.length === 0 && gV.length === 0 && gD.length === 0) {
+    // Extract marks within the selection region (before empty check so marks count)
+    const selMarks: CellMark[] = [];
+    const marksToRemove: CellMark[] = [];
+    for (const mark of model.marks) {
+      if (mark.col >= cellX1 && mark.col <= cellX2 && mark.row >= cellY1 && mark.row <= cellY2) {
+        selMarks.push({ type: mark.type, col: mark.col - cellX1, row: mark.row - cellY1 });
+        marksToRemove.push(mark);
+      }
+    }
+
+    // If region contains no elements at all, cancel selection
+    if (cells.length === 0 && gH.length === 0 && gV.length === 0 && gD.length === 0 && selMarks.length === 0) {
       this.reset();
       ctx.requestRender();
       return;
@@ -539,15 +549,7 @@ export class SelectTool extends BaseTool {
       }
     }
 
-    // Extract marks within the selection region
-    const selMarks: CellMark[] = [];
-    const marksToRemove: CellMark[] = [];
-    for (const mark of model.marks) {
-      if (mark.col >= cellX1 && mark.col <= cellX2 && mark.row >= cellY1 && mark.row <= cellY2) {
-        selMarks.push({ type: mark.type, col: mark.col - cellX1, row: mark.row - cellY1 });
-        marksToRemove.push(mark);
-      }
-    }
+    // Remove extracted marks from the grid
     for (const mark of marksToRemove) {
       model.removeMarksAt(mark.col, mark.row);
     }

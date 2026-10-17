@@ -325,7 +325,7 @@ function wireEditorEvents(): void {
     const rootGH = iso ? iso.gH.map(r => [...r]) : gHMatrix.map(r => [...r]);
     const rootGV = iso ? iso.gV.map(r => [...r]) : gVMatrix.map(r => [...r]);
     const rootGD = iso ? iso.gD.map(r => [...r]) : gDMatrix.map(r => [...r]);
-    const rootMarks = iso?.marks ? iso.marks.map(m => ({ ...m })) : (editorMarks.length > 0 ? editorMarks.map(m => ({ ...m })) : undefined);
+    const rootMarks = iso?.marks ? iso.marks.map(m => ({ ...m })) : undefined;
 
     // Build forms object from positional form data (excluding isolated)
     const forms: Partial<Record<LetterPosition, LetterForm>> = {};
@@ -343,18 +343,25 @@ function wireEditorEvents(): void {
       }
     }
 
-    // Build variations array
-    const variations: LetterForm[] = [];
-    for (const vd of variationsData) {
-      if (hasAnyFill(vd)) {
-        variations.push({
-          m: vd.m.map(r => [...r]),
-          gH: vd.gH.map(r => [...r]),
-          gV: vd.gV.map(r => [...r]),
-          gD: vd.gD.map(r => [...r]),
-          marks: vd.marks ? vd.marks.map(m => ({ ...m })) : undefined,
-        });
+    // Build variations array — preserve indices by keeping empty slots
+    // Find last variation with data
+    let lastFilledIdx = -1;
+    for (let i = variationsData.length - 1; i >= 0; i--) {
+      if (hasAnyFill(variationsData[i]) || (variationsData[i].marks && variationsData[i].marks!.length > 0)) {
+        lastFilledIdx = i;
+        break;
       }
+    }
+    const variations: LetterForm[] = [];
+    for (let i = 0; i <= lastFilledIdx; i++) {
+      const vd = variationsData[i];
+      variations.push({
+        m: vd.m.map(r => [...r]),
+        gH: vd.gH.map(r => [...r]),
+        gV: vd.gV.map(r => [...r]),
+        gD: vd.gD.map(r => [...r]),
+        marks: vd.marks ? vd.marks.map(m => ({ ...m })) : undefined,
+      });
     }
 
     const entry: LetterEntry = {
@@ -638,6 +645,7 @@ function makeEmptyFormData(): FormData {
 
 /** Checks if a FormData has any filled cells */
 function hasAnyFill(fd: FormData): boolean {
+  if (fd.marks && fd.marks.length > 0) return true;
   for (const row of fd.m) {
     for (const v of row) {
       if (v) return true;
@@ -909,6 +917,13 @@ function resizeMatrices(newW: number, newH: number): void {
       gDMatrix[r][c] = oldGD[r]?.[c] || 0;
     }
   }
+
+  // Filter marks that fall outside new bounds
+  editorMarks = editorMarks.filter(mk => {
+    const span = mk.type === 'kaf-s' ? 2 : 1;
+    return mk.col >= 0 && mk.row >= 0 &&
+           mk.col + span <= newW && mk.row + span <= newH;
+  });
 }
 
 // ─── Modal Show/Hide ───────────────────────────────────

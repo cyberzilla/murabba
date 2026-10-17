@@ -18,6 +18,7 @@ export interface LetterRecord {
   gD: number[][];
   forms?: LetterEntry['forms'];
   variations?: LetterEntry['variations'];
+  marks?: LetterEntry['marks'];
 }
 
 let cachedDefaults: Record<string, LetterEntry> | null = null;
@@ -104,6 +105,7 @@ export async function loadDefaults(): Promise<Record<string, LetterEntry>> {
         gD: gaps.gD,
         forms: entry.forms,
         variations: (entry as LetterEntry).variations,
+        marks: (entry as LetterEntry).marks,
         _builtin: true,
       };
     }
@@ -151,6 +153,7 @@ export async function loadMerged(db: IDBDatabase): Promise<Record<string, Letter
       gD: gaps.gD,
       forms: override.forms,
       variations: override.variations,
+      marks: override.marks,
       _builtin: false,
     };
   }
@@ -181,7 +184,8 @@ export async function saveLetter(
   gV: number[][] = [],
   gD: number[][] = [],
   forms?: LetterEntry['forms'],
-  variations?: LetterEntry['variations']
+  variations?: LetterEntry['variations'],
+  marks?: LetterEntry['marks']
 ): Promise<void> {
   const gaps = normalizeGaps(m, gH, gV, gD);
   const record: LetterRecord = {
@@ -193,6 +197,7 @@ export async function saveLetter(
     gD: gaps.gD,
     forms,
     variations,
+    marks,
   };
 
   await put<LetterRecord>(db, 'letters', record);
@@ -273,12 +278,17 @@ export function exportLibrary(letters: Record<string, LetterEntry>): string {
       gV: gaps.gV,
       gD: gaps.gD,
     };
+    if (entry.marks && entry.marks.length > 0) {
+      item.marks = entry.marks;
+    }
     if (entry.forms && Object.keys(entry.forms).length > 0) {
       const normalizedForms: Record<string, LetterForm> = {};
       for (const [pos, form] of Object.entries(entry.forms)) {
         if (form) {
           const fGaps = normalizeGaps(form.m, form.gH, form.gV, form.gD);
-          normalizedForms[pos] = { m: form.m, gH: fGaps.gH, gV: fGaps.gV, gD: fGaps.gD };
+          const nf: LetterForm = { m: form.m, gH: fGaps.gH, gV: fGaps.gV, gD: fGaps.gD };
+          if (form.marks && form.marks.length > 0) nf.marks = form.marks;
+          normalizedForms[pos] = nf;
         }
       }
       item.forms = normalizedForms;
@@ -286,7 +296,9 @@ export function exportLibrary(letters: Record<string, LetterEntry>): string {
     if (entry.variations && entry.variations.length > 0) {
       item.variations = entry.variations.map(v => {
         const vGaps = normalizeGaps(v.m, v.gH, v.gV, v.gD);
-        return { m: v.m, gH: vGaps.gH, gV: vGaps.gV, gD: vGaps.gD };
+        const nv: LetterForm = { m: v.m, gH: vGaps.gH, gV: vGaps.gV, gD: vGaps.gD };
+        if (v.marks && v.marks.length > 0) nv.marks = v.marks;
+        return nv;
       });
     }
     exported[ch] = item;
@@ -354,6 +366,7 @@ export async function importLibrary(db: IDBDatabase, json: string): Promise<numb
       gD: gaps.gD,
       forms: entry.forms,
       variations: entry.variations,
+      marks: entry.marks,
     };
 
     await put<LetterRecord>(db, 'letters', record);

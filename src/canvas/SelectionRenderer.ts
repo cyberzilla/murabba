@@ -203,6 +203,8 @@ export function renderSelectionGhost(
       type: m.type,
       col: data.ox + m.col,
       row: data.oy + m.row,
+      rot: m.rot,
+      flipH: m.flipH,
     }));
     renderMarks(ctx, offsetMarks, config);
   }

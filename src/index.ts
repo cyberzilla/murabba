@@ -758,7 +758,7 @@ function wireLetterPanel(app: App): void {
       rebuildLetterGrid(app);
       // Persist to IndexedDB
       if (app.db) {
-        saveLetter(app.db, ch, entry.name, entry.m, entry.gH, entry.gV, entry.gD, entry.forms, entry.variations)
+        saveLetter(app.db, ch, entry.name, entry.m, entry.gH, entry.gV, entry.gD, entry.forms, entry.variations, entry.marks)
           .catch(err => console.warn('[Murabba] Failed to persist letter:', err));
       }
     },
@@ -814,12 +814,13 @@ function wireLetterPanel(app: App): void {
               gD: e.gD || [],
               forms: e.forms,
               variations: e.variations,
+              marks: e.marks,
               _builtin: false,
             };
             app.letters[ch] = entry;
             // Persist imported letter to IndexedDB
             if (app.db) {
-              saveLetter(app.db, ch, entry.name, entry.m, entry.gH, entry.gV, entry.gD, entry.forms, entry.variations)
+              saveLetter(app.db, ch, entry.name, entry.m, entry.gH, entry.gV, entry.gD, entry.forms, entry.variations, entry.marks)
                 .catch(err => console.warn('[Murabba] Failed to persist imported letter:', err));
             }
           }
@@ -981,9 +982,13 @@ function showLetterPopup(app: App, ch: string, entry: LetterEntry, anchor: HTMLE
     }
   }
 
-  // Variations
+  // Variations (skip empty placeholders)
   if (entry.variations) {
     entry.variations.forEach((vf, idx) => {
+      // Skip empty placeholder variations (no filled cells and no marks)
+      const hasCells = vf.m.some(row => row.some(v => v !== 0));
+      const hasMarks = vf.marks && vf.marks.length > 0;
+      if (!hasCells && !hasMarks) return;
       options.push({
         label: `V${idx + 1}`,
         formData: vf,
@@ -1251,12 +1256,11 @@ function renderLetterPreview(canvas: HTMLCanvasElement, entry: LetterEntry, colo
     }
   }
 
-  // Draw sub-cell marks (kaf-s, hamzah) as negative space
+  // Draw sub-cell marks (kaf-s, hamzah)
   if (entry.marks && entry.marks.length > 0) {
-    // Use a dark bg color for negative-space carving in preview
-    // (transparent won't work since marks are "carved" by overpainting)
+    // Use card bg color for erasing; marks draw in letter color
     const markBg = '#1a1a2e';
-    renderPreviewMarks(ctx, entry.marks, cellPx, gapPx, markBg);
+    renderPreviewMarks(ctx, entry.marks, cellPx, gapPx, markBg, color);
   }
 }
 

@@ -5,6 +5,7 @@ import type { GridModel } from '../core/GridModel';
 import type { RenderConfig, BgProps } from '../types/grid';
 import { computeCellRadius, computeGapHRadius, computeGapVRadius, computeGapDRadius } from '../core/RadiusCalculator';
 import { drawRoundedRect } from './GridRenderer';
+import { renderMarks } from './MarkRenderer';
 
 export interface ExportOptions {
   withBackground?: boolean;
@@ -138,6 +139,27 @@ function renderToOffscreen(
       const ry = offY + y * total;
       drawRoundedRect(ctx, rx, ry, cs, cs, radii);
       ctx.fill();
+    }
+  }
+
+  // Draw marks (kaf-s, hamzah)
+  if (model.marks && model.marks.length > 0) {
+    const exportConfig: RenderConfig = {
+      ...config,
+      padding: offX,  // use export offset as padding
+      // When exporting without background, marks should clear to transparent
+      canvasBgColor: options.withBackground ? config.canvasBgColor : 'transparent',
+    };
+    // offY may differ from offX if grid is non-square, adjust per-mark
+    // Since padding is used for both X and Y in mark rendering,
+    // we need to translate if offX !== offY
+    if (offX !== offY) {
+      ctx.save();
+      ctx.translate(0, offY - offX);
+      renderMarks(ctx, model.marks, exportConfig);
+      ctx.restore();
+    } else {
+      renderMarks(ctx, model.marks, exportConfig);
     }
   }
 
@@ -293,6 +315,77 @@ export function exportToSVG(
       const color = model.getCellColor(x, y) || config.drawColor;
       const radii = computeCellRadius(model, x, y, config.cellRadius);
       svgRect(offX + x * total, offY + y * total, cs, cs, color, radii);
+    }
+  }
+
+  // Marks (kaf-s, hamzah) — SVG equivalent of canvas mark rendering
+  const svgBgColor = options.withBackground ? config.canvasBgColor : 'none';
+  if (model.marks && model.marks.length > 0) {
+    let clipId = 0;
+    for (const mark of model.marks) {
+      if (mark.type === 'kaf-s') {
+        const areaW = 2 * cs + gs;
+        const areaH = 2 * cs + gs;
+        const mx = offX + mark.col * total;
+        const my = offY + mark.row * total;
+        const r = Math.min(config.cellRadius, Math.floor(cs / 2));
+        const lineW = Math.max(2, Math.round(cs / 2));
+        const halfLW = lineW / 2;
+
+        // Clip path for rounded area
+        const cid = `mark-clip-${clipId++}`;
+        if (r > 0) {
+          elements.push(`<defs><clipPath id="${cid}"><rect x="${mx}" y="${my}" width="${areaW}" height="${areaH}" rx="${r}"/></clipPath></defs>`);
+        }
+
+        // Erase area (background rect)
+        const clipAttr = r > 0 ? ` clip-path="url(#${cid})"` : '';
+        elements.push(`<rect x="${mx}" y="${my}" width="${areaW}" height="${areaH}" fill="${svgBgColor}"${clipAttr}/>`);
+
+        // S-path
+        const sx = mx + halfLW;
+        const sy = my + halfLW;
+        const sw = areaW - lineW;
+        const sh = areaH - lineW;
+        const y1 = sy;
+        const y3 = sy + sh * 0.5;
+        const y5 = sy + sh;
+        const xL = sx;
+        const xR = sx + sw;
+
+        const sPath = `M${xR},${y1} L${xL},${y1} L${xL},${y3} L${xR},${y3} L${xR},${y5} L${xL},${y5}`;
+        elements.push(`<path d="${sPath}" fill="none" stroke="${config.drawColor}" stroke-width="${lineW}" stroke-linecap="square" stroke-linejoin="miter"${clipAttr}/>`);
+
+      } else if (mark.type === 'hamzah') {
+        const mx = offX + mark.col * total;
+        const my = offY + mark.row * total;
+        const r = Math.min(config.cellRadius, Math.floor(cs / 2));
+        const lineW = Math.max(2, Math.round(cs / 2));
+        const halfLW = lineW / 2;
+
+        const cid = `mark-clip-${clipId++}`;
+        if (r > 0) {
+          elements.push(`<defs><clipPath id="${cid}"><rect x="${mx}" y="${my}" width="${cs}" height="${cs}" rx="${r}"/></clipPath></defs>`);
+        }
+
+        const clipAttr = r > 0 ? ` clip-path="url(#${cid})"` : '';
+        elements.push(`<rect x="${mx}" y="${my}" width="${cs}" height="${cs}" fill="${svgBgColor}"${clipAttr}/>`);
+
+        // Open-bottom box
+        const bx1 = mx + halfLW;
+        const by1 = my + halfLW;
+        const bx2 = mx + cs - halfLW;
+        const by2 = my + cs * 0.55;
+        const boxPath = `M${bx1},${by2} L${bx1},${by1} L${bx2},${by1} L${bx2},${by2}`;
+        elements.push(`<path d="${boxPath}" fill="none" stroke="${config.drawColor}" stroke-width="${lineW}" stroke-linecap="square" stroke-linejoin="miter"${clipAttr}/>`);
+
+        // Diagonal tail
+        const tailX = mx + cs * 0.45;
+        const tailY = by2 + halfLW;
+        const tailEndX = mx + cs * 0.72;
+        const tailEndY = my + cs - halfLW;
+        elements.push(`<line x1="${tailX}" y1="${tailY}" x2="${tailEndX}" y2="${tailEndY}" stroke="${config.drawColor}" stroke-width="${lineW}" stroke-linecap="square"${clipAttr}/>`);
+      }
     }
   }
 

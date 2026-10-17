@@ -372,10 +372,10 @@ export class App {
 
   addLetter(ch: string, position: string = 'isolated', variationIndex?: number): void {
     const entry = this.letters[ch];
-    if (!entry) return;
+    if (!entry) { console.warn('[addLetter] no entry for', ch); return; }
 
     // Pick the right form based on position or variation index
-    let m: number[][], gH: number[][], gV: number[][], gD: number[][];
+    let m: number[][], gH: number[][] | undefined, gV: number[][] | undefined, gD: number[][] | undefined;
     let letterMarks: CellMark[] | undefined;
     if (typeof variationIndex === 'number' && entry.variations?.[variationIndex]) {
       const v = entry.variations[variationIndex];
@@ -413,7 +413,9 @@ export class App {
       if (v) gDData.push({ lx: dx, ly: dy, c: color });
     }));
 
-    if (cells.length === 0 && gHData.length === 0 && gVData.length === 0 && gDData.length === 0) return;
+    if (cells.length === 0 && gHData.length === 0 && gVData.length === 0 && gDData.length === 0 && (!letterMarks || letterMarks.length === 0)) {
+      return;
+    }
 
     // Switch to select tool first
     this.setTool('select');
@@ -435,6 +437,16 @@ export class App {
     for (const g of gDData) {
       allPoints.push({ x: g.lx, y: g.ly }); allPoints.push({ x: g.lx + 1, y: g.ly });
       allPoints.push({ x: g.lx, y: g.ly + 1 }); allPoints.push({ x: g.lx + 1, y: g.ly + 1 });
+    }
+    // Marks also contribute to bounding box
+    if (letterMarks) {
+      for (const mk of letterMarks) {
+        allPoints.push({ x: mk.col, y: mk.row });
+        // kaf-s spans 2×2 cells
+        if (mk.type === 'kaf-s') {
+          allPoints.push({ x: mk.col + 1, y: mk.row + 1 });
+        }
+      }
     }
 
     let minLx = Infinity, minLy = Infinity, maxLx = -Infinity, maxLy = -Infinity;

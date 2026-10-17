@@ -39,8 +39,18 @@ export function rotateSelectionCW(data: SelectionData): SelectionData {
     lx: h - 2 - ly, ly: lx, c,
   }));
 
+  // Marks: same mapping as cells (1×1) or adjusted for 2×2 (kaf-s)
+  const marks = data.marks?.map(m => ({
+    type: m.type,
+    col: m.type === 'kaf-s' ? h - 2 - m.row : h - 1 - m.row,
+    row: m.col,
+    rot: ((m.rot || 0) + 1) % 4,
+    flipH: m.flipH,
+  }));
+
   return {
     cells, gH: newGH, gV: newGV, gD,
+    marks,
     ox: data.ox, oy: data.oy,
     w: h, h: w,
   };
@@ -78,8 +88,18 @@ export function rotateSelectionCCW(data: SelectionData): SelectionData {
     lx: ly, ly: w - 2 - lx, c,
   }));
 
+  // Marks: same mapping as cells (1×1) or adjusted for 2×2 (kaf-s)
+  const marks = data.marks?.map(m => ({
+    type: m.type,
+    col: m.row,
+    row: m.type === 'kaf-s' ? w - 2 - m.col : w - 1 - m.col,
+    rot: ((m.rot || 0) + 3) % 4,
+    flipH: m.flipH,
+  }));
+
   return {
     cells, gH: newGH, gV: newGV, gD,
+    marks,
     ox: data.ox, oy: data.oy,
     w: h, h: w,
   };
@@ -113,7 +133,16 @@ export function flipSelectionH(data: SelectionData): SelectionData {
     lx: w - 2 - lx, ly, c,
   }));
 
-  return { cells, gH, gV, gD, ox: data.ox, oy: data.oy, w: data.w, h: data.h };
+  // Marks: mirror col position, kaf-s (2×2) uses w-2
+  const marks = data.marks?.map(m => ({
+    type: m.type,
+    col: m.type === 'kaf-s' ? w - 2 - m.col : w - 1 - m.col,
+    row: m.row,
+    rot: m.rot,
+    flipH: !m.flipH,
+  }));
+
+  return { cells, gH, gV, gD, marks, ox: data.ox, oy: data.oy, w: data.w, h: data.h };
 }
 
 /**
@@ -144,5 +173,15 @@ export function flipSelectionV(data: SelectionData): SelectionData {
     lx, ly: h - 2 - ly, c,
   }));
 
-  return { cells, gH, gV, gD, ox: data.ox, oy: data.oy, w: data.w, h: data.h };
+  // Marks: mirror row position, kaf-s (2×2) uses h-2
+  // Flip V = flip H + rotate 180°
+  const marks = data.marks?.map(m => ({
+    type: m.type,
+    col: m.col,
+    row: m.type === 'kaf-s' ? h - 2 - m.row : h - 1 - m.row,
+    rot: ((m.rot || 0) + 2) % 4,
+    flipH: !m.flipH,
+  }));
+
+  return { cells, gH, gV, gD, marks, ox: data.ox, oy: data.oy, w: data.w, h: data.h };
 }

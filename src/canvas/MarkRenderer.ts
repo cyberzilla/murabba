@@ -23,36 +23,38 @@ export function renderMarks(
   for (const mark of marks) {
     switch (mark.type) {
       case 'kaf-s':
-        drawKafS(ctx, mark.col, mark.row, config);
+        drawKafS(ctx, mark.col, mark.row, config, mark.rot, mark.flipH);
         break;
       case 'hamzah':
-        drawHamzah(ctx, mark.col, mark.row, config);
+        drawHamzah(ctx, mark.col, mark.row, config, mark.rot, mark.flipH);
         break;
     }
   }
 }
 
 /**
- * Draws the Kaf S-mark (zigzag) as negative space within a 2×2 cell area.
- * The visual area is 3×3 (cell-gap-cell in each axis).
- * The S-pattern is carved by drawing background-colored shapes.
+ * Draws the Kaf S-mark (zigzag) as a colored stroke within a 2×2 cell area.
+ * The visual area spans 2 cells + 1 gap in each axis.
+ * Drawn as a single continuous S-shaped path with rounded joins.
  *
- * S-pattern (5 horizontal bands):
+ * S-pattern — correct direction for Arabic kaf:
  * ┌───────┐
- * │ ▓▓▓▓▓ │  band 0: top horizontal bar
- * │     ▓ │  band 1: right vertical
- * │ ▓▓▓▓▓ │  band 2: middle horizontal bar
- * │ ▓     │  band 3: left vertical
- * │ ▓▓▓▓▓ │  band 4: bottom horizontal bar
+ * │ ▓▓▓▓▓ │  top bar (right → left)
+ * │ ▓     │  left vertical (down)
+ * │ ▓▓▓▓▓ │  middle bar (left → right)
+ * │     ▓ │  right vertical (down)
+ * │ ▓▓▓▓▓ │  bottom bar (right → left)
  * └───────┘
  */
 function drawKafS(
   ctx: CanvasRenderingContext2D,
   col: number,
   row: number,
-  config: RenderConfig
+  config: RenderConfig,
+  rot?: number,
+  flipH?: boolean
 ): void {
-  const { cellSize, gapSize, canvasBgColor, padding } = config;
+  const { cellSize, gapSize, padding, cellRadius, canvasBgColor, drawColor } = config;
 
   // Full area of 2×2 cells including gap
   const areaW = 2 * cellSize + gapSize;
@@ -62,89 +64,154 @@ function drawKafS(
   const x0 = padding + col * (cellSize + gapSize);
   const y0 = padding + row * (cellSize + gapSize);
 
-  // S-mark dimensions — inset from the cell edges
-  const inset = Math.max(1, Math.round(cellSize * 0.15));
-  const lineW = Math.max(1, Math.round(cellSize * 0.2));
+  // Clip to the 2×2 cell area with rounded corners
+  const r = Math.min(cellRadius, Math.floor(cellSize / 2));
+  ctx.save();
+  ctx.beginPath();
+  if (r > 0 && ctx.roundRect) {
+    ctx.roundRect(x0, y0, areaW, areaH, r);
+  } else {
+    ctx.rect(x0, y0, areaW, areaH);
+  }
+  ctx.clip();
 
-  const sx = x0 + inset;
-  const sy = y0 + inset;
-  const sw = areaW - 2 * inset;
-  const sh = areaH - 2 * inset;
+  // Erase the 2×2 area first (clear filled cells underneath)
+  if (canvasBgColor === 'transparent') {
+    ctx.clearRect(x0, y0, areaW, areaH);
+  } else {
+    ctx.fillStyle = canvasBgColor;
+    ctx.fillRect(x0, y0, areaW, areaH);
+  }
 
-  // Divide into 5 horizontal bands
-  const bandH = sh / 5;
+  // Apply rotation/flip transform around area center
+  const cx = x0 + areaW / 2;
+  const cy = y0 + areaH / 2;
+  ctx.translate(cx, cy);
+  if (flipH) ctx.scale(-1, 1);
+  if (rot) ctx.rotate((rot * Math.PI) / 2);
+  ctx.translate(-cx, -cy);
 
-  ctx.fillStyle = canvasBgColor;
+  // S-mark line width = half of cell size
+  const lineW = Math.max(2, Math.round(cellSize / 2));
 
-  // Band 0: top horizontal bar
-  ctx.fillRect(sx, sy, sw, lineW);
+  // S-path inset from edges (half lineW so stroke stays inside)
+  const halfLW = lineW / 2;
+  const sx = x0 + halfLW;
+  const sy = y0 + halfLW;
+  const sw = areaW - lineW;
+  const sh = areaH - lineW;
 
-  // Band 1: right vertical connector
-  ctx.fillRect(sx + sw - lineW, sy, lineW, bandH * 2);
+  // Key Y positions for the S-path
+  const y1 = sy;               // top
+  const y3 = sy + sh * 0.5;    // middle
+  const y5 = sy + sh;          // bottom
 
-  // Band 2: middle horizontal bar
-  ctx.fillRect(sx, sy + bandH * 2 - lineW / 2, sw, lineW);
+  const xL = sx;               // left edge
+  const xR = sx + sw;          // right edge
 
-  // Band 3: left vertical connector
-  ctx.fillRect(sx, sy + bandH * 2, lineW, bandH * 2);
+  // Draw S as one continuous stroke path using the cell draw color
+  ctx.beginPath();
+  ctx.moveTo(xR, y1);   // start at top-right
+  ctx.lineTo(xL, y1);   // top bar → left
+  ctx.lineTo(xL, y3);   // left vertical ↓ to middle
+  ctx.lineTo(xR, y3);   // middle bar → right
+  ctx.lineTo(xR, y5);   // right vertical ↓ to bottom
+  ctx.lineTo(xL, y5);   // bottom bar → left
 
-  // Band 4: bottom horizontal bar
-  ctx.fillRect(sx, sy + sh - lineW, sw, lineW);
+  ctx.strokeStyle = drawColor;
+  ctx.lineWidth = lineW;
+  ctx.lineCap = 'square';
+  ctx.lineJoin = 'miter';
+  ctx.stroke();
+
+  ctx.restore();
 }
 
 /**
- * Draws the Hamzah mark (ء) as a small symbol within a 1×1 cell.
- * Rendered as a simple angular mark using background color lines.
+ * Draws the Hamzah mark (ء) as a C-shape within a 1×1 cell.
+ * The C opens to the right. The cell is divided into 3 bands (lineWidth = cellSize/3).
+ * Corner radius follows the cellRadius setting.
  *
- * Hamzah pattern (simplified geometric):
- *   ┌─┐
- *   │ │
- *   └─┘
- *    \
+ * Hamzah C-pattern (3×3 grid view):
+ *   ██ ██ ··
+ *   ██ ·· ··
+ *   ██ ██ ··
  */
 function drawHamzah(
   ctx: CanvasRenderingContext2D,
   col: number,
   row: number,
-  config: RenderConfig
+  config: RenderConfig,
+  rot?: number,
+  flipH?: boolean
 ): void {
-  const { cellSize, gapSize, canvasBgColor, padding } = config;
+  const { cellSize, gapSize, padding, cellRadius, canvasBgColor, drawColor } = config;
 
   // Cell pixel position
   const x0 = padding + col * (cellSize + gapSize);
   const y0 = padding + row * (cellSize + gapSize);
 
-  const inset = Math.max(1, Math.round(cellSize * 0.2));
-  const lineW = Math.max(1, Math.round(cellSize * 0.15));
+  // Clip to cell area with rounded corners
+  const r = Math.min(cellRadius, Math.floor(cellSize / 2));
+  ctx.save();
+  ctx.beginPath();
+  if (r > 0 && ctx.roundRect) {
+    ctx.roundRect(x0, y0, cellSize, cellSize, r);
+  } else {
+    ctx.rect(x0, y0, cellSize, cellSize);
+  }
+  ctx.clip();
 
-  ctx.fillStyle = canvasBgColor;
+  // Erase the cell first (clear filled cell underneath)
+  if (canvasBgColor === 'transparent') {
+    ctx.clearRect(x0, y0, cellSize, cellSize);
+  } else {
+    ctx.fillStyle = canvasBgColor;
+    ctx.fillRect(x0, y0, cellSize, cellSize);
+  }
 
-  // Small square cut-out in the upper portion
-  const sqSize = cellSize - 2 * inset;
-  const sqX = x0 + inset;
-  const sqY = y0 + inset;
+  // Apply rotation/flip transform around cell center
+  const cx = x0 + cellSize / 2;
+  const cy = y0 + cellSize / 2;
+  ctx.translate(cx, cy);
+  if (flipH) ctx.scale(-1, 1);
+  if (rot) ctx.rotate((rot * Math.PI) / 2);
+  ctx.translate(-cx, -cy);
 
-  // Top bar
-  ctx.fillRect(sqX, sqY, sqSize, lineW);
-  // Right bar
-  ctx.fillRect(sqX + sqSize - lineW, sqY, lineW, sqSize * 0.6);
-  // Left bar
-  ctx.fillRect(sqX, sqY, lineW, sqSize * 0.6);
-  // Bottom bar (shorter, middle section)
-  ctx.fillRect(sqX, sqY + sqSize * 0.6 - lineW, sqSize * 0.7, lineW);
+  // Line width = 1/3 of cell size (divides cell into 3 bands)
+  const lineW = Math.max(2, Math.round(cellSize / 3));
+  const halfLW = lineW / 2;
 
-  // Diagonal tail (bottom-right descender)
-  const tailX = sqX + sqSize * 0.5;
-  const tailY = sqY + sqSize * 0.6;
-  const tailLen = sqSize * 0.35;
+  // C-shape path: top/bottom bars span full cell width,
+  // opening is only in the middle row on the right side
+  const left = x0 + halfLW;
+  const right = x0 + cellSize - halfLW;
+  const top = y0 + halfLW;
+  const bottom = y0 + cellSize - halfLW;
+
+  // Corner radius from settings, clamped to available space
+  const cornerR = Math.min(cellRadius, (cellSize - lineW) / 2);
 
   ctx.beginPath();
-  ctx.moveTo(tailX, tailY);
-  ctx.lineTo(tailX + tailLen, tailY + tailLen);
-  ctx.lineTo(tailX + tailLen - lineW, tailY + tailLen);
-  ctx.lineTo(tailX - lineW * 0.5, tailY);
-  ctx.closePath();
-  ctx.fill();
+  ctx.moveTo(right, top);         // start: top-right (2/3 point)
+
+  if (cornerR > 0) {
+    ctx.arcTo(left, top, left, bottom, cornerR);     // top-left corner
+    ctx.arcTo(left, bottom, right, bottom, cornerR); // bottom-left corner
+  } else {
+    ctx.lineTo(left, top);         // sharp top-left corner
+    ctx.lineTo(left, bottom);      // sharp bottom-left corner
+  }
+
+  ctx.lineTo(right, bottom);      // end: bottom-right (2/3 point)
+
+  ctx.strokeStyle = drawColor;
+  ctx.lineWidth = lineW;
+  ctx.lineCap = 'square';
+  ctx.lineJoin = 'miter';
+  ctx.stroke();
+
+  ctx.restore();
 }
 
 /**
@@ -155,14 +222,16 @@ function drawHamzah(
  * @param marks - Array of CellMark entries
  * @param cellPx - Cell pixel size in the preview
  * @param gapPx - Gap pixel size in the preview
- * @param bgColor - Background color for negative space
+ * @param bgColor - Background color for erasing
+ * @param drawColor - Color of the mark (same as letter cells)
  */
 export function renderPreviewMarks(
   ctx: CanvasRenderingContext2D,
   marks: CellMark[],
   cellPx: number,
   gapPx: number,
-  bgColor: string
+  bgColor: string,
+  drawColor: string = '#22C55E'
 ): void {
   if (!marks || marks.length === 0) return;
 
@@ -171,13 +240,13 @@ export function renderPreviewMarks(
     gapSize: gapPx,
     canvasBgColor: bgColor,
     // Fill in minimal required fields
-    cellRadius: 0,
+    cellRadius: Math.max(1, Math.floor(cellPx * 0.2)),
     axisEvery: 0,
     showAxis: false,
     axisColor: '',
     showRulers: false,
     zoom: 1,
-    drawColor: '',
+    drawColor: drawColor,
     panX: 0,
     panY: 0,
     padding: 0,
@@ -187,10 +256,10 @@ export function renderPreviewMarks(
   for (const mark of marks) {
     switch (mark.type) {
       case 'kaf-s':
-        drawKafS(ctx, mark.col, mark.row, fakeConfig);
+        drawKafS(ctx, mark.col, mark.row, fakeConfig, mark.rot, mark.flipH);
         break;
       case 'hamzah':
-        drawHamzah(ctx, mark.col, mark.row, fakeConfig);
+        drawHamzah(ctx, mark.col, mark.row, fakeConfig, mark.rot, mark.flipH);
         break;
     }
   }
