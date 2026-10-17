@@ -600,7 +600,7 @@ function renderLetterPreview(canvas: HTMLCanvasElement, entry: LetterEntry): voi
 
   // Size calculations — fit within ~48px
   const maxDim = Math.max(cols, rows);
-  const totalPx = 44;
+  const totalPx = 36;
   const cellPx = Math.max(3, Math.floor(totalPx / (maxDim + (maxDim - 1) * 0.4)));
   const gapPx = Math.max(1, Math.round(cellPx * 0.35));
   const radius = Math.max(1, Math.round(cellPx * 0.2));

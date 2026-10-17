@@ -373,18 +373,16 @@ body {
 /* ── Letter Grid ────────────────────────────── */
 .letter-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
 }
 .letter-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  padding: 4px;
-  min-width: 54px;
-  min-height: 54px;
+  gap: 3px;
+  padding: 7px 3px 5px;
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: var(--rs);
@@ -392,15 +390,14 @@ body {
   color: var(--text);
   transition: all 0.15s ease;
   position: relative;
+  user-select: none;
 }
 .letter-btn:hover {
   background: var(--surface3);
-  border-color: var(--accent);
-  transform: scale(1.08);
+  border-color: rgba(34, 197, 94, 0.4);
 }
 .letter-btn:active {
-  transform: scale(0.95);
-  background: var(--accent);
+  transform: scale(0.94);
 }
 .letter-preview {
   display: block;
