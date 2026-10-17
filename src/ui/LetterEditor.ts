@@ -590,6 +590,7 @@ function switchVariation(idx: number): void {
       gH: gHMatrix.map(r => [...r]),
       gV: gVMatrix.map(r => [...r]),
       gD: gDMatrix.map(r => [...r]),
+      marks: editorMarks.length > 0 ? editorMarks.map(m => ({ ...m })) : undefined,
     };
   }
 
@@ -609,6 +610,7 @@ function addVariation(): void {
       gH: gHMatrix.map(r => [...r]),
       gV: gVMatrix.map(r => [...r]),
       gD: gDMatrix.map(r => [...r]),
+      marks: editorMarks.length > 0 ? editorMarks.map(m => ({ ...m })) : undefined,
     };
   }
 
