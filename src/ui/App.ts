@@ -942,10 +942,32 @@ export class App {
 
   // ─── Private: Resize ────────────────────────────────────
 
+  private resizePaused = false;
+  private pendingResize = false;
+
+  /** Pause canvas resize (call before CSS transition starts). */
+  pauseResize(): void {
+    this.resizePaused = true;
+    this.pendingResize = false;
+  }
+
+  /** Resume canvas resize and apply any pending resize (call after CSS transition ends). */
+  resumeResize(): void {
+    this.resizePaused = false;
+    if (this.pendingResize) {
+      this.pendingResize = false;
+      this.renderer.resize();
+      this.requestRender();
+    }
+  }
+
   private setupResize(): void {
     let resizeTimer: ReturnType<typeof setTimeout> | null = null;
     const ro = new ResizeObserver(() => {
-      // Debounce to avoid canvas flicker during animated panel transitions
+      if (this.resizePaused) {
+        this.pendingResize = true;
+        return;
+      }
       if (resizeTimer) clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => {
         this.renderer.resize();
