@@ -250,7 +250,16 @@ export function exportLibrary(letters: Record<string, LetterEntry>): string {
     exported[ch] = item;
   }
 
-  return JSON.stringify({ letters: exported }, null, 2);
+  return JSON.stringify({
+    app: 'Murabba',
+    appVersion: '2.0.0',
+    description: 'Square Kufic Calligraphy Editor',
+    url: 'https://github.com/cyberzilla/murabba',
+    exportedAt: new Date().toISOString(),
+    format: 'murabba-letters',
+    letterCount: Object.keys(exported).length,
+    letters: exported,
+  }, null, 2);
 }
 
 /**

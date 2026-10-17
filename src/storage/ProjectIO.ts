@@ -134,6 +134,12 @@ export function exportProject(
   }
 
   const payload = {
+    app: 'Murabba',
+    appVersion: '2.0.0',
+    description: 'Square Kufic Calligraphy Editor',
+    url: 'https://github.com/cyberzilla/murabba',
+    exportedAt: new Date().toISOString(),
+    format: 'murabba-project',
     version: 2,
     v: 7, // Legacy version identifier
     cols,
