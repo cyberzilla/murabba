@@ -845,11 +845,13 @@ function showLetterPopup(app: App, ch: string, entry: LetterEntry, anchor: HTMLE
     popup.appendChild(item);
   }
 
-  // Position popup relative to anchor — prefer left side of card
+  // Position popup within sidebar boundary — never overlapping canvas
   const rect = anchor.getBoundingClientRect();
-  popup.style.display = 'flex';
+  const panel = document.getElementById('rightPanel');
+  const panelRect = panel ? panel.getBoundingClientRect() : { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight, width: window.innerWidth, height: window.innerHeight };
+  popup.style.display = 'grid';
 
-  // Calculate popup size (render off-screen first)
+  // Measure popup off-screen first
   popup.style.left = '-9999px';
   popup.style.top = '-9999px';
 
@@ -857,34 +859,60 @@ function showLetterPopup(app: App, ch: string, entry: LetterEntry, anchor: HTMLE
     const pr = popup.getBoundingClientRect();
     const pw = pr.width;
     const ph = pr.height;
+    const gap = 4;
 
     let left: number;
     let top: number;
+    let placed = false;
 
-    // Try left of card
-    if (rect.left - pw - 4 > 8) {
-      left = rect.left - pw - 4;
-      top = rect.top;
-    }
-    // Try right of card
-    else if (rect.right + pw + 4 < window.innerWidth - 8) {
-      left = rect.right + 4;
-      top = rect.top;
-    }
-    // Fallback: below card
-    else {
+    // 1) Below the card (within sidebar)
+    if (rect.bottom + gap + ph <= panelRect.bottom) {
       left = rect.left;
-      top = rect.bottom;
+      top = rect.bottom + gap;
+      placed = true;
+    }
+    // 2) Above the card
+    if (!placed && rect.top - gap - ph >= panelRect.top) {
+      left = rect.left;
+      top = rect.top - gap - ph;
+      placed = true;
+    }
+    // 3) Left of the card (but still within panel)
+    if (!placed && rect.left - gap - pw >= panelRect.left) {
+      left = rect.left - gap - pw;
+      top = rect.top;
+      placed = true;
+    }
+    // 4) Right of the card (within panel)
+    if (!placed && rect.right + gap + pw <= panelRect.right) {
+      left = rect.right + gap;
+      top = rect.top;
+      placed = true;
+    }
+    // 5) Fallback: below card, clamp to panel
+    if (!placed) {
+      left = rect.left;
+      top = rect.bottom + gap;
     }
 
-    // Clamp vertical to viewport
-    if (top + ph > window.innerHeight - 8) {
-      top = window.innerHeight - ph - 8;
+    // Clamp horizontal within sidebar
+    if (left! + pw > panelRect.right - 4) {
+      left! = panelRect.right - pw - 4;
     }
-    if (top < 8) top = 8;
+    if (left! < panelRect.left + 4) {
+      left! = panelRect.left + 4;
+    }
 
-    popup.style.left = `${left}px`;
-    popup.style.top = `${top}px`;
+    // Clamp vertical within sidebar
+    if (top! + ph > panelRect.bottom - 4) {
+      top! = panelRect.bottom - ph - 4;
+    }
+    if (top! < panelRect.top + 4) {
+      top! = panelRect.top + 4;
+    }
+
+    popup.style.left = `${left!}px`;
+    popup.style.top = `${top!}px`;
   });
 
   // Blur the letter grid except active card

@@ -1062,23 +1062,24 @@ body {
   display: none;
   position: fixed;
   z-index: 9999;
-  flex-wrap: wrap;
   gap: 4px;
   padding: 6px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-  max-width: 220px;
+  max-width: 268px;
+  grid-template-columns: repeat(auto-fill, 50px);
+  justify-content: center;
 }
 /* Invisible bridge around popup to catch mouse crossing gaps */
 .letter-form-popup::before {
   content: '';
   position: absolute;
-  top: -8px;
-  left: -8px;
-  right: -8px;
-  bottom: -8px;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
   z-index: -1;
 }
 
@@ -1086,13 +1087,17 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 2px;
-  padding: 4px;
+  width: 48px;
+  height: 56px;
+  padding: 4px 2px;
   border: 1px solid transparent;
   border-radius: 6px;
   background: none;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
+  box-sizing: border-box;
 }
 .lfp-item:hover {
   background: rgba(34, 197, 94, 0.1);
@@ -1100,9 +1105,10 @@ body {
 }
 
 .lfp-preview {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   image-rendering: pixelated;
+  flex-shrink: 0;
 }
 
 .lfp-label {
@@ -1110,6 +1116,10 @@ body {
   color: var(--muted);
   line-height: 1;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 44px;
+  text-align: center;
 }
 
 /* ── Letter grid blur when popup is active ── */
