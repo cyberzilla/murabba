@@ -84,7 +84,7 @@ function createModalDOM(): void {
             <span data-i18n="about.sourceCode">Source Code</span>
           </a>
           <span class="about-link-sep">·</span>
-          <span class="about-badge">v2.0.0</span>
+          <span class="about-badge">v2.1.0</span>
           <span class="about-link-sep">·</span>
           <span class="about-badge">MIT</span>
         </div>
@@ -114,7 +114,15 @@ function createModalDOM(): void {
             <div class="shortcut-row"><kbd>Ctrl+C</kbd><span>Copy</span></div>
             <div class="shortcut-row"><kbd>Ctrl+X</kbd><span>Cut</span></div>
             <div class="shortcut-row"><kbd>Ctrl+V</kbd><span>Paste</span></div>
+            <div class="shortcut-row"><kbd>Ctrl+S</kbd><span>Export PNG</span></div>
             <div class="shortcut-row"><kbd>Delete</kbd><span>Erase selection</span></div>
+          </div>
+          <div class="shortcut-group">
+            <div class="shortcut-group-title">Transform</div>
+            <div class="shortcut-row"><kbd>R</kbd><span>Rotate CW</span></div>
+            <div class="shortcut-row"><kbd>Shift+R</kbd><span>Rotate CCW</span></div>
+            <div class="shortcut-row"><kbd>X</kbd><span>Flip horizontal</span></div>
+            <div class="shortcut-row"><kbd>Y</kbd><span>Flip vertical</span></div>
           </div>
           <div class="shortcut-group">
             <div class="shortcut-group-title">Navigation</div>
