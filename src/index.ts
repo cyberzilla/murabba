@@ -183,12 +183,72 @@ function wireActionButtons(app: App): void {
   }
 }
 
+// ─── Grid Size History ────────────────────────────────────
+
+const SIZE_HISTORY_KEY = 'murabba_recentSizes';
+const MAX_RECENT_SIZES = 4;
+
+/** Built-in preset keys to exclude from recent history */
+const BUILTIN_PRESETS = new Set(['16,16', '24,24', '32,24', '48,32']);
+
+function loadRecentSizes(): string[] {
+  try {
+    const raw = localStorage.getItem(SIZE_HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveRecentSizes(sizes: string[]): void {
+  try { localStorage.setItem(SIZE_HISTORY_KEY, JSON.stringify(sizes)); } catch { /* ok */ }
+}
+
+function pushRecentSize(cols: number, rows: number): void {
+  const key = `${cols},${rows}`;
+  if (BUILTIN_PRESETS.has(key)) return;
+  const list = loadRecentSizes().filter(k => k !== key);
+  list.unshift(key);
+  if (list.length > MAX_RECENT_SIZES) list.length = MAX_RECENT_SIZES;
+  saveRecentSizes(list);
+}
+
 /** Highlight the preset button matching current grid size (or none if custom). */
 function syncPresetActive(cols: number, rows: number): void {
   const key = `${cols},${rows}`;
   document.querySelectorAll<HTMLElement>('[data-preset]').forEach(b =>
     b.classList.toggle('active', b.dataset.preset === key)
   );
+}
+
+function rebuildRecentSizes(app: App): void {
+  const container = document.getElementById('recentSizesContainer');
+  if (!container) return;
+  const sizes = loadRecentSizes();
+  if (sizes.length === 0) {
+    container.innerHTML = '';
+    container.style.display = 'none';
+    return;
+  }
+  container.style.display = '';
+  container.innerHTML = '';
+  const colsInput = document.getElementById('gridCols') as HTMLInputElement | null;
+  const rowsInput = document.getElementById('gridRows') as HTMLInputElement | null;
+
+  for (const key of sizes) {
+    const [c, r] = key.split(',').map(Number);
+    const btn = document.createElement('button');
+    btn.className = 's-btn';
+    btn.dataset.preset = key;
+    btn.textContent = `${c}×${r}`;
+    btn.addEventListener('click', () => {
+      app.initGrid(c, r);
+      if (colsInput) colsInput.value = String(c);
+      if (rowsInput) rowsInput.value = String(r);
+      syncPresetActive(c, r);
+    });
+    container.appendChild(btn);
+  }
+  // Sync active state
+  syncPresetActive(app.model.cols, app.model.rows);
 }
 
 function wireGridControls(app: App): void {
@@ -199,13 +259,15 @@ function wireGridControls(app: App): void {
     const cols = parseInt(colsInput?.value || '24');
     const rows = parseInt(rowsInput?.value || '24');
     app.resizeGrid(cols, rows);
+    pushRecentSize(cols, rows);
+    rebuildRecentSizes(app);
     syncPresetActive(cols, rows);
   };
 
   colsInput?.addEventListener('change', applyGridSize);
   rowsInput?.addEventListener('change', applyGridSize);
 
-  // Presets
+  // Built-in presets
   document.querySelectorAll<HTMLElement>('[data-preset]').forEach(btn => {
     btn.addEventListener('click', () => {
       const [c, r] = btn.dataset.preset!.split(',').map(Number);
@@ -215,6 +277,9 @@ function wireGridControls(app: App): void {
       syncPresetActive(c, r);
     });
   });
+
+  // Initial render of recent sizes
+  rebuildRecentSizes(app);
 
   // Debounced settings save
   let settingsTimer: ReturnType<typeof setTimeout> | null = null;
@@ -287,8 +352,8 @@ function syncSliderUI(app: App): void {
   // Also trigger a re-render with loaded settings
   app.requestRender();
 
-  // Sync grid preset active highlight with actual model size
-  syncPresetActive(app.model.cols, app.model.rows);
+  // Sync grid preset active highlight with actual model size (includes recent sizes rebuild)
+  rebuildRecentSizes(app);
 
   // Sync letter editor grid sizing with current config
   setEditorGridConfig(app.config.cellSize, app.config.gapSize, app.config.cellRadius);
@@ -329,6 +394,7 @@ function rebuildRecentSwatches(app: App): void {
   if (!container) return;
   const colors = loadRecentColors();
   const label = container.previousElementSibling as HTMLElement | null;
+  const activeColor = app.getDrawColor().toUpperCase();
 
   if (colors.length === 0) {
     container.innerHTML = '';
@@ -341,6 +407,7 @@ function rebuildRecentSwatches(app: App): void {
   for (const color of colors) {
     const div = document.createElement('div');
     div.className = 'swatch';
+    if (color.toUpperCase() === activeColor) div.classList.add('selected');
     div.style.background = color;
     div.dataset.color = color;
     div.setAttribute('role', 'button');
