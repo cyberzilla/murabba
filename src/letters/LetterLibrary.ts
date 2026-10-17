@@ -5,7 +5,7 @@
  */
 
 import type { LetterEntry, LetterForm } from '../types';
-import { getAll, put, deleteKey, clearStore } from '../storage/IndexedDBStore';
+import { getAll, get, put, deleteKey, clearStore } from '../storage/IndexedDBStore';
 
 export type { LetterEntry };
 
@@ -119,6 +119,7 @@ export async function loadDefaults(): Promise<Record<string, LetterEntry>> {
 /**
  * Loads merged letters: built-in defaults merged with user-defined overrides and additions from IndexedDB.
  * User custom letters override built-in letters with identical characters.
+ * Respects the deleted-letters tombstone list stored in IndexedDB meta store.
  *
  * @param db - Open IndexedDB instance
  * @returns Promise resolving to merged dictionary of letters
@@ -126,11 +127,13 @@ export async function loadDefaults(): Promise<Record<string, LetterEntry>> {
 export async function loadMerged(db: IDBDatabase): Promise<Record<string, LetterEntry>> {
   const defaults = await loadDefaults();
   const userOverrides = await getAll<LetterRecord>(db, 'letters');
+  const deletedSet = await getDeletedSet(db);
 
   const merged: Record<string, LetterEntry> = {};
 
-  // Seed default letters
+  // Seed default letters (skip deleted ones)
   for (const [key, entry] of Object.entries(defaults)) {
+    if (deletedSet.has(key)) continue;
     merged[key] = { ...entry };
   }
 
@@ -157,6 +160,7 @@ export async function loadMerged(db: IDBDatabase): Promise<Record<string, Letter
 
 /**
  * Saves or updates a custom letter in the IndexedDB 'letters' store.
+ * Also removes the letter from the deleted tombstone list if it was previously deleted.
  *
  * @param db - Open IndexedDB instance
  * @param ch - Letter character or identifier (key)
@@ -192,16 +196,52 @@ export async function saveLetter(
   };
 
   await put<LetterRecord>(db, 'letters', record);
+
+  // Remove from tombstone if it was previously deleted
+  const deletedSet = await getDeletedSet(db);
+  if (deletedSet.has(ch)) {
+    deletedSet.delete(ch);
+    await saveDeletedSet(db, deletedSet);
+  }
+}
+
+// ─── Deleted Letters Tombstone ─────────────────────────
+
+const DELETED_META_KEY = 'murabba_deletedLetters';
+
+/** Reads the set of deleted letter keys from IndexedDB meta store. */
+async function getDeletedSet(db: IDBDatabase): Promise<Set<string>> {
+  try {
+    const record = await get<{ k: string; v: string[] }>(db, 'meta', DELETED_META_KEY);
+    return new Set(record?.v || []);
+  } catch {
+    return new Set();
+  }
+}
+
+/** Saves the set of deleted letter keys to IndexedDB meta store. */
+async function saveDeletedSet(db: IDBDatabase, deletedSet: Set<string>): Promise<void> {
+  await put(db, 'meta', { k: DELETED_META_KEY, v: Array.from(deletedSet) });
 }
 
 /**
- * Deletes a custom letter from the IndexedDB 'letters' store.
+ * Deletes a letter. For user-custom letters, removes from IndexedDB.
+ * For built-in letters, adds to the tombstone list so they won't be loaded on next refresh.
  *
  * @param db - Open IndexedDB instance
  * @param ch - Letter character / key to delete
+ * @param isBuiltin - Whether this letter is a built-in default
  */
-export async function deleteLetter(db: IDBDatabase, ch: string): Promise<void> {
+export async function deleteLetter(db: IDBDatabase, ch: string, isBuiltin = false): Promise<void> {
+  // Always try to remove from user overrides store
   await deleteKey(db, 'letters', ch);
+
+  // If built-in, add to tombstone list
+  if (isBuiltin) {
+    const deletedSet = await getDeletedSet(db);
+    deletedSet.add(ch);
+    await saveDeletedSet(db, deletedSet);
+  }
 }
 
 /**
@@ -211,6 +251,8 @@ export async function deleteLetter(db: IDBDatabase, ch: string): Promise<void> {
  */
 export async function resetToDefaults(db: IDBDatabase): Promise<void> {
   await clearStore(db, 'letters');
+  // Clear tombstone list so all built-in letters are restored
+  await deleteKey(db, 'meta', DELETED_META_KEY);
 }
 
 /**

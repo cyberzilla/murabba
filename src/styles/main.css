@@ -1093,9 +1093,11 @@ input[type="number"]::-webkit-outer-spin-button {
   align-items: center;
   justify-content: center;
   gap: 2px;
-  width: 48px;
-  height: 56px;
-  padding: 4px 2px;
+  min-width: 48px;
+  width: auto;
+  min-height: 56px;
+  height: auto;
+  padding: 4px 4px;
   border: 1px solid transparent;
   border-radius: 6px;
   background: none;
@@ -1117,12 +1119,11 @@ input[type="number"]::-webkit-outer-spin-button {
 .lfp-label {
   font-size: 8px;
   color: var(--muted);
-  line-height: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 44px;
+  line-height: 1.2;
+  white-space: normal;
+  word-break: break-word;
   text-align: center;
+  max-width: 56px;
 }
 
 /* ── Letter grid blur when popup is active ── */

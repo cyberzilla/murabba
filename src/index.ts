@@ -536,7 +536,7 @@ function updateLetterPreviewColors(app: App): void {
     if (!key || !app.letters[key]) return;
     const canvas = btn.querySelector<HTMLCanvasElement>('.letter-preview');
     if (canvas) {
-      renderLetterPreview(canvas, app.letters[key], color, app.config.cellRadius / app.config.cellSize);
+      renderLetterPreview(canvas, app.letters[key], color, app.config.cellRadius / app.config.cellSize, app.config.gapSize / app.config.cellSize);
     }
   });
 }
@@ -762,11 +762,12 @@ function wireLetterPanel(app: App): void {
       }
     },
     onDelete(ch) {
+      const isBuiltin = !!app.letters[ch]?._builtin;
       delete app.letters[ch];
       rebuildLetterGrid(app);
-      // Remove from IndexedDB
+      // Remove from IndexedDB (with tombstone for built-in letters)
       if (app.db) {
-        deleteLetter(app.db, ch)
+        deleteLetter(app.db, ch, isBuiltin)
           .catch(err => console.warn('[Murabba] Failed to delete letter from DB:', err));
       }
     },
@@ -858,7 +859,7 @@ function rebuildLetterGrid(app: App): void {
     const canvas = document.createElement('canvas');
     canvas.className = 'letter-preview';
     const previewEntry = { ...entry, ...formData };
-    renderLetterPreview(canvas, previewEntry, app.config.drawColor, app.config.cellRadius / app.config.cellSize);
+    renderLetterPreview(canvas, previewEntry, app.config.drawColor, app.config.cellRadius / app.config.cellSize, app.config.gapSize / app.config.cellSize);
     btn.appendChild(canvas);
 
     const nameSpan = document.createElement('span');
@@ -944,6 +945,7 @@ function showLetterPopup(app: App, ch: string, entry: LetterEntry, anchor: HTMLE
 
   const color = app.config.drawColor;
   const radiusRatio = app.config.cellRadius / app.config.cellSize;
+  const gapRatio = app.config.gapSize / app.config.cellSize;
 
   // Build form options
   interface FormOption {
@@ -998,7 +1000,7 @@ function showLetterPopup(app: App, ch: string, entry: LetterEntry, anchor: HTMLE
     const cvs = document.createElement('canvas');
     cvs.className = 'lfp-preview';
     const previewE = { ...entry, ...opt.formData };
-    renderLetterPreview(cvs, previewE, color, radiusRatio);
+    renderLetterPreview(cvs, previewE, color, radiusRatio, gapRatio);
     item.appendChild(cvs);
 
     const lbl = document.createElement('span');
@@ -1112,9 +1114,11 @@ function hideLetterPopup(): void {
 
 /**
  * Renders a small preview of a letter entry onto a canvas element.
- * @param targetSize — target pixel size for the preview (default 24 for cards, 36 for popup)
+ * Uses a fixed 7×7 grid. Cell/gap/radius proportions mirror the main editor config.
+ * @param gapRatio — gap-to-cell ratio from sidebar (gapSize / cellSize)
+ * @param radiusRatio — radius-to-cell ratio from sidebar (cellRadius / cellSize)
  */
-function renderLetterPreview(canvas: HTMLCanvasElement, entry: LetterEntry, color = '#22C55E', radiusRatio = 0.167, targetSize = 24): void {
+function renderLetterPreview(canvas: HTMLCanvasElement, entry: LetterEntry, color = '#22C55E', radiusRatio = 0.167, gapRatio = 0.5, targetSize = 24): void {
   const { m, gH, gV, gD } = entry;
   const rows = m.length;
   const cols = rows > 0 ? m[0].length : 1;
@@ -1125,18 +1129,20 @@ function renderLetterPreview(canvas: HTMLCanvasElement, entry: LetterEntry, colo
   const gv = (c: number, r: number) => gV?.[r]?.[c] ? 1 : 0;
   const gd = (c: number, r: number) => gD?.[r]?.[c] ? 1 : 0;
 
-  // Size calculations — fit within target size
-  const maxDim = Math.max(cols, rows);
-  const totalPx = targetSize;
-  const cellPx = Math.max(2, Math.floor(totalPx / (maxDim + (maxDim - 1) * 0.55)));
-  const gapPx = Math.max(1, Math.round(cellPx * 0.5));
+  // Size calculations — use fixed 7×7 grid for uniform card sizes
+  const GRID_DIM = 7;
+  // Fixed cell size ensures all cards render at identical scale
+  const cellPx = targetSize >= 36 ? 5 : 3;
+  const gapPx = Math.max(1, Math.round(cellPx * gapRatio));
   const R = Math.max(0, cellPx * radiusRatio);
 
+  const gridFullW = GRID_DIM * cellPx + (GRID_DIM - 1) * gapPx;
+  const gridFullH = gridFullW;
   const contentW = cols * cellPx + (cols - 1) * gapPx;
   const contentH = rows * cellPx + (rows - 1) * gapPx;
-  // Use fixed canvas size so all previews are uniform
-  const canvasW = targetSize;
-  const canvasH = targetSize;
+  // Canvas = fixed grid size
+  const canvasW = gridFullW;
+  const canvasH = gridFullH;
   const dpr = window.devicePixelRatio || 1;
 
   canvas.width = canvasW * dpr;
@@ -1149,7 +1155,7 @@ function renderLetterPreview(canvas: HTMLCanvasElement, entry: LetterEntry, colo
   ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, canvasW, canvasH);
 
-  // Center content in canvas
+  // Center letter content within the fixed grid
   const offsetX = Math.floor((canvasW - contentW) / 2);
   const offsetY = Math.floor((canvasH - contentH) / 2);
   ctx.translate(offsetX, offsetY);
