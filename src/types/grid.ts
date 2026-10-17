@@ -119,6 +119,7 @@ export interface LetterEntry {
   gV: number[][];   // isolated form gap-V matrix
   gD: number[][];   // isolated form gap-D matrix
   forms?: Partial<Record<LetterPosition, LetterForm>>;
+  variations?: LetterForm[];
   _builtin?: boolean;
 }
 

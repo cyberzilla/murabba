@@ -2,7 +2,7 @@
  * LetterEditor — Modal-based interactive letter editor.
  * Create, edit, and delete custom Kufic letter definitions.
  * Supports drawing/erasing cells + gap bridges via DOM grid.
- * Supports positional forms (isolated/initial/medial/final) and variation tabs.
+ * Supports positional forms (isolated/initial/medial/final) and multiple variations.
  */
 
 import type { LetterEntry, LetterForm, LetterPosition } from '../types/grid';
@@ -57,12 +57,14 @@ let callbacks: LetterEditorCallbacks | null = null;
 
 let activeFormTab: FormTab = 'isolated';
 
-/** Stores the matrix data for each positional form */
-let formsData: Record<FormTab, FormData | null> = {
-  isolated: null, initial: null, medial: null, final: null, variation: null,
+/** Stores matrix data for positional forms (isolated/initial/medial/final) */
+let formsData: Record<string, FormData | null> = {
+  isolated: null, initial: null, medial: null, final: null,
 };
 
-
+/** Stores multiple variation form data */
+let variationsData: FormData[] = [];
+let activeVariationIdx = 0;
 
 // ─── Public API ────────────────────────────────────────
 
@@ -88,9 +90,9 @@ export function openNewLetter(): void {
   initMatrices();
 
   // Reset all forms data
-  for (const tab of FORM_TABS) {
-    formsData[tab.key] = null;
-  }
+  formsData = { isolated: null, initial: null, medial: null, final: null };
+  variationsData = [];
+  activeVariationIdx = 0;
   activeFormTab = 'isolated';
 
   const charInput = document.getElementById('leChar') as HTMLInputElement;
@@ -106,6 +108,7 @@ export function openNewLetter(): void {
   if (delBtn) delBtn.style.display = 'none';
 
   updateFormTabsUI();
+  updateVarSubTabs();
   buildEditorGrid();
   showModal();
 }
@@ -117,9 +120,9 @@ export function openEditLetter(ch: string, entry: LetterEntry): void {
   editingCh = ch;
 
   // Reset all forms data
-  for (const tab of FORM_TABS) {
-    formsData[tab.key] = null;
-  }
+  formsData = { isolated: null, initial: null, medial: null, final: null };
+  variationsData = [];
+  activeVariationIdx = 0;
 
   // Populate isolated form from root entry data
   const isoM = entry.m;
@@ -133,11 +136,11 @@ export function openEditLetter(ch: string, entry: LetterEntry): void {
     gD: (entry.gD || []).map(r => [...r]),
   };
 
-  // Populate other forms from entry.forms
+  // Populate positional forms from entry.forms
   if (entry.forms) {
-    const positions: FormTab[] = ['initial', 'medial', 'final', 'variation'];
+    const positions: Array<'initial' | 'medial' | 'final'> = ['initial', 'medial', 'final'];
     for (const pos of positions) {
-      const form = entry.forms[pos as LetterPosition];
+      const form = entry.forms[pos];
       if (form) {
         const fH = form.m.length;
         const fW = form.m[0]?.length || 1;
@@ -149,6 +152,21 @@ export function openEditLetter(ch: string, entry: LetterEntry): void {
           gD: (form.gD || []).map(r => [...r]),
         };
       }
+    }
+  }
+
+  // Populate variations from entry.variations array
+  if (entry.variations && entry.variations.length > 0) {
+    for (const vf of entry.variations) {
+      const vH = vf.m.length;
+      const vW = vf.m[0]?.length || 1;
+      variationsData.push({
+        w: vW, h: vH,
+        m: vf.m.map(r => [...r]),
+        gH: (vf.gH || []).map(r => [...r]),
+        gV: (vf.gV || []).map(r => [...r]),
+        gD: (vf.gD || []).map(r => [...r]),
+      });
     }
   }
 
@@ -169,6 +187,7 @@ export function openEditLetter(ch: string, entry: LetterEntry): void {
   if (delBtn) delBtn.style.display = '';
 
   updateFormTabsUI();
+  updateVarSubTabs();
   buildEditorGrid();
   showModal();
 }
@@ -209,6 +228,13 @@ function createModalDOM(): void {
       <!-- ═══ FORM TABS: positional form selector ═══ -->
       <div class="le-form-tabs" id="leFormTabs">
         ${tabsHTML}
+      </div>
+
+      <!-- ═══ VARIATION SUB-TABS: shown only when Variation tab is active ═══ -->
+      <div class="le-var-tabs" id="leVarTabs" style="display:none">
+        <div class="le-var-list" id="leVarList"></div>
+        <button class="le-var-add" id="leVarAdd" title="Add variation">+</button>
+        <button class="le-var-del" id="leVarDel" title="Delete current variation">×</button>
       </div>
 
       <!-- ═══ CANVAS: the main drawing grid ═══ -->
@@ -267,7 +293,7 @@ function wireEditorEvents(): void {
   close?.addEventListener('click', hideModal);
   cancel?.addEventListener('click', hideModal);
 
-  // ── Save: assemble all forms into one LetterEntry ──
+  // ── Save: assemble all forms + variations into one LetterEntry ──
   save?.addEventListener('click', () => {
     const charInput = document.getElementById('leChar') as HTMLInputElement;
     const nameInput = document.getElementById('leName') as HTMLInputElement;
@@ -284,18 +310,31 @@ function wireEditorEvents(): void {
     const rootGV = iso ? iso.gV.map(r => [...r]) : gVMatrix.map(r => [...r]);
     const rootGD = iso ? iso.gD.map(r => [...r]) : gDMatrix.map(r => [...r]);
 
-    // Build forms object from non-null form data (excluding isolated)
+    // Build forms object from positional form data (excluding isolated)
     const forms: Partial<Record<LetterPosition, LetterForm>> = {};
-    const otherTabs: FormTab[] = ['initial', 'medial', 'final', 'variation'];
-    for (const tab of otherTabs) {
+    const posTabs: Array<'initial' | 'medial' | 'final'> = ['initial', 'medial', 'final'];
+    for (const tab of posTabs) {
       const fd = formsData[tab];
       if (fd && hasAnyFill(fd)) {
-        forms[tab as LetterPosition] = {
+        forms[tab] = {
           m: fd.m.map(r => [...r]),
           gH: fd.gH.map(r => [...r]),
           gV: fd.gV.map(r => [...r]),
           gD: fd.gD.map(r => [...r]),
         };
+      }
+    }
+
+    // Build variations array
+    const variations: LetterForm[] = [];
+    for (const vd of variationsData) {
+      if (hasAnyFill(vd)) {
+        variations.push({
+          m: vd.m.map(r => [...r]),
+          gH: vd.gH.map(r => [...r]),
+          gV: vd.gV.map(r => [...r]),
+          gD: vd.gD.map(r => [...r]),
+        });
       }
     }
 
@@ -307,6 +346,7 @@ function wireEditorEvents(): void {
       gV: rootGV,
       gD: rootGD,
       forms: Object.keys(forms).length > 0 ? forms : undefined,
+      variations: variations.length > 0 ? variations : undefined,
       _builtin: false,
     };
 
@@ -356,15 +396,28 @@ function wireEditorEvents(): void {
     switchFormTab(targetTab);
   });
 
+  // ── Variation sub-tab events ──
+  const varList = document.getElementById('leVarList');
+  varList?.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest('.le-var-tab') as HTMLElement;
+    if (!btn) return;
+    const idx = parseInt(btn.dataset.vidx || '0');
+    if (idx === activeVariationIdx) return;
+    switchVariation(idx);
+  });
+
+  document.getElementById('leVarAdd')?.addEventListener('click', addVariation);
+  document.getElementById('leVarDel')?.addEventListener('click', deleteVariation);
+
   // Pointer up anywhere stops painting
   document.addEventListener('pointerup', () => { isPointerDown = false; });
 }
 
 // ─── Form Tab Logic ────────────────────────────────────
 
-/** Saves current working matrices into formsData for the active tab */
+/** Saves current working matrices into the appropriate data store */
 function saveCurrentTabData(): void {
-  formsData[activeFormTab] = {
+  const data: FormData = {
     w: gridW,
     h: gridH,
     m: cellMatrix.map(r => [...r]),
@@ -372,11 +425,27 @@ function saveCurrentTabData(): void {
     gV: gVMatrix.map(r => [...r]),
     gD: gDMatrix.map(r => [...r]),
   };
+
+  if (activeFormTab === 'variation') {
+    // Save into variations array
+    if (activeVariationIdx < variationsData.length) {
+      variationsData[activeVariationIdx] = data;
+    }
+  } else {
+    formsData[activeFormTab] = data;
+  }
 }
 
-/** Loads matrix data from formsData for a given tab into the working matrices */
+/** Loads matrix data for a given tab into the working matrices */
 function loadTabData(tab: FormTab): void {
-  const fd = formsData[tab];
+  let fd: FormData | null = null;
+
+  if (tab === 'variation') {
+    fd = variationsData[activeVariationIdx] || null;
+  } else {
+    fd = formsData[tab] || null;
+  }
+
   if (fd) {
     gridW = fd.w;
     gridH = fd.h;
@@ -385,7 +454,7 @@ function loadTabData(tab: FormTab): void {
     gVMatrix = fd.gV.map(r => [...r]);
     gDMatrix = fd.gD.map(r => [...r]);
   } else {
-    // No data for this tab — start with empty 5×5
+    // No data — start with empty 5×5
     gridW = 5;
     gridH = 5;
     initMatrices();
@@ -398,17 +467,20 @@ function loadTabData(tab: FormTab): void {
   if (hInput) hInput.value = String(gridH);
 }
 
-/** Switches from current tab to target tab, saving and loading data */
+/** Switches from current tab to target tab */
 function switchFormTab(tab: FormTab): void {
-  // Save current tab
   saveCurrentTabData();
-
-  // Switch
   activeFormTab = tab;
-  loadTabData(tab);
 
-  // Update UI
+  // When switching to variation, ensure at least one slot exists
+  if (tab === 'variation' && variationsData.length === 0) {
+    variationsData.push(makeEmptyFormData());
+    activeVariationIdx = 0;
+  }
+
+  loadTabData(tab);
   updateFormTabsUI();
+  updateVarSubTabs();
   buildEditorGrid();
 }
 
@@ -424,10 +496,115 @@ function updateFormTabsUI(): void {
     el.classList.toggle('active', tabKey === activeFormTab);
 
     // Show dot indicator if this tab has data
-    const fd = formsData[tabKey];
-    const hasData = fd ? hasAnyFill(fd) : false;
+    let hasData = false;
+    if (tabKey === 'variation') {
+      hasData = variationsData.some(vd => hasAnyFill(vd));
+    } else {
+      const fd = formsData[tabKey];
+      hasData = fd ? hasAnyFill(fd) : false;
+    }
     el.classList.toggle('has-data', hasData && tabKey !== activeFormTab);
   });
+}
+
+// ─── Variation Sub-Tabs ────────────────────────────────
+
+/** Rebuilds the variation sub-tab buttons */
+function updateVarSubTabs(): void {
+  const container = document.getElementById('leVarTabs');
+  const list = document.getElementById('leVarList');
+  const delBtn = document.getElementById('leVarDel');
+  if (!container || !list) return;
+
+  // Show/hide variation sub-tabs
+  container.style.display = activeFormTab === 'variation' ? '' : 'none';
+
+  if (activeFormTab !== 'variation') return;
+
+  // Rebuild sub-tab buttons
+  list.innerHTML = '';
+  for (let i = 0; i < variationsData.length; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'le-var-tab' + (i === activeVariationIdx ? ' active' : '');
+    btn.dataset.vidx = String(i);
+    btn.textContent = `V${i + 1}`;
+
+    // Dot indicator for non-active variations with data
+    if (i !== activeVariationIdx && hasAnyFill(variationsData[i])) {
+      btn.classList.add('has-data');
+    }
+
+    list.appendChild(btn);
+  }
+
+  // Hide delete button if only 1 variation
+  if (delBtn) {
+    delBtn.style.display = variationsData.length <= 1 ? 'none' : '';
+  }
+}
+
+/** Switch to a different variation index */
+function switchVariation(idx: number): void {
+  if (idx < 0 || idx >= variationsData.length) return;
+  // Save current variation
+  if (activeVariationIdx < variationsData.length) {
+    variationsData[activeVariationIdx] = {
+      w: gridW, h: gridH,
+      m: cellMatrix.map(r => [...r]),
+      gH: gHMatrix.map(r => [...r]),
+      gV: gVMatrix.map(r => [...r]),
+      gD: gDMatrix.map(r => [...r]),
+    };
+  }
+
+  activeVariationIdx = idx;
+  loadTabData('variation');
+  updateVarSubTabs();
+  buildEditorGrid();
+}
+
+/** Add a new empty variation */
+function addVariation(): void {
+  // Save current first
+  if (activeFormTab === 'variation' && activeVariationIdx < variationsData.length) {
+    variationsData[activeVariationIdx] = {
+      w: gridW, h: gridH,
+      m: cellMatrix.map(r => [...r]),
+      gH: gHMatrix.map(r => [...r]),
+      gV: gVMatrix.map(r => [...r]),
+      gD: gDMatrix.map(r => [...r]),
+    };
+  }
+
+  variationsData.push(makeEmptyFormData());
+  activeVariationIdx = variationsData.length - 1;
+  loadTabData('variation');
+  updateVarSubTabs();
+  buildEditorGrid();
+}
+
+/** Delete the current variation */
+function deleteVariation(): void {
+  if (variationsData.length <= 1) return;
+
+  variationsData.splice(activeVariationIdx, 1);
+  if (activeVariationIdx >= variationsData.length) {
+    activeVariationIdx = variationsData.length - 1;
+  }
+  loadTabData('variation');
+  updateVarSubTabs();
+  buildEditorGrid();
+}
+
+/** Creates an empty 5×5 FormData */
+function makeEmptyFormData(): FormData {
+  return {
+    w: 5, h: 5,
+    m: Array.from({ length: 5 }, () => new Array(5).fill(0)),
+    gH: Array.from({ length: 5 }, () => new Array(5).fill(0)),
+    gV: Array.from({ length: 5 }, () => new Array(5).fill(0)),
+    gD: Array.from({ length: 5 }, () => new Array(5).fill(0)),
+  };
 }
 
 /** Checks if a FormData has any filled cells */
@@ -452,8 +629,6 @@ function buildEditorGrid(): void {
   if (!editorGrid) return;
   editorGrid.innerHTML = '';
 
-  // Each cell block = cell + right gapV + bottom gapH + corner gapD
-  // So total grid = 2*W columns (cell,gap,cell,gap,...) × 2*H rows
   const totalCols = gridW * 2;
   const totalRows = gridH * 2;
 
@@ -462,7 +637,6 @@ function buildEditorGrid(): void {
   editorGrid.style.gridTemplateRows =
     Array.from({ length: totalRows }, (_, i) => (i % 2 === 0) ? `${CELL_PX}px` : `${GAP_PX}px`).join(' ');
 
-  // Remove aspect-ratio since we use fixed sizes
   editorGrid.style.aspectRatio = 'unset';
   editorGrid.style.width = 'fit-content';
 
@@ -472,7 +646,6 @@ function buildEditorGrid(): void {
       const isEvenC = gc % 2 === 0;
 
       if (isEvenR && isEvenC) {
-        // Main cell
         const r = gr / 2, c = gc / 2;
         const el = document.createElement('div');
         el.className = 'le-cell' + (cellMatrix[r]?.[c] ? ' filled' : '');
@@ -485,7 +658,6 @@ function buildEditorGrid(): void {
         editorGrid.appendChild(el);
 
       } else if (isEvenR && !isEvenC) {
-        // gapV: right of cell (r, c)
         const r = gr / 2, c = (gc - 1) / 2;
         const el = document.createElement('div');
         el.className = 'le-gV' + (gVMatrix[r]?.[c] ? ' filled' : '');
@@ -498,7 +670,6 @@ function buildEditorGrid(): void {
         editorGrid.appendChild(el);
 
       } else if (!isEvenR && isEvenC) {
-        // gapH: below cell (r, c)
         const r = (gr - 1) / 2, c = gc / 2;
         const el = document.createElement('div');
         el.className = 'le-gH' + (gHMatrix[r]?.[c] ? ' filled' : '');
@@ -511,7 +682,6 @@ function buildEditorGrid(): void {
         editorGrid.appendChild(el);
 
       } else {
-        // gapD: bottom-right corner of cell (r, c)
         const r = (gr - 1) / 2, c = (gc - 1) / 2;
         const el = document.createElement('div');
         el.className = 'le-gD' + (gDMatrix[r]?.[c] ? ' filled' : '');
@@ -567,17 +737,11 @@ function paintElement(el: HTMLElement): void {
 
 // ─── Adaptive Border Radius ────────────────────────────
 
-/** Helper to safely check matrix fill state */
 function isGH(r: number, c: number): boolean { return !!(gHMatrix[r]?.[c]); }
 function isGV(r: number, c: number): boolean { return !!(gVMatrix[r]?.[c]); }
 function isGD(r: number, c: number): boolean { return !!(gDMatrix[r]?.[c]); }
 function isCell(r: number, c: number): boolean { return !!(cellMatrix[r]?.[c]); }
 
-/**
- * Recomputes border-radius on all filled elements in the editor grid.
- * Same neighbor logic as RadiusCalculator.ts but operating on local matrices.
- * Note: (r,c) here = (y,x) in grid coords — r=row, c=col.
- */
 function refreshRadius(): void {
   if (!editorGrid) return;
   const R = RADIUS;
@@ -592,7 +756,6 @@ function refreshRadius(): void {
 
     if (type === 'cell') {
       if (!cellMatrix[r]?.[c]) { el.style.borderRadius = ''; continue; }
-      // Cell(x=c, y=r): same logic as computeCellRadius
       const tl = (isGV(r, c - 1) || isGH(r - 1, c) || isGD(r - 1, c - 1)) ? 0 : R;
       const tr = (isGV(r, c)     || isGH(r - 1, c) || isGD(r - 1, c))     ? 0 : R;
       const br = (isGV(r, c)     || isGH(r, c)     || isGD(r, c))         ? 0 : R;
@@ -601,7 +764,6 @@ function refreshRadius(): void {
 
     } else if (type === 'gH') {
       if (!gHMatrix[r]?.[c]) { el.style.borderRadius = ''; continue; }
-      // GapH(gx=c, gy=r): connects cell(c,r) to cell(c,r+1)
       const tl = (isCell(r, c)     || isGV(r, c - 1) || isGD(r, c - 1)) ? 0 : rGap;
       const tr = (isCell(r, c)     || isGV(r, c)     || isGD(r, c))     ? 0 : rGap;
       const br = (isCell(r + 1, c) || isGV(r + 1, c) || isGD(r, c))     ? 0 : rGap;
@@ -610,7 +772,6 @@ function refreshRadius(): void {
 
     } else if (type === 'gV') {
       if (!gVMatrix[r]?.[c]) { el.style.borderRadius = ''; continue; }
-      // GapV(gx=c, gy=r): connects cell(c,r) to cell(c+1,r)
       const tl = (isCell(r, c)     || isGH(r - 1, c) || isGD(r - 1, c)) ? 0 : rGap;
       const tr = (isCell(r, c + 1) || isGH(r - 1, c + 1) || isGD(r - 1, c)) ? 0 : rGap;
       const br = (isCell(r, c + 1) || isGH(r, c + 1) || isGD(r, c))     ? 0 : rGap;
@@ -619,7 +780,6 @@ function refreshRadius(): void {
 
     } else if (type === 'gD') {
       if (!gDMatrix[r]?.[c]) { el.style.borderRadius = ''; continue; }
-      // GapD(gx=c, gy=r)
       const tl = (isCell(r, c)     || isGH(r, c)     || isGV(r, c))     ? 0 : rGap;
       const tr = (isCell(r, c + 1) || isGH(r, c + 1) || isGV(r, c))     ? 0 : rGap;
       const br = (isCell(r + 1, c + 1) || isGH(r, c + 1) || isGV(r + 1, c)) ? 0 : rGap;
@@ -645,7 +805,6 @@ function resizeMatrices(newW: number, newH: number): void {
   gridH = newH;
   initMatrices();
 
-  // Preserve existing data within new bounds
   const minH = Math.min(oldH, newH);
   const minW = Math.min(oldW, newW);
   for (let r = 0; r < minH; r++) {
