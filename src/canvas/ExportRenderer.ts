@@ -332,14 +332,26 @@ export function exportToSVG(
         const lineW = Math.max(2, Math.round(cs / 2));
         const halfLW = lineW / 2;
 
+        // Center of mark area for transforms
+        const kcx = mx + areaW / 2;
+        const kcy = my + areaH / 2;
+        const transforms: string[] = [];
+        if (mark.flipH) transforms.push(`translate(${kcx},${kcy}) scale(-1,1) translate(${-kcx},${-kcy})`);
+        if (mark.rot) transforms.push(`rotate(${mark.rot * 90},${kcx},${kcy})`);
+        const transformAttr = transforms.length > 0 ? ` transform="${transforms.join(' ')}"` : '';
+
         // Clip path for rounded area
         const cid = `mark-clip-${clipId++}`;
         if (r > 0) {
           elements.push(`<defs><clipPath id="${cid}"><rect x="${mx}" y="${my}" width="${areaW}" height="${areaH}" rx="${r}"/></clipPath></defs>`);
         }
 
-        // Erase area (background rect)
         const clipAttr = r > 0 ? ` clip-path="url(#${cid})"` : '';
+
+        // Wrap in group for transforms
+        if (transformAttr) elements.push(`<g${transformAttr}>`);
+
+        // Erase area (background rect)
         elements.push(`<rect x="${mx}" y="${my}" width="${areaW}" height="${areaH}" fill="${svgBgColor}"${clipAttr}/>`);
 
         // S-path
@@ -356,12 +368,23 @@ export function exportToSVG(
         const sPath = `M${xR},${y1} L${xL},${y1} L${xL},${y3} L${xR},${y3} L${xR},${y5} L${xL},${y5}`;
         elements.push(`<path d="${sPath}" fill="none" stroke="${config.drawColor}" stroke-width="${lineW}" stroke-linecap="square" stroke-linejoin="miter"${clipAttr}/>`);
 
+        if (transformAttr) elements.push(`</g>`);
+
       } else if (mark.type === 'hamzah') {
         const mx = offX + mark.col * total;
         const my = offY + mark.row * total;
         const r = Math.min(config.cellRadius, Math.floor(cs / 2));
-        const lineW = Math.max(2, Math.round(cs / 2));
+        // C-shape: lineWidth = cellSize / 3 (matches canvas renderer)
+        const lineW = Math.max(2, Math.round(cs / 3));
         const halfLW = lineW / 2;
+
+        // Center of mark area for transforms
+        const hcx = mx + cs / 2;
+        const hcy = my + cs / 2;
+        const transforms: string[] = [];
+        if (mark.flipH) transforms.push(`translate(${hcx},${hcy}) scale(-1,1) translate(${-hcx},${-hcy})`);
+        if (mark.rot) transforms.push(`rotate(${mark.rot * 90},${hcx},${hcy})`);
+        const transformAttr = transforms.length > 0 ? ` transform="${transforms.join(' ')}"` : '';
 
         const cid = `mark-clip-${clipId++}`;
         if (r > 0) {
@@ -369,22 +392,38 @@ export function exportToSVG(
         }
 
         const clipAttr = r > 0 ? ` clip-path="url(#${cid})"` : '';
+
+        // Wrap in group for transforms
+        if (transformAttr) elements.push(`<g${transformAttr}>`);
+
+        // Erase area
         elements.push(`<rect x="${mx}" y="${my}" width="${cs}" height="${cs}" fill="${svgBgColor}"${clipAttr}/>`);
 
-        // Open-bottom box
-        const bx1 = mx + halfLW;
-        const by1 = my + halfLW;
-        const bx2 = mx + cs - halfLW;
-        const by2 = my + cs * 0.55;
-        const boxPath = `M${bx1},${by2} L${bx1},${by1} L${bx2},${by1} L${bx2},${by2}`;
-        elements.push(`<path d="${boxPath}" fill="none" stroke="${config.drawColor}" stroke-width="${lineW}" stroke-linecap="square" stroke-linejoin="miter"${clipAttr}/>`);
+        // C-shape path: top bar → left bar → bottom bar (open right)
+        const left = mx + halfLW;
+        const right = mx + cs - halfLW;
+        const top = my + halfLW;
+        const bottom = my + cs - halfLW;
+        const cornerR = Math.min(config.cellRadius, (cs - lineW) / 2);
 
-        // Diagonal tail
-        const tailX = mx + cs * 0.45;
-        const tailY = by2 + halfLW;
-        const tailEndX = mx + cs * 0.72;
-        const tailEndY = my + cs - halfLW;
-        elements.push(`<line x1="${tailX}" y1="${tailY}" x2="${tailEndX}" y2="${tailEndY}" stroke="${config.drawColor}" stroke-width="${lineW}" stroke-linecap="square"${clipAttr}/>`);
+        let cPath: string;
+        if (cornerR > 0) {
+          // C-shape with rounded corners using SVG arcs
+          // Start at top-right, arc to top-left, line down, arc to bottom-left, line to bottom-right
+          cPath = `M${right},${top}` +
+            ` L${left + cornerR},${top}` +
+            ` A${cornerR},${cornerR} 0 0,0 ${left},${top + cornerR}` +
+            ` L${left},${bottom - cornerR}` +
+            ` A${cornerR},${cornerR} 0 0,0 ${left + cornerR},${bottom}` +
+            ` L${right},${bottom}`;
+        } else {
+          // Sharp corners
+          cPath = `M${right},${top} L${left},${top} L${left},${bottom} L${right},${bottom}`;
+        }
+
+        elements.push(`<path d="${cPath}" fill="none" stroke="${config.drawColor}" stroke-width="${lineW}" stroke-linecap="square" stroke-linejoin="miter"${clipAttr}/>`);
+
+        if (transformAttr) elements.push(`</g>`);
       }
     }
   }
