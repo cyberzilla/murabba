@@ -8,7 +8,7 @@ import type { LetterEntry } from './types/grid';
 import { initConfirmModal, confirmDialog } from './ui/ConfirmModal';
 import { loadSession } from './storage/SessionManager';
 import { initLetterEditor, openNewLetter, openEditLetter } from './ui/LetterEditor';
-import { exportLibrary } from './letters/LetterLibrary';
+import { exportLibrary, saveLetter, deleteLetter } from './letters/LetterLibrary';
 
 document.addEventListener('DOMContentLoaded', () => {
   // Disable right-click context menu on canvas only
@@ -484,10 +484,20 @@ function wireLetterPanel(app: App): void {
     onSave(ch, entry) {
       app.letters[ch] = entry;
       rebuildLetterGrid(app);
+      // Persist to IndexedDB
+      if (app.db) {
+        saveLetter(app.db, ch, entry.name, entry.m, entry.gH, entry.gV, entry.gD)
+          .catch(err => console.warn('[Murabba] Failed to persist letter:', err));
+      }
     },
     onDelete(ch) {
       delete app.letters[ch];
       rebuildLetterGrid(app);
+      // Remove from IndexedDB
+      if (app.db) {
+        deleteLetter(app.db, ch)
+          .catch(err => console.warn('[Murabba] Failed to delete letter from DB:', err));
+      }
     },
   });
 
@@ -522,7 +532,7 @@ function wireLetterPanel(app: App): void {
           for (const [ch, raw] of Object.entries(rawLetters)) {
             const e = raw as any;
             if (!e.m || !Array.isArray(e.m)) continue;
-            app.letters[ch] = {
+            const entry: LetterEntry = {
               ch,
               name: e.name || ch,
               m: e.m,
@@ -531,6 +541,12 @@ function wireLetterPanel(app: App): void {
               gD: e.gD || [],
               _builtin: false,
             };
+            app.letters[ch] = entry;
+            // Persist imported letter to IndexedDB
+            if (app.db) {
+              saveLetter(app.db, ch, entry.name, entry.m, entry.gH, entry.gV, entry.gD)
+                .catch(err => console.warn('[Murabba] Failed to persist imported letter:', err));
+            }
           }
           rebuildLetterGrid(app);
         } catch (err) {

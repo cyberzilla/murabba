@@ -14,6 +14,8 @@ import { PanTool } from '../tools/PanTool';
 import { SelectTool } from '../tools/SelectTool';
 import { downloadPNG, downloadJSON, exportProject, importProject } from '../storage/ProjectIO';
 import { saveSession, saveSettings, loadSettings } from '../storage/SessionManager';
+import { openDatabase } from '../storage/IndexedDBStore';
+import { loadMerged } from '../letters/LetterLibrary';
 import type { ToolType, RenderConfig, BgProps, LetterEntry, SessionData, SelectionData } from '../types/grid';
 
 /** Default render configuration. */
@@ -55,6 +57,7 @@ export class App {
 
   // Letters
   letters: Record<string, LetterEntry> = {};
+  db: IDBDatabase | null = null;
 
   // Auto-save timer
   private autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -102,27 +105,13 @@ export class App {
       }
     }
 
-    // Load letter library
+    // Load letter library from IndexedDB (built-in + user custom)
     try {
-      const resp = await fetch('/letters.json');
-      const data = await resp.json();
-      if (data.letters) {
-        for (const [ch, entry] of Object.entries(data.letters)) {
-          const e = entry as any;
-          this.letters[ch] = {
-            ch,
-            name: e.name || ch,
-            m: e.m || [],
-            gH: e.gH || [],
-            gV: e.gV || [],
-            gD: e.gD || [],
-            _builtin: true,
-          };
-        }
-        console.log(`[Murabba] Loaded ${Object.keys(this.letters).length} letters`);
-      }
+      this.db = await openDatabase();
+      this.letters = await loadMerged(this.db);
+      console.log(`[Murabba] Loaded ${Object.keys(this.letters).length} letters`);
     } catch (err) {
-      console.warn('[Murabba] Failed to load letters.json:', err);
+      console.warn('[Murabba] Failed to load letter library:', err);
     }
 
     // Setup events
