@@ -628,60 +628,30 @@ function wireLetterPanel(app: App): void {
     input.click();
   });
 
-  // Wire position filter tabs
-  let activePos = 'all';
-  const posFilter = document.getElementById('letterPosFilter');
-  posFilter?.addEventListener('click', (e) => {
-    const tab = (e.target as HTMLElement).closest('.pos-tab') as HTMLElement | null;
-    if (!tab) return;
-    const pos = tab.dataset.pos || 'all';
-    if (pos === activePos) return;
-    activePos = pos;
-    posFilter.querySelectorAll('.pos-tab').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    rebuildLetterGrid(app, activePos);
-  });
 
   rebuildLetterGrid(app);
 }
 
-function rebuildLetterGrid(app: App, posFilter: string = 'all'): void {
+function rebuildLetterGrid(app: App): void {
   const grid = document.getElementById('letterGrid');
   if (!grid) return;
 
   const letters = app.letters;
   const keys = Object.keys(letters);
 
-  // Position abbreviation labels via i18n
-  const posAbbr = (pos: string): string => t(`pos.abbr.${pos}`);
-
   grid.innerHTML = '';
   for (const ch of keys) {
     const entry = letters[ch];
 
-    // Determine which form to show based on filter
-    let formData: { m: number[][]; gH: number[][]; gV: number[][]; gD: number[][] };
-    let posLabel = '';
-
-    if (posFilter === 'all' || posFilter === 'isolated') {
-      // Show isolated (root) form
-      formData = { m: entry.m, gH: entry.gH, gV: entry.gV, gD: entry.gD };
-      posLabel = posFilter === 'all' ? '' : posAbbr('isolated');
-    } else {
-      // Show specific position form if available
-      const posForm = entry.forms?.[posFilter as 'initial' | 'medial' | 'final'];
-      if (!posForm) continue; // Skip chars without this form
-      formData = posForm;
-      posLabel = posAbbr(posFilter);
-    }
+    // Always show isolated (root) form
+    const formData = { m: entry.m, gH: entry.gH, gV: entry.gV, gD: entry.gD };
 
     const btn = document.createElement('button');
     btn.className = 'letter-btn';
-    btn.title = posLabel ? `${entry.name || ch} (${posLabel})` : (entry.name || ch);
+    btn.title = entry.name || ch;
     btn.dataset.key = ch;
-    btn.dataset.pos = posFilter === 'all' ? 'isolated' : posFilter;
 
-    // Canvas preview using the selected form
+    // Canvas preview
     const canvas = document.createElement('canvas');
     canvas.className = 'letter-preview';
     const previewEntry = { ...entry, ...formData };
@@ -692,14 +662,6 @@ function rebuildLetterGrid(app: App, posFilter: string = 'all'): void {
     nameSpan.className = 'letter-name';
     nameSpan.textContent = entry.name || ch;
     btn.appendChild(nameSpan);
-
-    // Position badge when filtering
-    if (posLabel) {
-      const badge = document.createElement('span');
-      badge.className = 'letter-pos-badge';
-      badge.textContent = posLabel;
-      btn.appendChild(badge);
-    }
 
     // Edit button overlay
     const editSpan = document.createElement('span');
@@ -717,14 +679,14 @@ function rebuildLetterGrid(app: App, posFilter: string = 'all'): void {
     const varCount = entry.variations ? entry.variations.length : 0;
     const hasMultiple = formCount > 0 || varCount > 0;
 
-    // Small dot indicator if has multiple forms (subtle, not noisy)
-    if (posFilter === 'all' && hasMultiple) {
+    // Small dot indicator if has multiple forms
+    if (hasMultiple) {
       const dot = document.createElement('span');
       dot.className = 'letter-multi-dot';
       btn.appendChild(dot);
     }
 
-    if (hasMultiple && posFilter === 'all') {
+    if (hasMultiple) {
       // Show popup on hover for letters with multiple forms
       btn.addEventListener('mouseenter', (e) => {
         showLetterPopup(app, ch, entry, e.currentTarget as HTMLElement);
@@ -737,14 +699,12 @@ function rebuildLetterGrid(app: App, posFilter: string = 'all'): void {
       });
       // Default click places isolated
       btn.addEventListener('click', () => {
-        const placePos = posFilter === 'all' ? 'isolated' : posFilter;
-        app.addLetter(ch, placePos);
+        app.addLetter(ch, 'isolated');
       });
     } else {
       // Simple click-to-place for single-form letters
-      const placePos = posFilter === 'all' ? 'isolated' : posFilter;
       btn.addEventListener('click', () => {
-        app.addLetter(ch, placePos);
+        app.addLetter(ch, 'isolated');
       });
     }
 

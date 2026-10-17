@@ -879,49 +879,7 @@ body {
 }
 
 
-/* ── Letter Position Filter Tabs ── */
-.letter-pos-filter {
-  display: flex;
-  gap: 2px;
-  margin-bottom: 8px;
-  background: var(--bg);
-  border-radius: 6px;
-  padding: 2px;
-}
-.pos-tab {
-  flex: 1;
-  background: none;
-  border: none;
-  color: var(--muted);
-  font-size: 10px;
-  padding: 4px 2px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.15s;
-  font-family: inherit;
-}
-.pos-tab:hover {
-  color: var(--text);
-  background: var(--surface);
-}
-.pos-tab.active {
-  color: var(--bg);
-  background: var(--accent);
-  font-weight: 600;
-}
 
-/* ── Letter card position badge ── */
-.letter-pos-badge {
-  position: absolute;
-  top: 2px;
-  inset-inline-end: 2px;
-  font-size: 7px;
-  color: var(--muted);
-  opacity: 0.7;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  pointer-events: none;
-}
 
 /* ── Letter Editor Form Tabs ── */
 .le-form-tabs {
