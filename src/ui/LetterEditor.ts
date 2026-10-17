@@ -6,6 +6,7 @@
  */
 
 import type { LetterEntry, LetterForm, LetterPosition } from '../types/grid';
+import { t } from '../i18n/I18n';
 
 export interface LetterEditorCallbacks {
   /** Called when a letter is saved. ch is the letter key. */
@@ -17,12 +18,12 @@ export interface LetterEditorCallbacks {
 // ─── Form Tab Definitions ──────────────────────────────
 
 type FormTab = 'isolated' | 'initial' | 'medial' | 'final' | 'variation';
-const FORM_TABS: { key: FormTab; label: string }[] = [
-  { key: 'isolated', label: 'Single' },
-  { key: 'initial', label: 'Start' },
-  { key: 'medial', label: 'Center' },
-  { key: 'final', label: 'End' },
-  { key: 'variation', label: 'Variation' },
+const FORM_TABS: { key: FormTab; i18nKey: string }[] = [
+  { key: 'isolated', i18nKey: 'letterEditor.tabSingle' },
+  { key: 'initial', i18nKey: 'letterEditor.tabStart' },
+  { key: 'medial', i18nKey: 'letterEditor.tabCenter' },
+  { key: 'final', i18nKey: 'letterEditor.tabEnd' },
+  { key: 'variation', i18nKey: 'letterEditor.tabVariation' },
 ];
 
 // ─── Form Data Type ────────────────────────────────────
@@ -202,8 +203,8 @@ function createModalDOM(): void {
   overlay.setAttribute('aria-modal', 'true');
 
   // Build form tabs HTML
-  const tabsHTML = FORM_TABS.map(t =>
-    `<button class="le-form-tab${t.key === 'isolated' ? ' active' : ''}" data-form="${t.key}">${t.label}</button>`
+  const tabsHTML = FORM_TABS.map(tab =>
+    `<button class="le-form-tab${tab.key === 'isolated' ? ' active' : ''}" data-form="${tab.key}">${t(tab.i18nKey)}</button>`
   ).join('');
 
   overlay.innerHTML = `
@@ -233,8 +234,8 @@ function createModalDOM(): void {
       <!-- ═══ VARIATION SUB-TABS: shown only when Variation tab is active ═══ -->
       <div class="le-var-tabs" id="leVarTabs" style="display:none">
         <div class="le-var-list" id="leVarList"></div>
-        <button class="le-var-add" id="leVarAdd" title="Add variation">+</button>
-        <button class="le-var-del" id="leVarDel" title="Delete current variation">×</button>
+        <button class="le-var-add" id="leVarAdd" title="${t('letterEditor.addVariation')}">+</button>
+        <button class="le-var-del" id="leVarDel" title="${t('letterEditor.deleteVariation')}">×</button>
       </div>
 
       <!-- ═══ CANVAS: the main drawing grid ═══ -->

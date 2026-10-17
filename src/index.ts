@@ -646,10 +646,8 @@ function rebuildLetterGrid(app: App, posFilter: string = 'all'): void {
   const letters = app.letters;
   const keys = Object.keys(letters);
 
-  // Position abbreviation labels
-  const POS_LABELS: Record<string, string> = {
-    isolated: 'TGL', initial: 'PKL', medial: 'TGH', final: 'HJG',
-  };
+  // Position abbreviation labels via i18n
+  const posAbbr = (pos: string): string => t(`pos.abbr.${pos}`);
 
   grid.innerHTML = '';
   for (const ch of keys) {
@@ -662,13 +660,13 @@ function rebuildLetterGrid(app: App, posFilter: string = 'all'): void {
     if (posFilter === 'all' || posFilter === 'isolated') {
       // Show isolated (root) form
       formData = { m: entry.m, gH: entry.gH, gV: entry.gV, gD: entry.gD };
-      posLabel = posFilter === 'all' ? '' : POS_LABELS['isolated'];
+      posLabel = posFilter === 'all' ? '' : posAbbr('isolated');
     } else {
       // Show specific position form if available
       const posForm = entry.forms?.[posFilter as 'initial' | 'medial' | 'final'];
       if (!posForm) continue; // Skip chars without this form
       formData = posForm;
-      posLabel = POS_LABELS[posFilter] || posFilter;
+      posLabel = posAbbr(posFilter);
     }
 
     const btn = document.createElement('button');
@@ -697,11 +695,29 @@ function rebuildLetterGrid(app: App, posFilter: string = 'all'): void {
       btn.appendChild(badge);
     }
 
+    // Count forms and variations for info badges
+    const formCount = entry.forms ? Object.keys(entry.forms).length : 0;
+    const varCount = entry.variations ? entry.variations.length : 0;
+    const totalExtra = formCount + varCount;
+
+    // Show forms/variations indicator badge on the card (only in 'all' view)
+    if (posFilter === 'all' && totalExtra > 0) {
+      const infoBadge = document.createElement('span');
+      infoBadge.className = 'letter-forms-badge';
+      // Show count: e.g. "3F" for 3 forms, "2V" for 2 variations, "3F·2V" for both
+      const parts: string[] = [];
+      if (formCount > 0) parts.push(`${formCount}F`);
+      if (varCount > 0) parts.push(`${varCount}V`);
+      infoBadge.textContent = parts.join('·');
+      infoBadge.title = `${formCount} ${t('pos.initial').toLowerCase()}, ${varCount} ${t('letterEditor.tabVariation').toLowerCase()}`;
+      btn.appendChild(infoBadge);
+    }
+
     // Edit button overlay
     const editSpan = document.createElement('span');
     editSpan.className = 'letter-edit';
     editSpan.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>';
-    editSpan.title = 'Edit letter';
+    editSpan.title = t('letters.edit');
     editSpan.addEventListener('click', (e) => {
       e.stopPropagation();
       openEditLetter(ch, entry);

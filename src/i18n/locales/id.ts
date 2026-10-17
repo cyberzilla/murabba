@@ -104,6 +104,18 @@ export const id: Record<string, string> = {
   'letters.noResults': 'Tidak ada hasil',
   'letters.edit': 'Ubah',
 
+  /* ── Position Filter Tabs ── */
+  'pos.all': 'Semua',
+  'pos.isolated': 'Tunggal',
+  'pos.initial': 'Pangkal',
+  'pos.medial': 'Tengah',
+  'pos.final': 'Hujung',
+  'pos.abbr.isolated': 'TGL',
+  'pos.abbr.initial': 'PKL',
+  'pos.abbr.medial': 'TGH',
+  'pos.abbr.final': 'HJG',
+  'pos.variations': '%s var',
+
   /* ── Tools Panel ── */
   'tools.drawColors': 'Warna Gambar',
   'tools.fillColor': 'Warna Isi',
@@ -234,6 +246,13 @@ export const id: Record<string, string> = {
   'letterEditor.delete': 'Hapus',
   'letterEditor.cancel': 'Batal',
   'letterEditor.save': 'Simpan Huruf',
+  'letterEditor.tabSingle': 'Tunggal',
+  'letterEditor.tabStart': 'Pangkal',
+  'letterEditor.tabCenter': 'Tengah',
+  'letterEditor.tabEnd': 'Hujung',
+  'letterEditor.tabVariation': 'Variasi',
+  'letterEditor.addVariation': 'Tambah variasi',
+  'letterEditor.deleteVariation': 'Hapus variasi',
 
   /* ── Selection System ── */
   'sel.confirm': 'Konfirmasi',

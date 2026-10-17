@@ -104,6 +104,18 @@ export const ar: Record<string, string> = {
   'letters.noResults': 'لا توجد نتائج',
   'letters.edit': 'تعديل',
 
+  /* ── Position Filter Tabs (مرشح الموضع) ── */
+  'pos.all': 'الكل',
+  'pos.isolated': 'مفرد',
+  'pos.initial': 'بداية',
+  'pos.medial': 'وسط',
+  'pos.final': 'نهاية',
+  'pos.abbr.isolated': 'مفرد',
+  'pos.abbr.initial': 'بداية',
+  'pos.abbr.medial': 'وسط',
+  'pos.abbr.final': 'نهاية',
+  'pos.variations': '%s تنوع',
+
   /* ── Tools Panel (لوحة الأدوات) ── */
   'tools.drawColors': 'الوان الرسم',
   'tools.fillColor': 'لون الحشو',
@@ -234,6 +246,13 @@ export const ar: Record<string, string> = {
   'letterEditor.delete': 'حذف',
   'letterEditor.cancel': 'إلغاء',
   'letterEditor.save': 'حفظ الحرف',
+  'letterEditor.tabSingle': 'مفرد',
+  'letterEditor.tabStart': 'بداية',
+  'letterEditor.tabCenter': 'وسط',
+  'letterEditor.tabEnd': 'نهاية',
+  'letterEditor.tabVariation': 'تنوع',
+  'letterEditor.addVariation': 'إضافة تنوع',
+  'letterEditor.deleteVariation': 'حذف التنوع',
 
   /* ── Selection System (نظام التحديد) ── */
   'sel.confirm': 'تأكيد',

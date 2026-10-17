@@ -104,6 +104,18 @@ export const en: Record<string, string> = {
   'letters.noResults': 'No results',
   'letters.edit': 'Edit',
 
+  /* ── Position Filter Tabs ── */
+  'pos.all': 'All',
+  'pos.isolated': 'Isolated',
+  'pos.initial': 'Initial',
+  'pos.medial': 'Medial',
+  'pos.final': 'Final',
+  'pos.abbr.isolated': 'ISO',
+  'pos.abbr.initial': 'INI',
+  'pos.abbr.medial': 'MED',
+  'pos.abbr.final': 'FIN',
+  'pos.variations': '%s var',
+
   /* ── Tools Panel ── */
   'tools.drawColors': 'Drawing Colors',
   'tools.fillColor': 'Fill Color',
@@ -234,6 +246,13 @@ export const en: Record<string, string> = {
   'letterEditor.delete': 'Delete',
   'letterEditor.cancel': 'Cancel',
   'letterEditor.save': 'Save Letter',
+  'letterEditor.tabSingle': 'Single',
+  'letterEditor.tabStart': 'Start',
+  'letterEditor.tabCenter': 'Center',
+  'letterEditor.tabEnd': 'End',
+  'letterEditor.tabVariation': 'Variation',
+  'letterEditor.addVariation': 'Add variation',
+  'letterEditor.deleteVariation': 'Delete variation',
 
   /* ── Selection System ── */
   'sel.confirm': 'Confirm',
