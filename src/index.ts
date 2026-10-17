@@ -324,13 +324,12 @@ function updateLetterPreviewColors(app: App): void {
   if (!grid) return;
   const color = app.config.drawColor;
   const buttons = grid.querySelectorAll<HTMLElement>('.letter-btn');
-  const keys = Object.keys(app.letters);
-  buttons.forEach((btn, i) => {
-    const ch = keys[i];
-    if (!ch) return;
+  buttons.forEach((btn) => {
+    const key = btn.dataset.key;
+    if (!key || !app.letters[key]) return;
     const canvas = btn.querySelector<HTMLCanvasElement>('.letter-preview');
     if (canvas) {
-      renderLetterPreview(canvas, app.letters[ch], color, app.config.cellRadius / app.config.cellSize);
+      renderLetterPreview(canvas, app.letters[key], color, app.config.cellRadius / app.config.cellSize);
     }
   });
 }
@@ -596,12 +595,13 @@ function wireLetterPanel(app: App): void {
             const e = raw as any;
             if (!e.m || !Array.isArray(e.m)) continue;
             const entry: LetterEntry = {
-              ch,
+              ch: e.ch || ch,
               name: e.name || ch,
               m: e.m,
               gH: e.gH || [],
               gV: e.gV || [],
               gD: e.gD || [],
+              forms: e.forms,
               _builtin: false,
             };
             app.letters[ch] = entry;
@@ -621,33 +621,80 @@ function wireLetterPanel(app: App): void {
     input.click();
   });
 
+  // Wire position filter tabs
+  let activePos = 'all';
+  const posFilter = document.getElementById('letterPosFilter');
+  posFilter?.addEventListener('click', (e) => {
+    const tab = (e.target as HTMLElement).closest('.pos-tab') as HTMLElement | null;
+    if (!tab) return;
+    const pos = tab.dataset.pos || 'all';
+    if (pos === activePos) return;
+    activePos = pos;
+    posFilter.querySelectorAll('.pos-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    rebuildLetterGrid(app, activePos);
+  });
+
   rebuildLetterGrid(app);
 }
 
-function rebuildLetterGrid(app: App): void {
+function rebuildLetterGrid(app: App, posFilter: string = 'all'): void {
   const grid = document.getElementById('letterGrid');
   if (!grid) return;
 
   const letters = app.letters;
   const keys = Object.keys(letters);
 
+  // Position abbreviation labels
+  const POS_LABELS: Record<string, string> = {
+    isolated: 'TGL', initial: 'PKL', medial: 'TGH', final: 'HJG',
+  };
+
   grid.innerHTML = '';
   for (const ch of keys) {
     const entry = letters[ch];
+
+    // Determine which form to show based on filter
+    let formData: { m: number[][]; gH: number[][]; gV: number[][]; gD: number[][] };
+    let posLabel = '';
+
+    if (posFilter === 'all' || posFilter === 'isolated') {
+      // Show isolated (root) form
+      formData = { m: entry.m, gH: entry.gH, gV: entry.gV, gD: entry.gD };
+      posLabel = posFilter === 'all' ? '' : POS_LABELS['isolated'];
+    } else {
+      // Show specific position form if available
+      const posForm = entry.forms?.[posFilter as 'initial' | 'medial' | 'final'];
+      if (!posForm) continue; // Skip chars without this form
+      formData = posForm;
+      posLabel = POS_LABELS[posFilter] || posFilter;
+    }
+
     const btn = document.createElement('button');
     btn.className = 'letter-btn';
-    btn.title = entry.name || ch;
+    btn.title = posLabel ? `${entry.name || ch} (${posLabel})` : (entry.name || ch);
+    btn.dataset.key = ch;
+    btn.dataset.pos = posFilter === 'all' ? 'isolated' : posFilter;
 
-    // Canvas preview of the letter shape
+    // Canvas preview using the selected form
     const canvas = document.createElement('canvas');
     canvas.className = 'letter-preview';
-    renderLetterPreview(canvas, entry, app.config.drawColor, app.config.cellRadius / app.config.cellSize);
+    const previewEntry = { ...entry, ...formData };
+    renderLetterPreview(canvas, previewEntry, app.config.drawColor, app.config.cellRadius / app.config.cellSize);
     btn.appendChild(canvas);
 
     const nameSpan = document.createElement('span');
     nameSpan.className = 'letter-name';
     nameSpan.textContent = entry.name || ch;
     btn.appendChild(nameSpan);
+
+    // Position badge when filtering
+    if (posLabel) {
+      const badge = document.createElement('span');
+      badge.className = 'letter-pos-badge';
+      badge.textContent = posLabel;
+      btn.appendChild(badge);
+    }
 
     // Edit button overlay
     const editSpan = document.createElement('span');
@@ -660,8 +707,10 @@ function rebuildLetterGrid(app: App): void {
     });
     btn.appendChild(editSpan);
 
+    // Click places the currently shown form
+    const placePos = posFilter === 'all' ? 'isolated' : posFilter;
     btn.addEventListener('click', () => {
-      app.addLetter(ch);
+      app.addLetter(ch, placePos);
     });
 
     grid.appendChild(btn);

@@ -91,15 +91,16 @@ export async function loadDefaults(): Promise<Record<string, LetterEntry>> {
     const rawLetters = json.letters || {};
 
     const normalized: Record<string, LetterEntry> = {};
-    for (const [ch, entry] of Object.entries(rawLetters)) {
+    for (const [key, entry] of Object.entries(rawLetters)) {
       const gaps = normalizeGaps(entry.m, entry.gH, entry.gV, entry.gD);
-      normalized[ch] = {
-        ch,
+      normalized[key] = {
+        ch: entry.ch || key,
         name: entry.name,
         m: entry.m,
         gH: gaps.gH,
         gV: gaps.gV,
         gD: gaps.gD,
+        forms: entry.forms,
         _builtin: true,
       };
     }
@@ -126,17 +127,8 @@ export async function loadMerged(db: IDBDatabase): Promise<Record<string, Letter
   const merged: Record<string, LetterEntry> = {};
 
   // Seed default letters
-  for (const [ch, entry] of Object.entries(defaults)) {
-    const gaps = normalizeGaps(entry.m, entry.gH, entry.gV, entry.gD);
-    merged[ch] = {
-      ch,
-      name: entry.name,
-      m: entry.m,
-      gH: gaps.gH,
-      gV: gaps.gV,
-      gD: gaps.gD,
-      _builtin: true,
-    };
+  for (const [key, entry] of Object.entries(defaults)) {
+    merged[key] = { ...entry };
   }
 
   // Apply user custom letters

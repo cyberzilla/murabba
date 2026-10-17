@@ -102,13 +102,23 @@ export interface HistorySnapshot {
 /**
  * Letter glyph entry stored in library.
  */
+export type LetterPosition = 'isolated' | 'initial' | 'medial' | 'final';
+
+export interface LetterForm {
+  m: number[][];
+  gH: number[][];
+  gV: number[][];
+  gD: number[][];
+}
+
 export interface LetterEntry {
   ch: string;
   name: string;
-  m: number[][];    // cell matrix [row][col]
-  gH: number[][];   // gap-H matrix
-  gV: number[][];   // gap-V matrix
-  gD: number[][];   // gap-D matrix
+  m: number[][];    // isolated form cell matrix [row][col]
+  gH: number[][];   // isolated form gap-H matrix
+  gV: number[][];   // isolated form gap-V matrix
+  gD: number[][];   // isolated form gap-D matrix
+  forms?: Partial<Record<LetterPosition, LetterForm>>;
   _builtin?: boolean;
 }
 

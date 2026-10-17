@@ -364,11 +364,18 @@ export class App {
 
   // ─── Letter Placement ───────────────────────────────────
 
-  addLetter(ch: string): void {
+  addLetter(ch: string, position: string = 'isolated'): void {
     const entry = this.letters[ch];
     if (!entry) return;
 
-    const { m, gH, gV, gD } = entry;
+    // Pick the right form based on position
+    let m: number[][], gH: number[][], gV: number[][], gD: number[][];
+    if (position !== 'isolated' && entry.forms?.[position as 'initial' | 'medial' | 'final']) {
+      const f = entry.forms[position as 'initial' | 'medial' | 'final']!;
+      m = f.m; gH = f.gH; gV = f.gV; gD = f.gD;
+    } else {
+      m = entry.m; gH = entry.gH; gV = entry.gV; gD = entry.gD;
+    }
     const color = this.config.drawColor;
 
     // Convert letter matrices to SelectionData format
