@@ -1105,10 +1105,11 @@ body {
 }
 
 .lfp-preview {
-  width: 36px;
-  height: 36px;
+  max-width: 36px;
+  max-height: 36px;
   image-rendering: pixelated;
   flex-shrink: 0;
+  object-fit: contain;
 }
 
 .lfp-label {

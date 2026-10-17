@@ -829,7 +829,7 @@ function showLetterPopup(app: App, ch: string, entry: LetterEntry, anchor: HTMLE
     const cvs = document.createElement('canvas');
     cvs.className = 'lfp-preview';
     const previewE = { ...entry, ...opt.formData };
-    renderLetterPreview(cvs, previewE, color, radiusRatio);
+    renderLetterPreview(cvs, previewE, color, radiusRatio, 36);
     item.appendChild(cvs);
 
     const lbl = document.createElement('span');
@@ -943,8 +943,9 @@ function hideLetterPopup(): void {
 
 /**
  * Renders a small preview of a letter entry onto a canvas element.
+ * @param targetSize — target pixel size for the preview (default 24 for cards, 36 for popup)
  */
-function renderLetterPreview(canvas: HTMLCanvasElement, entry: LetterEntry, color = '#22C55E', radiusRatio = 0.167): void {
+function renderLetterPreview(canvas: HTMLCanvasElement, entry: LetterEntry, color = '#22C55E', radiusRatio = 0.167, targetSize = 24): void {
   const { m, gH, gV, gD } = entry;
   const rows = m.length;
   const cols = rows > 0 ? m[0].length : 1;
@@ -955,9 +956,9 @@ function renderLetterPreview(canvas: HTMLCanvasElement, entry: LetterEntry, colo
   const gv = (c: number, r: number) => gV?.[r]?.[c] ? 1 : 0;
   const gd = (c: number, r: number) => gD?.[r]?.[c] ? 1 : 0;
 
-  // Size calculations — fit within compact card
+  // Size calculations — fit within target size
   const maxDim = Math.max(cols, rows);
-  const totalPx = 24;
+  const totalPx = targetSize;
   const cellPx = Math.max(2, Math.floor(totalPx / (maxDim + (maxDim - 1) * 0.55)));
   const gapPx = Math.max(1, Math.round(cellPx * 0.5));
   const R = Math.max(0, cellPx * radiusRatio);
