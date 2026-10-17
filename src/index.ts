@@ -6,7 +6,7 @@ import { initI18n, setLang, getLang, t } from './i18n/I18n';
 import type { SupportedLang } from './types';
 import type { LetterEntry } from './types/grid';
 import { initConfirmModal, confirmDialog } from './ui/ConfirmModal';
-import { loadSession, saveSettings } from './storage/SessionManager';
+import { loadSession, saveSettings, SESSION_KEY, migrateStorageKeys } from './storage/SessionManager';
 import { initLetterEditor, openNewLetter, openEditLetter, setEditorGridConfig } from './ui/LetterEditor';
 import { initAboutModal, showAbout } from './ui/AboutModal';
 import { exportLibrary, saveLetter, deleteLetter } from './letters/LetterLibrary';
@@ -18,14 +18,17 @@ document.addEventListener('DOMContentLoaded', () => {
     canvasArea.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
+  // Run storage key migration (kufi_* → murabba_*)
+  migrateStorageKeys();
+
   // Migrate: update old orange color instead of deleting session
   try {
-    const raw = localStorage.getItem('kufi_session_v2');
+    const raw = localStorage.getItem(SESSION_KEY);
     if (raw) {
       const sess = JSON.parse(raw);
       if (sess.drawColor === '#F5A623') {
         sess.drawColor = '#22C55E';
-        localStorage.setItem('kufi_session_v2', JSON.stringify(sess));
+        localStorage.setItem(SESSION_KEY, JSON.stringify(sess));
         console.log('[Murabba] Migrated v1 session color scheme');
       }
     }
@@ -141,7 +144,7 @@ function wireActionButtons(app: App): void {
 
   // Home button (logo) — return to welcome screen
   document.getElementById('btnHome')?.addEventListener('click', () => {
-    try { localStorage.removeItem('kufi_in_editor'); } catch { /* ok */ }
+    try { localStorage.removeItem('murabba_editorState'); } catch { /* ok */ }
     document.documentElement.classList.remove('restore-editor');
     const screen = document.getElementById('welcomeScreen');
     const editor = document.getElementById('editor');
@@ -653,7 +656,7 @@ function wireBgControls(app: App): void {
 function wireWelcomeScreen(app: App): void {
   const screen = document.getElementById('welcomeScreen');
   const editor = document.getElementById('editor');
-  const PAGE_STATE_KEY = 'kufi_in_editor';
+  const PAGE_STATE_KEY = 'murabba_editorState';
 
   const enter = () => {
     screen?.classList.add('hidden');

@@ -1,9 +1,9 @@
 /**
  * Typed IndexedDB wrapper for Murabba
- * Manages 'KufiLetters' database with stores for letters, metadata, and saved drawings.
+ * Manages 'MurabbaLetters' database with stores for letters, metadata, and saved drawings.
  */
 
-export const DB_NAME = 'KufiLetters';
+export const DB_NAME = 'MurabbaLetters';
 export const DB_VERSION = 3;
 
 export type StoreName = 'letters' | 'meta' | 'saves';

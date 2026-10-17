@@ -620,16 +620,43 @@ function hasAnyFill(fd: FormData): boolean {
 
 // ─── Grid Rendering ────────────────────────────────────
 
-/** Pixel sizes for editor grid elements — synced from main editor config */
+/** Pixel sizes for editor grid elements — scaled from main editor config */
 let CELL_PX = 19;
 let GAP_PX = 19;
 let RADIUS = 5;
 
-/** Update editor grid sizing to match main editor config */
+/** Maximum width (in px) the editor grid should occupy */
+const EDITOR_MAX_WIDTH = 320;
+
+/** Minimum cell size to keep things usable */
+const EDITOR_MIN_CELL = 8;
+
+/** Update editor grid sizing — scales main config to fit EDITOR_MAX_WIDTH */
 export function setEditorGridConfig(cellSize: number, gapSize: number, cellRadius: number): void {
+  // Estimate how wide the grid would be at 1:1 scale (assuming ~7 cols as typical letter width)
+  // We compute the actual scale dynamically in buildEditorGrid based on gridW/gridH
+  // Store the raw values; buildEditorGrid will scale them
   CELL_PX = cellSize;
   GAP_PX = gapSize;
   RADIUS = cellRadius;
+}
+
+/** Compute scaled grid values to fit within EDITOR_MAX_WIDTH */
+function computeEditorScale(): { cell: number; gap: number; radius: number } {
+  const cols = gridW;
+  const rawWidth = cols * CELL_PX + (cols - 1) * GAP_PX;
+
+  if (rawWidth <= EDITOR_MAX_WIDTH) {
+    // Already fits
+    return { cell: CELL_PX, gap: GAP_PX, radius: RADIUS };
+  }
+
+  const scale = EDITOR_MAX_WIDTH / rawWidth;
+  const cell = Math.max(EDITOR_MIN_CELL, Math.round(CELL_PX * scale));
+  const gap = Math.max(1, Math.round(GAP_PX * scale));
+  const radius = Math.max(0, Math.round(RADIUS * scale));
+
+  return { cell, gap, radius };
 }
 
 function buildEditorGrid(): void {
@@ -640,10 +667,12 @@ function buildEditorGrid(): void {
   const totalCols = gridW * 2;
   const totalRows = gridH * 2;
 
+  const scaled = computeEditorScale();
+
   editorGrid.style.gridTemplateColumns =
-    Array.from({ length: totalCols }, (_, i) => (i % 2 === 0) ? `${CELL_PX}px` : `${GAP_PX}px`).join(' ');
+    Array.from({ length: totalCols }, (_, i) => (i % 2 === 0) ? `${scaled.cell}px` : `${scaled.gap}px`).join(' ');
   editorGrid.style.gridTemplateRows =
-    Array.from({ length: totalRows }, (_, i) => (i % 2 === 0) ? `${CELL_PX}px` : `${GAP_PX}px`).join(' ');
+    Array.from({ length: totalRows }, (_, i) => (i % 2 === 0) ? `${scaled.cell}px` : `${scaled.gap}px`).join(' ');
 
   editorGrid.style.aspectRatio = 'unset';
   editorGrid.style.width = 'fit-content';
@@ -752,8 +781,9 @@ function isCell(r: number, c: number): boolean { return !!(cellMatrix[r]?.[c]); 
 
 function refreshRadius(): void {
   if (!editorGrid) return;
-  const R = RADIUS;
-  const rGap = Math.min(R, Math.floor(GAP_PX / 2));
+  const scaled = computeEditorScale();
+  const R = scaled.radius;
+  const rGap = Math.min(R, Math.floor(scaled.gap / 2));
 
   const els = editorGrid.children;
   for (let i = 0; i < els.length; i++) {

@@ -14,7 +14,7 @@ import { PanTool } from '../tools/PanTool';
 import { SelectTool } from '../tools/SelectTool';
 import { CursorTool } from '../tools/CursorTool';
 import { downloadPNG, downloadJSON, exportProject, importProject } from '../storage/ProjectIO';
-import { saveSession, saveSettings, loadSettings } from '../storage/SessionManager';
+import { saveSession, saveSettings, loadSettings, migrateIDBKeys } from '../storage/SessionManager';
 import { openDatabase } from '../storage/IndexedDBStore';
 import { loadMerged } from '../letters/LetterLibrary';
 import type { ToolType, RenderConfig, BgProps, LetterEntry, SessionData, SelectionData } from '../types/grid';
@@ -115,6 +115,7 @@ export class App {
     // Load letter library from IndexedDB (built-in + user custom)
     try {
       this.db = await openDatabase();
+      await migrateIDBKeys(this.db);
       this.letters = await loadMerged(this.db);
       console.log(`[Murabba] Loaded ${Object.keys(this.letters).length} letters`);
     } catch (err) {

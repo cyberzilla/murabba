@@ -10,7 +10,7 @@ import type { SupportedLang } from '../types';
 
 export type { SupportedLang };
 
-export const STORAGE_LANG_KEY = 'kufi_lang';
+export const STORAGE_LANG_KEY = 'murabba_lang';
 
 export const LANGS: Record<SupportedLang, Record<string, string>> = {
   ar,
@@ -155,7 +155,7 @@ export function updateDOM(): void {
   // Dispatch custom event for subscribers
   try {
     window.dispatchEvent(
-      new CustomEvent('kufi:langchange', { detail: { lang: currentLang } })
+      new CustomEvent('murabba:langchange', { detail: { lang: currentLang } })
     );
   } catch {
     // Environment may not support window CustomEvent

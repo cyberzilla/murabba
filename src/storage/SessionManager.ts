@@ -10,9 +10,73 @@ import type {
 import type { GridModel } from '../core/GridModel';
 import { put, get, deleteKey } from './IndexedDBStore';
 
-export const SESSION_KEY = 'kufi_session_v2';
-export const SETTINGS_KEY = 'kufi_settings_v2';
-export const IDB_BG_KEY = '__kufi_bgimg__';
+export const SESSION_KEY = 'murabba_session';
+export const SETTINGS_KEY = 'murabba_settings';
+export const IDB_BG_KEY = 'murabba_bgimg';
+
+// Legacy keys for migration
+const LEGACY_SESSION_KEY = 'kufi_session_v2';
+const LEGACY_SETTINGS_KEY = 'kufi_settings_v2';
+const LEGACY_IDB_BG_KEY = '__kufi_bgimg__';
+
+/**
+ * Migrates localStorage keys from old kufi_* prefix to murabba_* prefix.
+ * Reads old keys, writes to new keys, then removes old keys.
+ * Safe to call multiple times (no-op if already migrated).
+ */
+export function migrateStorageKeys(): void {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    // Migrate session
+    const oldSession = localStorage.getItem(LEGACY_SESSION_KEY);
+    if (oldSession && !localStorage.getItem(SESSION_KEY)) {
+      localStorage.setItem(SESSION_KEY, oldSession);
+    }
+    localStorage.removeItem(LEGACY_SESSION_KEY);
+
+    // Migrate settings
+    const oldSettings = localStorage.getItem(LEGACY_SETTINGS_KEY);
+    if (oldSettings && !localStorage.getItem(SETTINGS_KEY)) {
+      localStorage.setItem(SETTINGS_KEY, oldSettings);
+    }
+    localStorage.removeItem(LEGACY_SETTINGS_KEY);
+
+    // Migrate lang key
+    const oldLang = localStorage.getItem('kufi_lang');
+    if (oldLang && !localStorage.getItem('murabba_lang')) {
+      localStorage.setItem('murabba_lang', oldLang);
+    }
+    localStorage.removeItem('kufi_lang');
+
+    // Migrate page state key
+    const oldPageState = localStorage.getItem('kufi_in_editor');
+    if (oldPageState && !localStorage.getItem('murabba_editorState')) {
+      localStorage.setItem('murabba_editorState', oldPageState);
+    }
+    localStorage.removeItem('kufi_in_editor');
+  } catch {
+    // Ignore errors during migration
+  }
+}
+
+/**
+ * Migrates IndexedDB background image key from old to new key.
+ * @param db - Open IDBDatabase instance
+ */
+export async function migrateIDBKeys(db: IDBDatabase): Promise<void> {
+  try {
+    const oldRecord = await get<{ k: string; v: string }>(db, 'meta', LEGACY_IDB_BG_KEY);
+    if (oldRecord?.v) {
+      const newRecord = await get<{ k: string; v: string }>(db, 'meta', IDB_BG_KEY);
+      if (!newRecord) {
+        await put(db, 'meta', { k: IDB_BG_KEY, v: oldRecord.v });
+      }
+      await deleteKey(db, 'meta', LEGACY_IDB_BG_KEY);
+    }
+  } catch {
+    // Ignore errors during migration
+  }
+}
 
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
