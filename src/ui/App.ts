@@ -408,16 +408,42 @@ export class App {
       selectTool.stampFloat(this.getToolContext());
     }
 
-    // Now find the next empty position
-    const pos = this.findEmptyPosition(cols, rows);
+    // Compute tight bounding box of actual content (not canvas size)
+    const allPoints: { x: number; y: number }[] = [];
+    for (const c of cells) allPoints.push({ x: c.lx, y: c.ly });
+    // gapH(lx, ly) occupies space between row ly and ly+1
+    for (const g of gHData) { allPoints.push({ x: g.lx, y: g.ly }); allPoints.push({ x: g.lx, y: g.ly + 1 }); }
+    // gapV(lx, ly) occupies space between col lx and lx+1
+    for (const g of gVData) { allPoints.push({ x: g.lx, y: g.ly }); allPoints.push({ x: g.lx + 1, y: g.ly }); }
+    // gapD(lx, ly) occupies corner between 4 cells
+    for (const g of gDData) {
+      allPoints.push({ x: g.lx, y: g.ly }); allPoints.push({ x: g.lx + 1, y: g.ly });
+      allPoints.push({ x: g.lx, y: g.ly + 1 }); allPoints.push({ x: g.lx + 1, y: g.ly + 1 });
+    }
 
+    let minLx = Infinity, minLy = Infinity, maxLx = -Infinity, maxLy = -Infinity;
+    for (const p of allPoints) {
+      if (p.x < minLx) minLx = p.x;
+      if (p.y < minLy) minLy = p.y;
+      if (p.x > maxLx) maxLx = p.x;
+      if (p.y > maxLy) maxLy = p.y;
+    }
+
+    const contentW = maxLx - minLx + 1;
+    const contentH = maxLy - minLy + 1;
+
+    // Find empty position for the tight content size
+    const pos = this.findEmptyPosition(contentW, contentH);
+
+    // Adjust offset: content starts at (minLx, minLy) within canvas,
+    // so ox = pos.x - minLx maps the content's top-left to pos
     const floatData: SelectionData = {
       cells,
       gH: gHData,
       gV: gVData,
       gD: gDData,
-      ox: pos.x,
-      oy: pos.y,
+      ox: pos.x - minLx,
+      oy: pos.y - minLy,
       w: cols,
       h: rows,
     };
