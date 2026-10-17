@@ -1044,16 +1044,34 @@ body {
   border-color: #ef4444;
 }
 
-/* ── Letter card forms/variations badge ── */
+/* ── Letter card forms count badge (bottom-left) ── */
 .letter-forms-badge {
   position: absolute;
   bottom: 2px;
   inset-inline-start: 2px;
   font-size: 7px;
   color: var(--accent);
-  opacity: 0.8;
+  opacity: 0.85;
   background: rgba(34, 197, 94, 0.1);
-  border: 1px solid rgba(34, 197, 94, 0.2);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  border-radius: 3px;
+  padding: 0 3px;
+  line-height: 1.6;
+  letter-spacing: 0.3px;
+  pointer-events: none;
+  font-weight: 600;
+}
+
+/* ── Letter card variations badge (bottom-right) ── */
+.letter-var-badge {
+  position: absolute;
+  bottom: 2px;
+  inset-inline-end: 2px;
+  font-size: 7px;
+  color: #a78bfa;
+  opacity: 0.85;
+  background: rgba(167, 139, 250, 0.1);
+  border: 1px solid rgba(167, 139, 250, 0.25);
   border-radius: 3px;
   padding: 0 3px;
   line-height: 1.6;

@@ -698,19 +698,23 @@ function rebuildLetterGrid(app: App, posFilter: string = 'all'): void {
     // Count forms and variations for info badges
     const formCount = entry.forms ? Object.keys(entry.forms).length : 0;
     const varCount = entry.variations ? entry.variations.length : 0;
-    const totalExtra = formCount + varCount;
 
-    // Show forms/variations indicator badge on the card (only in 'all' view)
-    if (posFilter === 'all' && totalExtra > 0) {
-      const infoBadge = document.createElement('span');
-      infoBadge.className = 'letter-forms-badge';
-      // Show count: e.g. "3F" for 3 forms, "2V" for 2 variations, "3F·2V" for both
-      const parts: string[] = [];
-      if (formCount > 0) parts.push(`${formCount}F`);
-      if (varCount > 0) parts.push(`${varCount}V`);
-      infoBadge.textContent = parts.join('·');
-      infoBadge.title = `${formCount} ${t('pos.initial').toLowerCase()}, ${varCount} ${t('letterEditor.tabVariation').toLowerCase()}`;
-      btn.appendChild(infoBadge);
+    // Show forms indicator badge (top-right area, only in 'all' view)
+    if (posFilter === 'all' && formCount > 0) {
+      const formBadge = document.createElement('span');
+      formBadge.className = 'letter-forms-badge';
+      formBadge.textContent = `${formCount + 1}⌶`;
+      formBadge.title = `${formCount + 1} ${t('letterEditor.tabVariation').toLowerCase()}`;
+      btn.appendChild(formBadge);
+    }
+
+    // Show variations badge (bottom-left)
+    if (posFilter === 'all' && varCount > 0) {
+      const varBadge = document.createElement('span');
+      varBadge.className = 'letter-var-badge';
+      varBadge.textContent = `${varCount}V`;
+      varBadge.title = `${varCount} ${t('letterEditor.tabVariation').toLowerCase()}`;
+      btn.appendChild(varBadge);
     }
 
     // Edit button overlay
