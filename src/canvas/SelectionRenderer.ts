@@ -39,10 +39,11 @@ export function renderSelectionFrame(
 
   ctx.strokeRect(left, top, width, height);
 
-  // Draw corner handles
+  // Draw corner handles — size proportional to selection
   ctx.setLineDash([]);
   ctx.fillStyle = '#42A5F5';
-  const handleSize = 8;
+  const minDim = Math.min(width, height);
+  const handleSize = Math.max(3, Math.min(8, minDim * 0.18));
   const corners = [
     [left, top],
     [left + width, top],
