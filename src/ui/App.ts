@@ -65,7 +65,7 @@ export class App {
   constructor(private container: HTMLElement) {
     this.config = defaultConfig();
     this.model = new GridModel(24, 24);
-    this.history = new HistoryManager(60);
+    this.history = new HistoryManager(100);
     this.renderer = new CanvasRenderer(container);
 
     // Cache DOM elements
@@ -530,6 +530,15 @@ export class App {
 
   requestRender(): void {
     this.renderer.requestRender();
+    this.updateUndoRedoButtons();
+  }
+
+  /** Update disabled state of undo/redo toolbar buttons based on history stack. */
+  updateUndoRedoButtons(): void {
+    const btnUndo = document.getElementById('btnUndo') as HTMLButtonElement | null;
+    const btnRedo = document.getElementById('btnRedo') as HTMLButtonElement | null;
+    if (btnUndo) btnUndo.disabled = !this.history.canUndo;
+    if (btnRedo) btnRedo.disabled = !this.history.canRedo;
   }
 
   // ─── Public API for external access ─────────────────────

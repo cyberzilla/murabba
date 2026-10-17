@@ -630,3 +630,10 @@ body {
 }
 .letter-btn:hover .letter-edit { opacity: 1; }
 .letter-btn .letter-edit:hover { color: var(--accent); }
+
+/* ── Disabled tool buttons (undo/redo) ───────── */
+.tool-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
