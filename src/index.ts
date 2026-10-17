@@ -829,7 +829,7 @@ function showLetterPopup(app: App, ch: string, entry: LetterEntry, anchor: HTMLE
     const cvs = document.createElement('canvas');
     cvs.className = 'lfp-preview';
     const previewE = { ...entry, ...opt.formData };
-    renderLetterPreview(cvs, previewE, color, radiusRatio, 36);
+    renderLetterPreview(cvs, previewE, color, radiusRatio);
     item.appendChild(cvs);
 
     const lbl = document.createElement('span');
@@ -963,8 +963,11 @@ function renderLetterPreview(canvas: HTMLCanvasElement, entry: LetterEntry, colo
   const gapPx = Math.max(1, Math.round(cellPx * 0.5));
   const R = Math.max(0, cellPx * radiusRatio);
 
-  const canvasW = cols * cellPx + (cols - 1) * gapPx;
-  const canvasH = rows * cellPx + (rows - 1) * gapPx;
+  const contentW = cols * cellPx + (cols - 1) * gapPx;
+  const contentH = rows * cellPx + (rows - 1) * gapPx;
+  // Use fixed canvas size so all previews are uniform
+  const canvasW = targetSize;
+  const canvasH = targetSize;
   const dpr = window.devicePixelRatio || 1;
 
   canvas.width = canvasW * dpr;
@@ -976,6 +979,11 @@ function renderLetterPreview(canvas: HTMLCanvasElement, entry: LetterEntry, colo
   if (!ctx) return;
   ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, canvasW, canvasH);
+
+  // Center content in canvas
+  const offsetX = Math.floor((canvasW - contentW) / 2);
+  const offsetY = Math.floor((canvasH - contentH) / 2);
+  ctx.translate(offsetX, offsetY);
   ctx.fillStyle = color;
 
   // Draw rounded rect with per-corner radii [tl, tr, br, bl]
