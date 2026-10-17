@@ -697,7 +697,29 @@ export class SelectTool extends BaseTool {
       }
     }
 
+    // Recolor marks within the selection region
+    for (const mark of model.marks) {
+      if (mark.col >= cellX1 && mark.col <= cellX2 && mark.row >= cellY1 && mark.row <= cellY2) {
+        mark.c = color;
+      }
+    }
+
     ctx.requestRender();
+  }
+
+  /**
+   * Recolors all elements in the floating selection, including marks.
+   */
+  recolorFloat(color: string): void {
+    if (!this.floatData || this.phase !== 'float') return;
+    const d = this.floatData;
+    for (const cell of d.cells) cell.c = color;
+    for (const g of d.gH) g.c = color;
+    for (const g of d.gV) g.c = color;
+    for (const g of d.gD) g.c = color;
+    if (d.marks) {
+      for (const m of d.marks) m.c = color;
+    }
   }
 
   /**

@@ -109,6 +109,14 @@ export class FillTool extends BaseTool {
 
     // Recolor all gaps between affected cells
     this.recolorConnectedGaps(model, affectedCells, newColor);
+
+    // Recolor marks at affected cell positions
+    const affectedSet = new Set(affectedCells.map(c => `${c.x},${c.y}`));
+    for (const mark of model.marks) {
+      if (affectedSet.has(`${mark.col},${mark.row}`)) {
+        mark.c = newColor;
+      }
+    }
   }
 
 

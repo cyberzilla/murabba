@@ -199,8 +199,12 @@ export class App {
     this.config.drawColor = color;
     // If select tool has active selection, recolor it
     const selectTool = this.tools.get('select') as SelectTool;
-    if (this.currentToolType === 'select' && selectTool.getPhase() === 'define') {
-      selectTool.recolorRegion(color, this.getToolContext());
+    if (this.currentToolType === 'select') {
+      if (selectTool.getPhase() === 'define') {
+        selectTool.recolorRegion(color, this.getToolContext());
+      } else if (selectTool.getPhase() === 'float') {
+        selectTool.recolorFloat(color);
+      }
     }
     this.requestRender();
   }
