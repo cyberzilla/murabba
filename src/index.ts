@@ -607,8 +607,8 @@ function renderLetterPreview(canvas: HTMLCanvasElement, entry: LetterEntry): voi
   // Size calculations — fit within compact card
   const maxDim = Math.max(cols, rows);
   const totalPx = 28;
-  const cellPx = Math.max(2, Math.floor(totalPx / (maxDim + (maxDim - 1) * 0.4)));
-  const gapPx = Math.max(1, Math.round(cellPx * 0.35));
+  const cellPx = Math.max(2, Math.floor(totalPx / (maxDim + (maxDim - 1) * 0.55)));
+  const gapPx = Math.max(1, Math.round(cellPx * 0.5));
   const R = Math.max(0.5, cellPx * 0.3);
 
   const canvasW = cols * cellPx + (cols - 1) * gapPx;
