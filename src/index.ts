@@ -66,6 +66,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // About modal
     initAboutModal();
     document.getElementById('btnAbout')?.addEventListener('click', showAbout);
+
+    // Floating letter editor button
+    document.getElementById('fabLetterEditor')?.addEventListener('click', () => openNewLetter());
   }).catch(console.error);
 
   // Language switcher
