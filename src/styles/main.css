@@ -1065,11 +1065,21 @@ body {
   flex-wrap: wrap;
   gap: 4px;
   padding: 6px;
+  padding-top: 8px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   max-width: 220px;
+}
+/* Invisible bridge above popup to catch mouse crossing the gap */
+.letter-form-popup::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 0;
+  right: 0;
+  height: 6px;
 }
 
 .lfp-item {

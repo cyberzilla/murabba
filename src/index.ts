@@ -756,6 +756,9 @@ function ensurePopupElement(): HTMLElement {
     popup = document.createElement('div');
     popup.id = 'letterFormPopup';
     popup.className = 'letter-form-popup';
+    popup.addEventListener('mouseenter', () => {
+      if (popupTimer) { clearTimeout(popupTimer); popupTimer = null; }
+    });
     popup.addEventListener('mouseleave', () => {
       hideLetterPopup();
     });
@@ -846,7 +849,7 @@ function showLetterPopup(app: App, ch: string, entry: LetterEntry, anchor: HTMLE
   const rect = anchor.getBoundingClientRect();
   popup.style.display = 'flex';
   popup.style.left = `${rect.left}px`;
-  popup.style.top = `${rect.bottom + 4}px`;
+  popup.style.top = `${rect.bottom}px`;
 
   // Adjust if overflowing right edge
   requestAnimationFrame(() => {
@@ -856,7 +859,7 @@ function showLetterPopup(app: App, ch: string, entry: LetterEntry, anchor: HTMLE
     }
     // If overflowing bottom, show above
     if (pr.bottom > window.innerHeight - 8) {
-      popup.style.top = `${rect.top - pr.height - 4}px`;
+      popup.style.top = `${rect.top - pr.height}px`;
     }
   });
 }
