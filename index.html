@@ -283,6 +283,15 @@
             <span data-i18n="tools.export">Export</span>
           </summary>
           <div class="rp-body">
+            <div class="ctrl-row" style="margin-bottom:8px;align-items:center;">
+              <label style="font-size:10px;color:var(--muted);white-space:nowrap;" data-i18n="tools.resolution">Resolution</label>
+              <select id="exportScale" class="s-input" style="flex:1;font-size:11px;padding:4px 6px;">
+                <option value="1">1× (72 DPI)</option>
+                <option value="2" selected>2× (144 DPI)</option>
+                <option value="4">4× (288 DPI)</option>
+                <option value="8">8× (576 DPI)</option>
+              </select>
+            </div>
             <button class="s-btn accent full" id="exportPNG" data-i18n="tools.exportPNG">Export PNG</button>
             <button class="s-btn full" id="exportSVG" data-i18n="tools.exportSVG" style="margin-top:6px">Export SVG</button>
             <button class="s-btn full" id="exportWebP" data-i18n="tools.exportWebP" style="margin-top:6px">Export WebP</button>

@@ -238,12 +238,16 @@ export class App {
     return !!(this.bgImage && this.bgVisible);
   }
 
+  /** Export scale factor (1x = 72dpi, 2x = 144dpi, 4x = 288dpi) */
+  exportScale = 1;
+
   exportPNG(): void {
     const withBg = this.shouldExportBg;
     const dataUrl = exportToPNG(this.model, this.config, {
       withBackground: withBg,
       bgImage: this.bgImage,
       bgProps: this.bgProps,
+      scale: this.exportScale,
     });
     downloadPNG(dataUrl, `murabba_${Date.now()}.png`);
   }
@@ -254,6 +258,7 @@ export class App {
       withBackground: withBg,
       bgImage: this.bgImage,
       bgProps: this.bgProps,
+      scale: this.exportScale,
     });
     const anchor = document.createElement('a');
     anchor.href = dataUrl;

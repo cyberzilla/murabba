@@ -130,6 +130,15 @@ function wireActionButtons(app: App): void {
   document.getElementById('exportSVG')?.addEventListener('click', () => app.exportSVG());
   document.getElementById('exportWebP')?.addEventListener('click', () => app.exportWebP());
 
+  // DPI / scale selector
+  const scaleSelect = document.getElementById('exportScale') as HTMLSelectElement | null;
+  if (scaleSelect) {
+    app.exportScale = Number(scaleSelect.value) || 2;
+    scaleSelect.addEventListener('change', () => {
+      app.exportScale = Number(scaleSelect.value) || 1;
+    });
+  }
+
   // Home button (logo) — return to welcome screen
   document.getElementById('btnHome')?.addEventListener('click', () => {
     try { localStorage.removeItem('kufi_in_editor'); } catch { /* ok */ }

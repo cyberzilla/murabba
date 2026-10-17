@@ -10,6 +10,8 @@ export interface ExportOptions {
   withBackground?: boolean;
   bgImage?: HTMLImageElement | null;
   bgProps?: BgProps;
+  /** Scale factor for export resolution (1 = 72dpi, 2 = 144dpi, 4 = 288dpi, etc.) */
+  scale?: number;
 }
 
 /**
@@ -38,10 +40,12 @@ function renderToOffscreen(
   const offX = pad - bb.minX * total;
   const offY = pad - bb.minY * total;
 
+  const scale = options.scale || 1;
   const canvas = document.createElement('canvas');
-  canvas.width = cw;
-  canvas.height = ch;
+  canvas.width = Math.round(cw * scale);
+  canvas.height = Math.round(ch * scale);
   const ctx = canvas.getContext('2d')!;
+  ctx.scale(scale, scale);
 
   // Background color (only when exporting with background, otherwise transparent)
   if (options.withBackground) {
