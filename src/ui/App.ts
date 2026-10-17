@@ -364,13 +364,16 @@ export class App {
 
   // ─── Letter Placement ───────────────────────────────────
 
-  addLetter(ch: string, position: string = 'isolated'): void {
+  addLetter(ch: string, position: string = 'isolated', variationIndex?: number): void {
     const entry = this.letters[ch];
     if (!entry) return;
 
-    // Pick the right form based on position
+    // Pick the right form based on position or variation index
     let m: number[][], gH: number[][], gV: number[][], gD: number[][];
-    if (position !== 'isolated' && entry.forms?.[position as 'initial' | 'medial' | 'final']) {
+    if (typeof variationIndex === 'number' && entry.variations?.[variationIndex]) {
+      const v = entry.variations[variationIndex];
+      m = v.m; gH = v.gH; gV = v.gV; gD = v.gD;
+    } else if (position !== 'isolated' && entry.forms?.[position as 'initial' | 'medial' | 'final']) {
       const f = entry.forms[position as 'initial' | 'medial' | 'final']!;
       m = f.m; gH = f.gH; gV = f.gV; gD = f.gD;
     } else {

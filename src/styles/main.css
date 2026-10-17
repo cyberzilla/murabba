@@ -1044,38 +1044,60 @@ body {
   border-color: #ef4444;
 }
 
-/* ── Letter card forms count badge (bottom-left) ── */
-.letter-forms-badge {
+/* ── Multi-form dot indicator (bottom-right of letter card) ── */
+.letter-multi-dot {
   position: absolute;
-  bottom: 2px;
-  inset-inline-start: 2px;
-  font-size: 7px;
-  color: var(--accent);
-  opacity: 0.85;
-  background: rgba(34, 197, 94, 0.1);
-  border: 1px solid rgba(34, 197, 94, 0.25);
-  border-radius: 3px;
-  padding: 0 3px;
-  line-height: 1.6;
-  letter-spacing: 0.3px;
+  bottom: 3px;
+  inset-inline-end: 3px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.7;
   pointer-events: none;
-  font-weight: 600;
 }
 
-/* ── Letter card variations badge (bottom-right) ── */
-.letter-var-badge {
-  position: absolute;
-  bottom: 2px;
-  inset-inline-end: 2px;
-  font-size: 7px;
-  color: #a78bfa;
-  opacity: 0.85;
-  background: rgba(167, 139, 250, 0.1);
-  border: 1px solid rgba(167, 139, 250, 0.25);
-  border-radius: 3px;
-  padding: 0 3px;
-  line-height: 1.6;
-  letter-spacing: 0.3px;
-  pointer-events: none;
-  font-weight: 600;
+/* ── Letter Form Hover Popup ── */
+.letter-form-popup {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  max-width: 220px;
+}
+
+.lfp-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.lfp-item:hover {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: var(--accent);
+}
+
+.lfp-preview {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+}
+
+.lfp-label {
+  font-size: 8px;
+  color: var(--muted);
+  line-height: 1;
+  white-space: nowrap;
 }

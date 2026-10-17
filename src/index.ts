@@ -695,28 +695,6 @@ function rebuildLetterGrid(app: App, posFilter: string = 'all'): void {
       btn.appendChild(badge);
     }
 
-    // Count forms and variations for info badges
-    const formCount = entry.forms ? Object.keys(entry.forms).length : 0;
-    const varCount = entry.variations ? entry.variations.length : 0;
-
-    // Show forms indicator badge (top-right area, only in 'all' view)
-    if (posFilter === 'all' && formCount > 0) {
-      const formBadge = document.createElement('span');
-      formBadge.className = 'letter-forms-badge';
-      formBadge.textContent = `${formCount + 1}⌶`;
-      formBadge.title = `${formCount + 1} ${t('letterEditor.tabVariation').toLowerCase()}`;
-      btn.appendChild(formBadge);
-    }
-
-    // Show variations badge (bottom-left)
-    if (posFilter === 'all' && varCount > 0) {
-      const varBadge = document.createElement('span');
-      varBadge.className = 'letter-var-badge';
-      varBadge.textContent = `${varCount}V`;
-      varBadge.title = `${varCount} ${t('letterEditor.tabVariation').toLowerCase()}`;
-      btn.appendChild(varBadge);
-    }
-
     // Edit button overlay
     const editSpan = document.createElement('span');
     editSpan.className = 'letter-edit';
@@ -728,14 +706,167 @@ function rebuildLetterGrid(app: App, posFilter: string = 'all'): void {
     });
     btn.appendChild(editSpan);
 
-    // Click places the currently shown form
-    const placePos = posFilter === 'all' ? 'isolated' : posFilter;
-    btn.addEventListener('click', () => {
-      app.addLetter(ch, placePos);
-    });
+    // Check if letter has multiple forms
+    const formCount = entry.forms ? Object.keys(entry.forms).length : 0;
+    const varCount = entry.variations ? entry.variations.length : 0;
+    const hasMultiple = formCount > 0 || varCount > 0;
+
+    // Small dot indicator if has multiple forms (subtle, not noisy)
+    if (posFilter === 'all' && hasMultiple) {
+      const dot = document.createElement('span');
+      dot.className = 'letter-multi-dot';
+      btn.appendChild(dot);
+    }
+
+    if (hasMultiple && posFilter === 'all') {
+      // Show popup on hover for letters with multiple forms
+      btn.addEventListener('mouseenter', (e) => {
+        showLetterPopup(app, ch, entry, e.currentTarget as HTMLElement);
+      });
+      btn.addEventListener('mouseleave', (e) => {
+        const related = (e as MouseEvent).relatedTarget as HTMLElement;
+        const popup = document.getElementById('letterFormPopup');
+        if (popup && (popup === related || popup.contains(related))) return;
+        hideLetterPopup();
+      });
+      // Default click places isolated
+      btn.addEventListener('click', () => {
+        const placePos = posFilter === 'all' ? 'isolated' : posFilter;
+        app.addLetter(ch, placePos);
+      });
+    } else {
+      // Simple click-to-place for single-form letters
+      const placePos = posFilter === 'all' ? 'isolated' : posFilter;
+      btn.addEventListener('click', () => {
+        app.addLetter(ch, placePos);
+      });
+    }
 
     grid.appendChild(btn);
   }
+}
+
+// ─── Letter Form Popup ─────────────────────────────────
+
+let popupTimer: ReturnType<typeof setTimeout> | null = null;
+
+function ensurePopupElement(): HTMLElement {
+  let popup = document.getElementById('letterFormPopup');
+  if (!popup) {
+    popup = document.createElement('div');
+    popup.id = 'letterFormPopup';
+    popup.className = 'letter-form-popup';
+    popup.addEventListener('mouseleave', () => {
+      hideLetterPopup();
+    });
+    document.body.appendChild(popup);
+  }
+  return popup;
+}
+
+function showLetterPopup(app: App, ch: string, entry: LetterEntry, anchor: HTMLElement): void {
+  if (popupTimer) { clearTimeout(popupTimer); popupTimer = null; }
+
+  const popup = ensurePopupElement();
+  popup.innerHTML = '';
+
+  const color = app.config.drawColor;
+  const radiusRatio = app.config.cellRadius / app.config.cellSize;
+
+  // Build form options
+  interface FormOption {
+    label: string;
+    formData: { m: number[][]; gH: number[][]; gV: number[][]; gD: number[][] };
+    onClick: () => void;
+  }
+
+  const options: FormOption[] = [];
+
+  // Isolated (always available)
+  options.push({
+    label: t('letterEditor.tabSingle'),
+    formData: { m: entry.m, gH: entry.gH, gV: entry.gV, gD: entry.gD },
+    onClick: () => { app.addLetter(ch, 'isolated'); hideLetterPopup(); },
+  });
+
+  // Positional forms
+  const positions: Array<{ key: 'initial' | 'medial' | 'final'; i18n: string }> = [
+    { key: 'initial', i18n: 'letterEditor.tabStart' },
+    { key: 'medial', i18n: 'letterEditor.tabCenter' },
+    { key: 'final', i18n: 'letterEditor.tabEnd' },
+  ];
+  for (const pos of positions) {
+    const form = entry.forms?.[pos.key];
+    if (form) {
+      options.push({
+        label: t(pos.i18n),
+        formData: form,
+        onClick: () => { app.addLetter(ch, pos.key); hideLetterPopup(); },
+      });
+    }
+  }
+
+  // Variations
+  if (entry.variations) {
+    entry.variations.forEach((vf, idx) => {
+      options.push({
+        label: `V${idx + 1}`,
+        formData: vf,
+        onClick: () => { app.addLetter(ch, 'isolated', idx); hideLetterPopup(); },
+      });
+    });
+  }
+
+  // Render options
+  for (const opt of options) {
+    const item = document.createElement('button');
+    item.className = 'lfp-item';
+    item.title = opt.label;
+
+    const cvs = document.createElement('canvas');
+    cvs.className = 'lfp-preview';
+    const previewE = { ...entry, ...opt.formData };
+    renderLetterPreview(cvs, previewE, color, radiusRatio);
+    item.appendChild(cvs);
+
+    const lbl = document.createElement('span');
+    lbl.className = 'lfp-label';
+    lbl.textContent = opt.label;
+    item.appendChild(lbl);
+
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      opt.onClick();
+    });
+
+    popup.appendChild(item);
+  }
+
+  // Position popup relative to anchor
+  const rect = anchor.getBoundingClientRect();
+  popup.style.display = 'flex';
+  popup.style.left = `${rect.left}px`;
+  popup.style.top = `${rect.bottom + 4}px`;
+
+  // Adjust if overflowing right edge
+  requestAnimationFrame(() => {
+    const pr = popup.getBoundingClientRect();
+    if (pr.right > window.innerWidth - 8) {
+      popup.style.left = `${window.innerWidth - pr.width - 8}px`;
+    }
+    // If overflowing bottom, show above
+    if (pr.bottom > window.innerHeight - 8) {
+      popup.style.top = `${rect.top - pr.height - 4}px`;
+    }
+  });
+}
+
+function hideLetterPopup(): void {
+  popupTimer = setTimeout(() => {
+    const popup = document.getElementById('letterFormPopup');
+    if (popup) popup.style.display = 'none';
+    popupTimer = null;
+  }, 100);
 }
 
 /**
