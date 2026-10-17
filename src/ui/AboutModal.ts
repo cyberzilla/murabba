@@ -118,7 +118,7 @@ function createModalDOM(): void {
           </div>
           <div class="shortcut-group">
             <div class="shortcut-group-title">Navigation</div>
-            <div class="shortcut-row"><kbd>Scroll</kbd><span>Zoom in/out</span></div>
+            <div class="shortcut-row"><kbd>Ctrl+Scroll</kbd><span>Zoom in/out</span></div>
             <div class="shortcut-row"><kbd>Arrow keys</kbd><span>Nudge selection</span></div>
             <div class="shortcut-row"><kbd>Enter</kbd><span>Confirm selection</span></div>
             <div class="shortcut-row"><kbd>Esc</kbd><span>Cancel / Close</span></div>
