@@ -288,9 +288,11 @@ function wireGridControls(app: App): void {
     settingsTimer = setTimeout(() => { saveSettings(app.config); }, 500);
   };
 
-  // Sliders
+  // Sliders — RAF-throttled to avoid lag on large grids
   const cellSizeR = document.getElementById('cellSizeR') as HTMLInputElement | null;
   const cellRadR = document.getElementById('cellRadR') as HTMLInputElement | null;
+  const gapSizeR = document.getElementById('gapSizeR') as HTMLInputElement | null;
+  let sliderRaf: number | null = null;
 
   /** Update radius slider max to half of current cell size and clamp value */
   const syncRadiusMax = () => {
@@ -305,37 +307,46 @@ function wireGridControls(app: App): void {
     }
   };
 
+  /** Throttled render: batches multiple slider ticks into one frame */
+  const scheduleSliderRender = () => {
+    if (sliderRaf !== null) return;
+    sliderRaf = requestAnimationFrame(() => {
+      sliderRaf = null;
+      app.requestRender();
+    });
+  };
+
+  /** Deferred: update letter previews + editor config (expensive, runs on mouse release) */
+  const onSliderCommit = () => {
+    updateLetterPreviewColors(app);
+    setEditorGridConfig(app.config.cellSize, app.config.gapSize, app.config.cellRadius);
+    debouncedSave();
+  };
+
   cellSizeR?.addEventListener('input', () => {
     app.config.cellSize = +cellSizeR.value;
     const val = document.getElementById('cellSizeVal');
     if (val) val.textContent = cellSizeR.value;
     syncRadiusMax();
-    app.requestRender();
-    updateLetterPreviewColors(app);
-    setEditorGridConfig(app.config.cellSize, app.config.gapSize, app.config.cellRadius);
-    debouncedSave();
+    scheduleSliderRender();
   });
+  cellSizeR?.addEventListener('change', onSliderCommit);
 
-  const gapSizeR = document.getElementById('gapSizeR') as HTMLInputElement | null;
   gapSizeR?.addEventListener('input', () => {
     app.config.gapSize = +gapSizeR.value;
     const val = document.getElementById('gapSizeVal');
     if (val) val.textContent = gapSizeR.value;
-    app.requestRender();
-    updateLetterPreviewColors(app);
-    setEditorGridConfig(app.config.cellSize, app.config.gapSize, app.config.cellRadius);
-    debouncedSave();
+    scheduleSliderRender();
   });
+  gapSizeR?.addEventListener('change', onSliderCommit);
 
   cellRadR?.addEventListener('input', () => {
     app.config.cellRadius = +cellRadR.value;
     const val = document.getElementById('cellRadVal');
     if (val) val.textContent = cellRadR.value;
-    app.requestRender();
-    updateLetterPreviewColors(app);
-    setEditorGridConfig(app.config.cellSize, app.config.gapSize, app.config.cellRadius);
-    debouncedSave();
+    scheduleSliderRender();
   });
+  cellRadR?.addEventListener('change', onSliderCommit);
 
   // Set initial radius max
   syncRadiusMax();
