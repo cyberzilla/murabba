@@ -32,7 +32,7 @@ export function renderSelectionFrame(
   ctx.strokeStyle = '#42A5F5';
   ctx.lineWidth = 1;
   ctx.setLineDash([4, 3]);
-  ctx.lineDashOffset = (Date.now() / 50) % 10; // animated dash
+  ctx.lineDashOffset = -(performance.now() / 80) % 7; // smooth marching ants
 
   ctx.strokeRect(left, top, width, height);
 
@@ -195,6 +195,7 @@ export function renderSelectionGhost(
   ctx.strokeStyle = '#42A5F5';
   ctx.lineWidth = 1;
   ctx.setLineDash([4, 3]);
+  ctx.lineDashOffset = -(performance.now() / 80) % 7;
   ctx.strokeRect(
     pad + data.ox * total,
     pad + data.oy * total,
