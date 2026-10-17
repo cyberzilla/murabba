@@ -8,6 +8,7 @@ import type { LetterEntry } from './types/grid';
 import { initConfirmModal, confirmDialog } from './ui/ConfirmModal';
 import { loadSession, saveSettings } from './storage/SessionManager';
 import { initLetterEditor, openNewLetter, openEditLetter } from './ui/LetterEditor';
+import { initAboutModal, showAbout } from './ui/AboutModal';
 import { exportLibrary, saveLetter, deleteLetter } from './letters/LetterLibrary';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -61,6 +62,10 @@ document.addEventListener('DOMContentLoaded', () => {
     syncColorUI(app);
     // Sync slider UI with loaded settings (cellSize, gapSize, cellRadius)
     syncSliderUI(app);
+
+    // About modal
+    initAboutModal();
+    document.getElementById('btnAbout')?.addEventListener('click', showAbout);
   }).catch(console.error);
 
   // Language switcher
