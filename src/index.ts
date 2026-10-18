@@ -75,6 +75,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Language switcher
   wireLangSwitcher();
 
+  // Theme toggle
+  wireThemeToggle(app);
+
   // Expose for debugging
   (window as any).__murabbaApp = app;
 });
@@ -1291,8 +1294,58 @@ function renderLetterPreview(canvas: HTMLCanvasElement, entry: LetterEntry, colo
   // Draw sub-cell marks (kaf-s, hamzah)
   if (entry.marks && entry.marks.length > 0) {
     // Use card bg color for erasing; marks draw in letter color
-    const markBg = '#1a1a2e';
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const markBg = isLight ? '#F5F5F0' : '#1a1a2e';
     renderPreviewMarks(ctx, entry.marks, cellPx, gapPx, markBg, color);
+  }
+}
+
+function wireThemeToggle(app: App): void {
+  // ── Theme Toggle ──
+  const btnTheme = document.getElementById('btnTheme');
+  btnTheme?.addEventListener('click', () => {
+    const html = document.documentElement;
+    const isCurrentlyLight = html.getAttribute('data-theme') === 'light';
+    const newTheme = isCurrentlyLight ? 'dark' : 'light';
+
+    if (newTheme === 'light') {
+      html.setAttribute('data-theme', 'light');
+    } else {
+      html.removeAttribute('data-theme');
+    }
+
+    localStorage.setItem('murabba_theme', newTheme);
+
+    // Update theme-color meta tag
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) {
+      metaTheme.setAttribute('content', newTheme === 'light' ? '#FFFFFF' : '#0A0D0B');
+    }
+
+    // Update canvas colors
+    app.applyThemeColors();
+
+    // Repaint letter previews (mark backgrounds change with theme)
+    updateLetterPreviewColors(app);
+
+    // Update theme toggle icon
+    updateThemeIcon(newTheme);
+  });
+
+  // Initialize theme icon on load
+  const savedTheme = localStorage.getItem('murabba_theme') || 'dark';
+  updateThemeIcon(savedTheme);
+}
+
+function updateThemeIcon(theme: string) {
+  const btnTheme = document.getElementById('btnTheme');
+  if (!btnTheme) return;
+  if (theme === 'light') {
+    // Show moon icon for switching back to dark
+    btnTheme.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+  } else {
+    // Show sun icon for switching to light
+    btnTheme.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
   }
 }
 

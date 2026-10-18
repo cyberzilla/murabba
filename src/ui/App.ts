@@ -21,6 +21,7 @@ import type { ToolType, RenderConfig, BgProps, LetterEntry, SessionData, Selecti
 
 /** Default render configuration. */
 function defaultConfig(): RenderConfig {
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
   return {
     cellSize: 19,
     gapSize: 19,
@@ -30,8 +31,8 @@ function defaultConfig(): RenderConfig {
     panX: 0,
     panY: 0,
     drawColor: '#22C55E',
-    emptyCellColor: '#0D1210',
-    canvasBgColor: '#0A0D0B',
+    emptyCellColor: isLight ? '#E0E0DB' : '#0D1210',
+    canvasBgColor: isLight ? '#F5F5F0' : '#0A0D0B',
     showAxis: true,
     axisColor: '#4848486c',
     axisEvery: 5,
@@ -656,6 +657,18 @@ export class App {
     const select = this.tools.get('select') as SelectTool;
     if (select) select.reset();
     this.requestRender();
+  }
+
+  /** Update canvas colors to match current theme. */
+  applyThemeColors(): void {
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    this.config.canvasBgColor = isLight ? '#F5F5F0' : '#0A0D0B';
+    this.config.emptyCellColor = isLight ? '#E0E0DB' : '#0D1210';
+    this.renderer.render(this.model, this.config, {
+      bgImage: this.bgImage ?? undefined,
+      bgProps: this.bgProps,
+      bgVisible: this.bgVisible,
+    });
   }
 
   // ─── Clipboard: Copy / Cut / Paste ─────────────────────

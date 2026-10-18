@@ -20,6 +20,24 @@
   --danger: #DC2626;
 }
 
+/* ─── Light Theme Variables ─── */
+[data-theme="light"] {
+  color-scheme: light;
+  --accent: #16a34a;
+  --accent2: #DC2626;
+  --bg: #F5F5F0;
+  --surface: #FFFFFF;
+  --surface2: #F0F0EB;
+  --surface3: #E8E8E3;
+  --border: rgba(0, 0, 0, 0.1);
+  --text: #1a1a1a;
+  --muted: #6b7280;
+  --cell-bg: #E0E0DB;
+  --r: 12px;
+  --rs: 8px;
+  --danger: #DC2626;
+}
+
 /* Remove native focus outline; keyboard users still see :focus-visible */
 *:focus { outline: none; }
 *:focus-visible { outline: none; }
@@ -1212,3 +1230,66 @@ input[type="number"]::-webkit-outer-spin-button {
   pointer-events: auto;
 }
 
+
+/* ═══════════════════════════════════════════════
+   Light Theme — Component Overrides
+   ═══════════════════════════════════════════════ */
+
+[data-theme="light"] .modal-box {
+  background: var(--surface);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0,0,0,0.05);
+}
+[data-theme="light"] .modal-icon {
+  background: rgba(0, 0, 0, 0.06);
+}
+[data-theme="light"] .modal-box p {
+  color: var(--text);
+}
+[data-theme="light"] #rightPanel {
+  box-shadow: -4px 0 24px rgba(0,0,0,0.08);
+}
+[data-theme="light"] .swatch.selected {
+  border-color: #333;
+}
+[data-theme="light"] .tool-flyout {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+[data-theme="light"] .letter-form-popup {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+[data-theme="light"] .letter-btn .letter-edit {
+  background: rgba(255,255,255,0.85);
+  color: var(--muted);
+}
+[data-theme="light"] .shortcut-row kbd {
+  box-shadow: 0 1px 0 rgba(0,0,0,0.1);
+}
+[data-theme="light"] .le-cell:hover {
+  background: #d5ddd7;
+}
+[data-theme="light"] .le-cell.filled.mark-kaf-s::after,
+[data-theme="light"] .le-cell.filled.mark-hamzah::after {
+  color: #fff;
+}
+[data-theme="light"] input[type="number"] {
+  color-scheme: light;
+}
+[data-theme="light"] .s-btn.accent {
+  color: #fff;
+}
+[data-theme="light"] .s-btn.accent:hover {
+  background: #15803d;
+}
+[data-theme="light"] select:hover,
+[data-theme="light"] .s-input:hover {
+  border-color: rgba(0, 0, 0, 0.2);
+}
+[data-theme="light"] .tb-logo-mark {
+  box-shadow: 0 2px 10px rgba(22,163,74,0.3);
+}
+[data-theme="light"] .wl-logo-icon {
+  text-shadow: 0 4px 24px rgba(22,163,74,0.3);
+}
+[data-theme="light"] .le-form-tab.active {
+  color: #fff;
+}
