@@ -6,7 +6,7 @@ import { initI18n, setLang, getLang, t } from './i18n/I18n';
 import type { SupportedLang } from './types';
 import type { LetterEntry } from './types/grid';
 import { renderPreviewMarks } from './canvas/MarkRenderer';
-import { initConfirmModal, confirmDialog } from './ui/ConfirmModal';
+import { initConfirmModal, confirmDialog, alertDialog } from './ui/ConfirmModal';
 import { loadSession, saveSettings, SESSION_KEY, migrateStorageKeys } from './storage/SessionManager';
 import { initLetterEditor, openNewLetter, openEditLetter, setEditorGridConfig } from './ui/LetterEditor';
 import { initAboutModal, showAbout } from './ui/AboutModal';
@@ -564,11 +564,22 @@ function wireFileIO(app: App): void {
   loadInput?.addEventListener('change', (e) => {
     const file = (e.target as HTMLInputElement).files?.[0];
     if (!file) return;
+    // Validate file extension
+    if (!file.name.toLowerCase().endsWith('.json')) {
+      alertDialog('Invalid file format. Please select a .json project file.', 'error');
+      (e.target as HTMLInputElement).value = '';
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (ev) => {
-      app.loadJSON(ev.target?.result as string);
-      // Sync color picker & swatches with loaded project color
-      syncColorUI(app);
+      const text = ev.target?.result as string;
+      const err = app.loadJSON(text);
+      if (err) {
+        alertDialog(`Failed to load project file.\n${err}`, 'error');
+      } else {
+        // Sync color picker & swatches with loaded project color
+        syncColorUI(app);
+      }
     };
     reader.readAsText(file);
     (e.target as HTMLInputElement).value = '';
@@ -802,11 +813,21 @@ function wireLetterPanel(app: App): void {
     input.addEventListener('change', () => {
       const file = input.files?.[0];
       if (!file) return;
+      // Validate file extension
+      if (!file.name.toLowerCase().endsWith('.json')) {
+        alertDialog('Invalid file format. Please select a .json library file.', 'error');
+        return;
+      }
       const reader = new FileReader();
       reader.onload = () => {
         try {
           const parsed = JSON.parse(reader.result as string);
           const rawLetters = parsed.letters || parsed;
+          if (typeof rawLetters !== 'object' || Array.isArray(rawLetters) || Object.keys(rawLetters).length === 0) {
+            alertDialog('Invalid library file: no letters found.', 'error');
+            return;
+          }
+          let imported = 0;
           for (const [ch, raw] of Object.entries(rawLetters)) {
             const e = raw as any;
             if (!e.m || !Array.isArray(e.m)) continue;
@@ -823,15 +844,21 @@ function wireLetterPanel(app: App): void {
               _builtin: false,
             };
             app.letters[ch] = entry;
+            imported++;
             // Persist imported letter to IndexedDB
             if (app.db) {
               saveLetter(app.db, ch, entry.name, entry.m, entry.gH, entry.gV, entry.gD, entry.forms, entry.variations, entry.marks)
                 .catch(err => console.warn('[Murabba] Failed to persist imported letter:', err));
             }
           }
-          rebuildLetterGrid(app);
+          if (imported === 0) {
+            alertDialog('No valid letters found in the file.', 'warning');
+          } else {
+            rebuildLetterGrid(app);
+            alertDialog(`Successfully imported ${imported} letter${imported > 1 ? 's' : ''}.`, 'success');
+          }
         } catch (err) {
-          console.warn('[Murabba] Failed to import letters:', err);
+          alertDialog('Failed to import library: invalid JSON file.', 'error');
         }
       };
       reader.readAsText(file);

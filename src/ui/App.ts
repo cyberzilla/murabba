@@ -314,7 +314,7 @@ export class App {
     downloadJSON(json, `murabba_${Date.now()}.json`);
   }
 
-  loadJSON(text: string): void {
+  loadJSON(text: string): string | null {
     try {
       const data = importProject(text);
       this.model = new GridModel(data.cols, data.rows);
@@ -330,8 +330,10 @@ export class App {
       this.history.clear();
       this.requestRender();
       this.scheduleAutoSave();
+      return null;
     } catch (err) {
       console.error('[Murabba] Failed to load JSON:', err);
+      return err instanceof Error ? err.message : String(err);
     }
   }
 
