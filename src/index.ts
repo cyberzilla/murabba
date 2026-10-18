@@ -137,6 +137,7 @@ function wireActionButtons(app: App): void {
   document.getElementById('exportPNG')?.addEventListener('click', () => app.exportPNG());
   document.getElementById('exportSVG')?.addEventListener('click', () => app.exportSVG());
   document.getElementById('exportWebP')?.addEventListener('click', () => app.exportWebP());
+  document.getElementById('exportEPS')?.addEventListener('click', () => app.exportEPS());
 
   // DPI / scale selector
   const scaleSelect = document.getElementById('exportScale') as HTMLSelectElement | null;

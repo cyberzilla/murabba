@@ -5,7 +5,7 @@ import { GridModel } from '../core/GridModel';
 import { HistoryManager } from '../core/HistoryManager';
 import { screenToCell } from '../core/CoordinateMapper';
 import { CanvasRenderer, OverlayState } from '../canvas/CanvasRenderer';
-import { exportToPNG, exportToWebP, exportToSVG } from '../canvas/ExportRenderer';
+import { exportToPNG, exportToWebP, exportToSVG, exportToEPS } from '../canvas/ExportRenderer';
 import { BaseTool, ToolContext } from '../tools/BaseTool';
 import { DrawTool } from '../tools/DrawTool';
 import { FillTool } from '../tools/FillTool';
@@ -285,6 +285,24 @@ export class App {
     const anchor = document.createElement('a');
     anchor.href = url;
     anchor.download = `murabba_${Date.now()}.svg`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  }
+
+  exportEPS(): void {
+    const withBg = this.shouldExportBg;
+    const epsStr = exportToEPS(this.model, this.config, {
+      withBackground: withBg,
+      bgImage: this.bgImage,
+      bgProps: this.bgProps,
+    });
+    const blob = new Blob([epsStr], { type: 'application/postscript;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `murabba_${Date.now()}.eps`;
     document.body.appendChild(anchor);
     anchor.click();
     document.body.removeChild(anchor);
