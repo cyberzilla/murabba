@@ -6,6 +6,8 @@
 
 A free, open-source browser tool for designing Square Kufic (الخط الكوفي المربع) calligraphy.
 
+🔗 **[Live Demo](https://cyberzilla.github.io/murabba)**
+
 </div>
 
 ---
