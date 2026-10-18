@@ -19,17 +19,18 @@ A free, open-source browser tool for designing Square Kufic (الخط الكوف
 - ✍️ **Multiple drawing tools** — Draw, Erase, Fill, Brush (3 modes), Select, Pan
 - ✂️ **Selection tool** — marquee select, drag-to-move, shift+drag to reposition frame, copy/cut/paste, right-click to stamp
 - 🔄 **Transform** — rotate CW/CCW, flip horizontal/vertical via toolbar buttons or keyboard shortcuts
-- 🔤 **Letter library** — 35+ Arabic letters with positional forms (isolated, initial, medial, final), floating preview for positioning
+- 🔤 **Letter library** — 41 letters including Arabic and Jawi script (چ ڠ ڤ ڬ ۋ ڽ) with positional forms (isolated, initial, medial, final), floating preview for positioning
 - ✏️ **Letter editor** — create and edit letter forms with multiple variations, sub-cell marks (kaf-s zigzag, hamzah C-shape)
 - 🎯 **Sub-cell marks** — decorative marks with independent color, rotation, and flip — rendered on both canvas and SVG export
 - 🖼️ **Reference image** — overlay any image for tracing with rotation, crop, opacity, blend modes
-- 📦 **Smart export** — PNG (transparent when no background), SVG (with marks, transforms, embedded background), WebP
+- 📦 **Smart export** — PNG (transparent when no background), SVG (with marks, transforms, embedded background), WebP, EPS
 - 💾 **Save & Load** — JSON project files with auto-save and session restore on refresh
 - 🔄 **Undo / Redo** — up to 60 history states, synced toolbar & keyboard shortcuts
 - 📋 **Clipboard** — copy, cut, paste selections with full mark and color preservation
 - 🌍 **Multilingual** — English, العربية, Indonesia — no flash on page load
 - 🏠 **Welcome screen** — new project, open file, continue last session — with state persistence
-- 🎨 **Dark theme** — modern dark UI with customizable color palette and quick swatches
+- 🌗 **Light / Dark theme** — toggle with one click, preference saved in localStorage, no flash on reload
+- ✅ **File validation** — warns on invalid file format when loading projects or importing libraries
 
 ## Tech Stack
 
@@ -65,7 +66,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 npx vite build
 ```
 
-Output will be in the `dist/` directory.
+Output will be in the `docs/` directory (for GitHub Pages deployment).
 
 ## How to Use
 
@@ -77,7 +78,7 @@ Output will be in the `dist/` directory.
 6. Add letters from the **Letters** panel — they appear as a floating preview you can position before committing
 7. Use **Select** tool to move content: drag inside selection to cut & move, Shift+drag to reposition frame only
 8. **Transform** floating selections: rotate (R/Shift+R) or flip (X/Y) using toolbar buttons or keyboard
-9. Export your work as **PNG**, **SVG**, or **WebP** — background is automatically included when present
+9. Export your work as **PNG**, **SVG**, **WebP**, or **EPS** — background is automatically included when present
 10. Click the **✦ Murabba** logo to return to the welcome screen
 
 ## Keyboard Shortcuts
