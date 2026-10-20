@@ -1330,3 +1330,7 @@ input[type="number"]::-webkit-outer-spin-button {
 [data-theme="light"] .le-form-tab.active {
   color: #fff;
 }
+
+/* Prevent welcome screen flash when restoring editor state */
+.restore-editor #welcomeScreen { display: none !important; }
+.restore-editor #editor { display: flex !important; }
