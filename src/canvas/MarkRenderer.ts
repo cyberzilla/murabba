@@ -250,6 +250,7 @@ export function renderPreviewMarks(
     showAxis: false,
     axisColor: '',
     showRulers: false,
+    showConns: false,
     zoom: 1,
     drawColor: drawColor,
     panX: 0,

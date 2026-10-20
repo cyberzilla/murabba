@@ -5,7 +5,7 @@
  * Supports positional forms (isolated/initial/medial/final) and multiple variations.
  */
 
-import type { LetterEntry, LetterForm, LetterPosition, CellMark } from '../types/grid';
+import type { LetterEntry, LetterForm, LetterPosition, CellMark, ConnectionMarker } from '../types/grid';
 import { t } from '../i18n/I18n';
 
 export interface LetterEditorCallbacks {
@@ -36,6 +36,7 @@ interface FormData {
   gV: number[][];
   gD: number[][];
   marks?: CellMark[];
+  conns?: ConnectionMarker[];
 }
 
 // ─── State ─────────────────────────────────────────────
@@ -50,11 +51,12 @@ let gHMatrix: number[][] = [];
 let gVMatrix: number[][] = [];
 let gDMatrix: number[][] = [];
 
-let editorTool: 'draw' | 'erase' | 'mark-kaf-s' | 'mark-hamzah' = 'draw';
+let editorTool: 'draw' | 'erase' | 'mark-kaf-s' | 'mark-hamzah' | 'conn-in' | 'conn-best' | 'conn-out' | 'conn-alt' = 'draw';
 let isPointerDown = false;
 let editingCh: string | null = null;
 let callbacks: LetterEditorCallbacks | null = null;
 let editorMarks: CellMark[] = [];
+let editorConns: ConnectionMarker[] = [];
 
 // ─── Form Tabs State ───────────────────────────────────
 
@@ -98,6 +100,7 @@ export function openNewLetter(): void {
   activeVariationIdx = 0;
   activeFormTab = 'isolated';
   editorMarks = [];
+  editorConns = [];
 
   const charInput = document.getElementById('leChar') as HTMLInputElement;
   const nameInput = document.getElementById('leName') as HTMLInputElement;
@@ -139,6 +142,7 @@ export function openEditLetter(ch: string, entry: LetterEntry): void {
     gV: (entry.gV || []).map(r => [...r]),
     gD: (entry.gD || []).map(r => [...r]),
     marks: entry.marks ? entry.marks.map(m => ({ ...m })) : undefined,
+    conns: entry.conns ? entry.conns.map(c => ({ ...c })) : undefined,
   };
 
   // Populate positional forms from entry.forms
@@ -156,6 +160,7 @@ export function openEditLetter(ch: string, entry: LetterEntry): void {
           gV: (form.gV || []).map(r => [...r]),
           gD: (form.gD || []).map(r => [...r]),
           marks: form.marks ? form.marks.map(m => ({ ...m })) : undefined,
+          conns: form.conns ? form.conns.map(c => ({ ...c })) : undefined,
         };
       }
     }
@@ -173,6 +178,7 @@ export function openEditLetter(ch: string, entry: LetterEntry): void {
         gV: (vf.gV || []).map(r => [...r]),
         gD: (vf.gD || []).map(r => [...r]),
         marks: vf.marks ? vf.marks.map(m => ({ ...m })) : undefined,
+        conns: vf.conns ? vf.conns.map(c => ({ ...c })) : undefined,
       });
     }
   }
@@ -281,6 +287,23 @@ function createModalDOM(): void {
         <button class="s-btn sm" id="leClearBtn" title="Clear all">Clear</button>
       </div>
 
+      <!-- ═══ CONNECTION TOOLS (second row) ═══ -->
+      <div class="le-conn-toolbar">
+        <span class="le-conn-label">Conn:</span>
+        <button class="le-tool-btn conn-tool" id="leToolConnIn" title="Sambungan Masuk">
+          <span class="conn-dot" style="background:#c7a2cc"></span>
+        </button>
+        <button class="le-tool-btn conn-tool" id="leToolConnBest" title="Sambungan Masuk Terbaik">
+          <span class="conn-dot" style="background:#f067a6"></span>
+        </button>
+        <button class="le-tool-btn conn-tool" id="leToolConnOut" title="Sambungan Keluar">
+          <span class="conn-dot" style="background:#8ed6f7"></span>
+        </button>
+        <button class="le-tool-btn conn-tool" id="leToolConnAlt" title="Titik Alternatif">
+          <span class="conn-dot" style="background:#7fc251"></span>
+        </button>
+      </div>
+
       <!-- ═══ FOOTER: delete (left) | cancel + save (right) ═══ -->
       <div class="le-actions">
         <button class="s-btn sm danger" id="leDeleteBtn" style="display:none">Delete</button>
@@ -326,6 +349,7 @@ function wireEditorEvents(): void {
     const rootGV = iso ? iso.gV.map(r => [...r]) : gVMatrix.map(r => [...r]);
     const rootGD = iso ? iso.gD.map(r => [...r]) : gDMatrix.map(r => [...r]);
     const rootMarks = iso?.marks ? iso.marks.map(m => ({ ...m })) : undefined;
+    const rootConns = iso?.conns ? iso.conns.map(c => ({ ...c })) : undefined;
 
     // Build forms object from positional form data (excluding isolated)
     const forms: Partial<Record<LetterPosition, LetterForm>> = {};
@@ -339,6 +363,7 @@ function wireEditorEvents(): void {
           gV: fd.gV.map(r => [...r]),
           gD: fd.gD.map(r => [...r]),
           marks: fd.marks ? fd.marks.map(m => ({ ...m })) : undefined,
+          conns: fd.conns ? fd.conns.map(c => ({ ...c })) : undefined,
         };
       }
     }
@@ -361,6 +386,7 @@ function wireEditorEvents(): void {
         gV: vd.gV.map(r => [...r]),
         gD: vd.gD.map(r => [...r]),
         marks: vd.marks ? vd.marks.map(m => ({ ...m })) : undefined,
+        conns: vd.conns ? vd.conns.map(c => ({ ...c })) : undefined,
       });
     }
 
@@ -372,6 +398,7 @@ function wireEditorEvents(): void {
       gV: rootGV,
       gD: rootGD,
       marks: rootMarks,
+      conns: rootConns,
       forms: Object.keys(forms).length > 0 ? forms : undefined,
       variations: variations.length > 0 ? variations : undefined,
       _builtin: false,
@@ -399,17 +426,23 @@ function wireEditorEvents(): void {
   clear?.addEventListener('click', () => {
     initMatrices();
     editorMarks = [];
+    editorConns = [];
     buildEditorGrid();
   });
 
   const allToolBtns = [toolDraw, toolErase,
     document.getElementById('leToolMarkKafS'),
-    document.getElementById('leToolMarkHamzah')];
+    document.getElementById('leToolMarkHamzah'),
+    document.getElementById('leToolConnIn'),
+    document.getElementById('leToolConnBest'),
+    document.getElementById('leToolConnOut'),
+    document.getElementById('leToolConnAlt')];
 
   const setActiveTool = (tool: typeof editorTool, btn: HTMLElement | null) => {
     editorTool = tool;
     for (const b of allToolBtns) b?.classList.remove('active');
     btn?.classList.add('active');
+    refreshConnMarkers();
   };
 
   toolDraw?.addEventListener('click', () => setActiveTool('draw', toolDraw));
@@ -418,6 +451,14 @@ function wireEditorEvents(): void {
     setActiveTool('mark-kaf-s', document.getElementById('leToolMarkKafS')));
   document.getElementById('leToolMarkHamzah')?.addEventListener('click', () =>
     setActiveTool('mark-hamzah', document.getElementById('leToolMarkHamzah')));
+  document.getElementById('leToolConnIn')?.addEventListener('click', () =>
+    setActiveTool('conn-in', document.getElementById('leToolConnIn')));
+  document.getElementById('leToolConnBest')?.addEventListener('click', () =>
+    setActiveTool('conn-best', document.getElementById('leToolConnBest')));
+  document.getElementById('leToolConnOut')?.addEventListener('click', () =>
+    setActiveTool('conn-out', document.getElementById('leToolConnOut')));
+  document.getElementById('leToolConnAlt')?.addEventListener('click', () =>
+    setActiveTool('conn-alt', document.getElementById('leToolConnAlt')));
 
   // ── Form tab switching ──
   const tabContainer = document.getElementById('leFormTabs');
@@ -458,6 +499,7 @@ function saveCurrentTabData(): void {
     gV: gVMatrix.map(r => [...r]),
     gD: gDMatrix.map(r => [...r]),
     marks: editorMarks.length > 0 ? editorMarks.map(m => ({ ...m })) : undefined,
+    conns: editorConns.length > 0 ? editorConns.map(c => ({ ...c })) : undefined,
   };
 
   if (activeFormTab === 'variation') {
@@ -488,12 +530,14 @@ function loadTabData(tab: FormTab): void {
     gVMatrix = fd.gV.map(r => [...r]);
     gDMatrix = fd.gD.map(r => [...r]);
     editorMarks = fd.marks ? fd.marks.map(m => ({ ...m })) : [];
+    editorConns = fd.conns ? fd.conns.map(c => ({ ...c })) : [];
   } else {
     // No data — start with empty 5×5
     gridW = 5;
     gridH = 5;
     initMatrices();
     editorMarks = [];
+    editorConns = [];
   }
 
   // Update grid size inputs
@@ -591,6 +635,7 @@ function switchVariation(idx: number): void {
       gV: gVMatrix.map(r => [...r]),
       gD: gDMatrix.map(r => [...r]),
       marks: editorMarks.length > 0 ? editorMarks.map(m => ({ ...m })) : undefined,
+      conns: editorConns.length > 0 ? editorConns.map(c => ({ ...c })) : undefined,
     };
   }
 
@@ -611,6 +656,7 @@ function addVariation(): void {
       gV: gVMatrix.map(r => [...r]),
       gD: gDMatrix.map(r => [...r]),
       marks: editorMarks.length > 0 ? editorMarks.map(m => ({ ...m })) : undefined,
+      conns: editorConns.length > 0 ? editorConns.map(c => ({ ...c })) : undefined,
     };
   }
 
@@ -648,6 +694,7 @@ function makeEmptyFormData(): FormData {
 /** Checks if a FormData has any filled cells */
 function hasAnyFill(fd: FormData): boolean {
   if (fd.marks && fd.marks.length > 0) return true;
+  if (fd.conns && fd.conns.length > 0) return true;
   for (const row of fd.m) {
     for (const v of row) {
       if (v) return true;
@@ -775,17 +822,26 @@ function buildEditorGrid(): void {
   }
 
   refreshRadius();
+  refreshConnMarkers();
 }
 
 function addPaintListeners(el: HTMLElement): void {
   el.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     isPointerDown = true;
+    // Connection tools are handled by handle clicks, not element clicks
+    if (isConnTool()) return;
     paintElement(el);
   });
   el.addEventListener('pointerenter', () => {
-    if (isPointerDown) paintElement(el);
+    if (isPointerDown && !isConnTool()) paintElement(el);
   });
+}
+
+/** Check if current tool is a connection tool */
+function isConnTool(): boolean {
+  return editorTool === 'conn-in' || editorTool === 'conn-best' ||
+         editorTool === 'conn-out' || editorTool === 'conn-alt';
 }
 
 function paintElement(el: HTMLElement): void {
@@ -799,11 +855,9 @@ function paintElement(el: HTMLElement): void {
     const markType = editorTool === 'mark-kaf-s' ? 'kaf-s' : 'hamzah';
     const existIdx = editorMarks.findIndex(m => m.col === c && m.row === r);
     if (existIdx >= 0) {
-      // Toggle off: remove mark
       editorMarks.splice(existIdx, 1);
       el.classList.remove('mark-kaf-s', 'mark-hamzah');
     } else {
-      // Remove any other mark at this position first
       editorMarks = editorMarks.filter(m => !(m.col === c && m.row === r));
       editorMarks.push({ type: markType, col: c, row: r });
       el.classList.remove('mark-kaf-s', 'mark-hamzah');
@@ -830,10 +884,14 @@ function paintElement(el: HTMLElement): void {
   }
 
   el.classList.toggle('filled', val === 1);
-  // If erasing a cell, also remove any mark at that position
+  // If erasing, also remove marks and connection markers at this position
   if (type === 'cell' && val === 0) {
     editorMarks = editorMarks.filter(m => !(m.col === c && m.row === r));
     el.classList.remove('mark-kaf-s', 'mark-hamzah');
+  }
+  if (val === 0) {
+    const elType = type as 'cell' | 'gH' | 'gV' | 'gD';
+    editorConns = editorConns.filter(cn => !(cn.el === elType && cn.row === r && cn.col === c));
   }
   refreshRadius();
 }
@@ -889,6 +947,132 @@ function refreshRadius(): void {
       const br = (isCell(r + 1, c + 1) || isGH(r, c + 1) || isGV(r + 1, c)) ? 0 : rGap;
       const bl = (isCell(r + 1, c) || isGH(r, c)     || isGV(r + 1, c)) ? 0 : rGap;
       el.style.borderRadius = `${tl}px ${tr}px ${br}px ${bl}px`;
+    }
+  }
+}
+
+// ─── Connection Marker Rendering ────────────────────────
+
+const CONN_COLORS: Record<string, string> = {
+  'conn-in': '#c7a2cc',
+  'conn-best': '#f067a6',
+  'conn-out': '#8ed6f7',
+  'conn-alt': '#7fc251',
+};
+
+const SIDE_EDGES: Array<'top' | 'right' | 'bottom' | 'left'> = ['top', 'right', 'bottom', 'left'];
+
+/** Rebuilds connection handles and markers on the editor grid */
+function refreshConnMarkers(): void {
+  if (!editorGrid) return;
+
+  // Remove existing handles and markers
+  editorGrid.querySelectorAll('.conn-handle, .conn-side-marker').forEach(m => m.remove());
+
+  const els = editorGrid.children;
+  for (let i = 0; i < els.length; i++) {
+    const el = els[i] as HTMLElement;
+    const type = el.dataset.type as 'cell' | 'gH' | 'gV' | 'gD' | undefined;
+    if (!type) continue;
+    const r = parseInt(el.dataset.r || '0');
+    const c = parseInt(el.dataset.c || '0');
+
+    el.style.position = 'relative';
+    el.style.overflow = 'visible';
+
+    // Show existing connection markers as colored bars
+    const myConns = editorConns.filter(cn => cn.el === type && cn.row === r && cn.col === c);
+    for (const cn of myConns) {
+      const marker = document.createElement('div');
+      marker.className = 'conn-side-marker';
+      const color = CONN_COLORS[cn.type] || '#fff';
+      marker.style.cssText = 'position:absolute;pointer-events:none;z-index:5;border-radius:1px;opacity:0.85;';
+      marker.style.background = color;
+      const th = '2px';
+      switch (cn.side) {
+        case 'top':    marker.style.cssText += `top:-1px;left:10%;right:10%;height:${th};`; break;
+        case 'bottom': marker.style.cssText += `bottom:-1px;left:10%;right:10%;height:${th};`; break;
+        case 'left':   marker.style.cssText += `left:-1px;top:10%;bottom:10%;width:${th};`; break;
+        case 'right':  marker.style.cssText += `right:-1px;top:10%;bottom:10%;width:${th};`; break;
+        case 'center': marker.style.cssText += 'top:50%;left:50%;transform:translate(-50%,-50%);width:5px;height:5px;border-radius:50%;'; break;
+      }
+      el.appendChild(marker);
+    }
+
+    // When a connection tool is active, show handle dots
+    // conn-alt (green) → only center dot; others → 4 side dots
+    if (isConnTool()) {
+      const sides: Array<'top' | 'right' | 'bottom' | 'left' | 'center'> =
+        editorTool === 'conn-alt' ? ['center'] : [...SIDE_EDGES];
+      for (const side of sides) {
+        const handle = document.createElement('div');
+        handle.className = 'conn-handle';
+        handle.dataset.side = side;
+
+        // Check if this side already has a marker of current type
+        const existing = myConns.find(cn => cn.side === side && cn.type === editorTool);
+
+        handle.style.position = 'absolute';
+        handle.style.width = '7px';
+        handle.style.height = '7px';
+        handle.style.borderRadius = '50%';
+        handle.style.background = existing ? (CONN_COLORS[editorTool] || '#fff') : 'rgba(255,255,255,0.35)';
+        handle.style.border = existing ? '1px solid rgba(255,255,255,0.8)' : '1px solid rgba(255,255,255,0.6)';
+        handle.style.cursor = 'pointer';
+        handle.style.zIndex = '10';
+        handle.style.pointerEvents = 'auto';
+        handle.style.boxSizing = 'border-box';
+
+        // Position at midpoint of each side using transform
+        switch (side) {
+          case 'top':
+            handle.style.top = '0';
+            handle.style.left = '50%';
+            handle.style.transform = 'translate(-50%,-50%)';
+            break;
+          case 'bottom':
+            handle.style.bottom = '0';
+            handle.style.left = '50%';
+            handle.style.transform = 'translate(-50%,50%)';
+            break;
+          case 'left':
+            handle.style.top = '50%';
+            handle.style.left = '0';
+            handle.style.transform = 'translate(-50%,-50%)';
+            break;
+          case 'right':
+            handle.style.top = '50%';
+            handle.style.right = '0';
+            handle.style.transform = 'translate(50%,-50%)';
+            break;
+          case 'center':
+            handle.style.top = '50%';
+            handle.style.left = '50%';
+            handle.style.transform = 'translate(-50%,-50%)';
+            break;
+        }
+
+        if (existing) {
+          handle.style.transform += ' scale(1.2)';
+        }
+
+        // Click handler: toggle connection marker
+        handle.addEventListener('pointerdown', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const connType = editorTool as 'conn-in' | 'conn-best' | 'conn-out' | 'conn-alt';
+          const existIdx = editorConns.findIndex(cn =>
+            cn.el === type && cn.row === r && cn.col === c && cn.type === connType && cn.side === side);
+          if (existIdx >= 0) {
+            editorConns.splice(existIdx, 1);
+          } else {
+            editorConns.push({ type: connType, el: type, row: r, col: c, side });
+          }
+          refreshConnMarkers();
+        });
+
+        el.appendChild(handle);
+      }
     }
   }
 }

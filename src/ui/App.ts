@@ -17,7 +17,7 @@ import { downloadPNG, downloadJSON, exportProject, importProject } from '../stor
 import { saveSession, saveSettings, loadSettings, migrateIDBKeys } from '../storage/SessionManager';
 import { openDatabase } from '../storage/IndexedDBStore';
 import { loadMerged } from '../letters/LetterLibrary';
-import type { ToolType, RenderConfig, BgProps, LetterEntry, SessionData, SelectionData, CellMark } from '../types/grid';
+import type { ToolType, RenderConfig, BgProps, LetterEntry, SessionData, SelectionData, CellMark, ConnectionMarker } from '../types/grid';
 
 /** Default render configuration. */
 function defaultConfig(): RenderConfig {
@@ -37,6 +37,7 @@ function defaultConfig(): RenderConfig {
     axisColor: '#4848486c',
     axisEvery: 5,
     showRulers: false,
+    showConns: false,
   };
 }
 
@@ -191,7 +192,7 @@ export class App {
     this.history.saveState(this.model);
     this.model.clear();
     this.requestRender();
-    this.scheduleAutoSave();
+    this.saveNow();
   }
 
   // ─── Drawing Color ──────────────────────────────────────
@@ -402,17 +403,21 @@ export class App {
     // Pick the right form based on position or variation index
     let m: number[][], gH: number[][] | undefined, gV: number[][] | undefined, gD: number[][] | undefined;
     let letterMarks: CellMark[] | undefined;
+    let letterConns: ConnectionMarker[] | undefined;
     if (typeof variationIndex === 'number' && entry.variations?.[variationIndex]) {
       const v = entry.variations[variationIndex];
       m = v.m; gH = v.gH; gV = v.gV; gD = v.gD;
       letterMarks = v.marks;
+      letterConns = v.conns;
     } else if (position !== 'isolated' && entry.forms?.[position as 'initial' | 'medial' | 'final']) {
       const f = entry.forms[position as 'initial' | 'medial' | 'final']!;
       m = f.m; gH = f.gH; gV = f.gV; gD = f.gD;
       letterMarks = f.marks;
+      letterConns = f.conns;
     } else {
       m = entry.m; gH = entry.gH; gV = entry.gV; gD = entry.gD;
       letterMarks = entry.marks;
+      letterConns = entry.conns;
     }
     const color = this.config.drawColor;
 
@@ -496,6 +501,7 @@ export class App {
       gV: gVData,
       gD: gDData,
       marks: letterMarks?.map(m => ({ ...m, c: color })),
+      conns: letterConns?.map(c => ({ ...c })),
       ox: pos.x - minLx,
       oy: pos.y - minLy,
       w: cols,
@@ -854,6 +860,10 @@ export class App {
       }
     }
 
+    // Connection markers overlay
+    overlay.showConns = this.config.showConns;
+    overlay.connMarkers = this.model.conns;
+
     return overlay;
   }
 
@@ -1079,7 +1089,16 @@ export class App {
 
   // ─── Private: Auto-save ─────────────────────────────────
 
-  private scheduleAutoSave(): void {
+  /** Save session + settings immediately (no debounce). */
+  public saveNow(): void {
+    if (this.autoSaveTimer) clearTimeout(this.autoSaveTimer);
+    try {
+      saveSession(this.model, this.config, this.bgProps, this.config.drawColor, this.bgDataUrl);
+      saveSettings(this.config);
+    } catch { /* ignore */ }
+  }
+
+  public scheduleAutoSave(): void {
     if (this.autoSaveTimer) clearTimeout(this.autoSaveTimer);
     this.autoSaveTimer = setTimeout(() => {
       try {

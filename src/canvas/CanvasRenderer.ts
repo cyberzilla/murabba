@@ -3,9 +3,11 @@
  * Composites all rendering layers: background, grid, cells, gaps, overlays.
  */
 import type { GridModel } from '../core/GridModel';
+import type { ConnectionMarker } from '../types/grid';
 import type { RenderConfig, BgProps, SelectionData, CellCoord, GapCoord } from '../types/grid';
 import { renderEmptyCells, renderFilledCells, renderFilledGaps, renderAxisLines } from './GridRenderer';
 import { renderMarks } from './MarkRenderer';
+import { renderConnections } from './ConnRenderer';
 import { renderBackground } from './BackgroundRenderer';
 import { renderSelectionFrame, renderSelectionGhost, renderBrushPreview, renderGapHoverPreview } from './SelectionRenderer';
 
@@ -27,6 +29,10 @@ export interface OverlayState {
   bgProps?: BgProps;
   /** Whether background is visible */
   bgVisible?: boolean;
+  /** Whether connection markers are visible */
+  showConns?: boolean;
+  /** Connection markers from grid model */
+  connMarkers?: ConnectionMarker[];
 }
 
 export class CanvasRenderer {
@@ -133,6 +139,11 @@ export class CanvasRenderer {
 
     // 6b. Sub-cell marks (kaf-s, hamzah)
     renderMarks(ctx, model.marks, config);
+
+    // 6c. Connection markers
+    if (overlay.showConns && overlay.connMarkers && overlay.connMarkers.length > 0) {
+      renderConnections(ctx, overlay.connMarkers, config);
+    }
 
     // 7. Selection overlays
     if (overlay.selectionFrame) {

@@ -554,8 +554,7 @@ input[type="number"]::-webkit-outer-spin-button {
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: var(--rs);
-  padding: 4px;
-  padding-inline-start: 8px;
+  padding: 4px 6px;
   min-width: 110px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.4);
   z-index: 100;
@@ -695,7 +694,7 @@ input[type="number"]::-webkit-outer-spin-button {
   align-items: center;
   gap: 8px;
   padding: 6px 0;
-  margin-bottom: 12px;
+  margin-bottom: 0;
 }
 .le-toolbar-group {
   display: flex;
@@ -814,6 +813,44 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 .le-cell.filled.mark-hamzah::after {
   color: #1a1a2e;
+}
+
+
+
+/* ── Connection Tools Row ── */
+.le-conn-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+  margin-bottom: 8px;
+}
+.le-conn-label {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-right: 2px;
+}
+/* ── Connection Marker Indicators ── */
+.conn-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.3);
+}
+.le-tool-btn.conn-tool.active {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+/* Side markers are rendered as absolute-positioned child divs via JS */
+.conn-side-marker {
+  transition: opacity 0.15s;
+  opacity: 0.9;
+}
+.conn-side-marker:hover {
+  opacity: 1;
 }
 
 /* ── Footer Actions ── */

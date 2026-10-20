@@ -163,6 +163,7 @@ export function exportProject(
       cellRadius: config.cellRadius,
       axisEvery: config.axisEvery,
       showAxis: config.showAxis,
+      showConns: config.showConns,
       axisColor: config.axisColor,
       showRulers: config.showRulers,
       zoom: config.zoom,
@@ -181,6 +182,7 @@ export function exportProject(
     bgImg: bgImg || null,
     bgVisible: true,
     marks: snapshot.marks && snapshot.marks.length > 0 ? snapshot.marks : undefined,
+    conns: snapshot.conns && snapshot.conns.length > 0 ? snapshot.conns : undefined,
   };
 
   return JSON.stringify(payload, null, 2);
@@ -421,6 +423,7 @@ export function importProject(json: string): ProjectData {
     bgImg: typeof parsed.bgImg === 'string' ? parsed.bgImg : null,
     bgVisible: parsed.bgVisible !== false,
     marks: Array.isArray(parsed.marks) ? parsed.marks : undefined,
+    conns: Array.isArray(parsed.conns) ? parsed.conns : undefined,
   };
 
   return projectData;

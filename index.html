@@ -145,18 +145,17 @@
   <div id="content">
     <!-- LEFT TOOL PANEL -->
     <aside id="toolPanel">
+      <!-- Navigation -->
       <button class="tool-btn active" data-tool="cursor" title="Cursor (V)" data-i18n-tip="tip.cursor" aria-label="Cursor tool">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l7.07 17 2.51-7.39L21 11.07z"/></svg>
       </button>
+      <button class="tool-btn" data-tool="select" title="Select (S)" data-i18n-tip="tip.select" aria-label="Select tool">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="1" stroke-dasharray="4 2.5"/></svg>
+      </button>
       <div class="tool-sep"></div>
+      <!-- Drawing -->
       <button class="tool-btn" data-tool="draw" title="Draw (B)" data-i18n-tip="tip.draw" aria-label="Draw tool">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-      </button>
-      <button class="tool-btn" data-tool="erase" title="Eraser (E)" data-i18n-tip="tip.erase" aria-label="Eraser tool">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20H7L3 16l10-10 7 7-3.5 3.5"/><path d="M6.5 17.5l4-4"/></svg>
-      </button>
-      <button class="tool-btn" data-tool="fill" title="Fill (F)" data-i18n-tip="tip.fill" aria-label="Fill tool">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 11L9 1 3 7l10 10"/><path d="M9.5 21.5a2.5 2.5 0 0 1-5 0c0-1.38 2.5-5 2.5-5s2.5 3.62 2.5 5z"/></svg>
       </button>
       <div class="tool-btn-wrap">
         <button class="tool-btn" data-tool="brush" title="Continuous Pen (W)" data-i18n-tip="tip.brush" aria-label="Brush tool">
@@ -178,11 +177,16 @@
           </button>
         </div>
       </div>
+      <button class="tool-btn" data-tool="fill" title="Fill (F)" data-i18n-tip="tip.fill" aria-label="Fill tool">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 11L9 1 3 7l10 10"/><path d="M9.5 21.5a2.5 2.5 0 0 1-5 0c0-1.38 2.5-5 2.5-5s2.5 3.62 2.5 5z"/></svg>
+      </button>
+      <button class="tool-btn" data-tool="erase" title="Eraser (E)" data-i18n-tip="tip.erase" aria-label="Eraser tool">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20H7L3 16l10-10 7 7-3.5 3.5"/><path d="M6.5 17.5l4-4"/></svg>
+      </button>
+      <div class="tool-sep"></div>
+      <!-- Pan -->
       <button class="tool-btn" data-tool="pan" title="Pan (H)" data-i18n-tip="tip.pan" aria-label="Pan tool">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/></svg>
-      </button>
-      <button class="tool-btn" data-tool="select" title="Select (S)" data-i18n-tip="tip.select" aria-label="Select tool">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="1" stroke-dasharray="4 2.5"/></svg>
       </button>
       <div class="tool-sep"></div>
       <!-- Color preview -->
@@ -225,6 +229,14 @@
             <div class="ctrl-row"><input type="range" id="gapSizeR" min="0" max="80" value="19"/><span id="gapSizeVal">19</span></div>
             <label class="ctrl-label" data-i18n="grid.cornerRadius">Corner Radius</label>
             <div class="ctrl-row"><input type="range" id="cellRadR" min="0" max="10" value="5"/><span id="cellRadVal">5</span></div>
+            <div class="ctrl-row" style="margin-top:6px;gap:8px;">
+              <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);cursor:pointer;">
+                <input type="checkbox" id="showConnsChk"/> Connectors
+              </label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);cursor:pointer;">
+                <input type="checkbox" id="showAxisChk" checked/> Axis
+              </label>
+            </div>
           </div>
         </details>
 

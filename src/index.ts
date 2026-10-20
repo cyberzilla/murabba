@@ -7,7 +7,7 @@ import type { SupportedLang } from './types';
 import type { LetterEntry } from './types/grid';
 import { renderPreviewMarks } from './canvas/MarkRenderer';
 import { initConfirmModal, confirmDialog, alertDialog } from './ui/ConfirmModal';
-import { loadSession, saveSettings, SESSION_KEY, migrateStorageKeys } from './storage/SessionManager';
+import { loadSession, saveSettings, SESSION_KEY, migrateStorageKeys, saveSession} from './storage/SessionManager';
 import { initLetterEditor, openNewLetter, openEditLetter, setEditorGridConfig } from './ui/LetterEditor';
 import { initAboutModal, showAbout } from './ui/AboutModal';
 import { exportLibrary, saveLetter, deleteLetter } from './letters/LetterLibrary';
@@ -66,6 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
     syncColorUI(app);
     // Sync slider UI with loaded settings (cellSize, gapSize, cellRadius)
     syncSliderUI(app);
+    wireDisplayToggles(app);
 
     // About modal
     initAboutModal();
@@ -77,6 +78,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Theme toggle
   wireThemeToggle(app);
+
+  // Save session immediately before page unload
+  window.addEventListener('beforeunload', () => {
+    try {
+      saveSession(app.model, app.config, app.bgProps, app.config.drawColor, app.bgDataUrl);
+      saveSettings(app.config);
+    } catch { /* ignore */ }
+  });
 
   // Expose for debugging
   (window as any).__murabbaApp = app;
@@ -1297,6 +1306,29 @@ function renderLetterPreview(canvas: HTMLCanvasElement, entry: LetterEntry, colo
     const isLight = document.documentElement.getAttribute('data-theme') === 'light';
     const markBg = isLight ? '#F5F5F0' : '#1a1a2e';
     renderPreviewMarks(ctx, entry.marks, cellPx, gapPx, markBg, color);
+  }
+}
+
+function wireDisplayToggles(app: App): void {
+  // Connectors toggle
+  const connsChk = document.getElementById('showConnsChk') as HTMLInputElement | null;
+  if (connsChk) {
+    connsChk.checked = app.config.showConns;
+    connsChk.addEventListener('change', () => {
+      app.config.showConns = connsChk.checked;
+      app.renderer.markDirty();
+      app.saveNow();
+    });
+  }
+  // Axis toggle
+  const axisChk = document.getElementById('showAxisChk') as HTMLInputElement | null;
+  if (axisChk) {
+    axisChk.checked = app.config.showAxis;
+    axisChk.addEventListener('change', () => {
+      app.config.showAxis = axisChk.checked;
+      app.renderer.markDirty();
+      app.saveNow();
+    });
   }
 }
 

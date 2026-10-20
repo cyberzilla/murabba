@@ -82,6 +82,7 @@ export interface GridState {
   gapVColors: Map<number, string>;
   gapDColors: Map<number, string>;
   marks: CellMark[];
+  conns: ConnectionMarker[];
 }
 
 /**
@@ -99,6 +100,7 @@ export interface HistorySnapshot {
   gapVColors: Map<number, string>;
   gapDColors: Map<number, string>;
   marks: CellMark[];
+  conns: ConnectionMarker[];
 }
 
 /**
@@ -125,12 +127,33 @@ export interface CellMark {
  */
 export type LetterPosition = 'isolated' | 'initial' | 'medial' | 'final' | 'variation';
 
+/**
+ * Connection marker types for letter joining points.
+ * - 'conn-in': Incoming connection point (sambungan masuk)
+ * - 'conn-best': Best incoming connection point (sambungan masuk terbaik)
+ * - 'conn-out': Outgoing connection point (sambungan keluar)
+ * - 'conn-alt': Alternative connection point (titik alternatif)
+ */
+export type ConnectionType = 'conn-in' | 'conn-best' | 'conn-out' | 'conn-alt';
+
+/**
+ * A connection marker placed on a grid element to indicate joining points.
+ */
+export interface ConnectionMarker {
+  type: ConnectionType;
+  el: 'cell' | 'gH' | 'gV' | 'gD';
+  row: number;
+  col: number;
+  side: 'top' | 'right' | 'bottom' | 'left' | 'center';
+}
+
 export interface LetterForm {
   m: number[][];
   gH: number[][];
   gV: number[][];
   gD: number[][];
   marks?: CellMark[];
+  conns?: ConnectionMarker[];
 }
 
 export interface LetterEntry {
@@ -141,6 +164,7 @@ export interface LetterEntry {
   gV: number[][];   // isolated form gap-V matrix
   gD: number[][];   // isolated form gap-D matrix
   marks?: CellMark[];  // sub-cell marks (kaf-s, hamzah)
+  conns?: ConnectionMarker[];  // connection markers
   forms?: Partial<Record<LetterPosition, LetterForm>>;
   variations?: LetterForm[];
   _builtin?: boolean;
@@ -182,6 +206,7 @@ export interface ProjectData {
   config?: Partial<RenderConfig>;
   cells?: Uint8Array;
   marks?: CellMark[];
+  conns?: ConnectionMarker[];
 }
 
 /**
@@ -202,6 +227,7 @@ export interface RenderConfig {
   axisColor: string;
   axisEvery: number;
   showRulers: boolean;
+  showConns: boolean;
 }
 
 /**
@@ -213,6 +239,7 @@ export interface SelectionData {
   gV: Array<{ lx: number; ly: number; c: string }>;
   gD: Array<{ lx: number; ly: number; c: string }>;
   marks?: CellMark[];
+  conns?: ConnectionMarker[];
   ox: number;
   oy: number;
   w: number;
@@ -310,5 +337,6 @@ export interface SessionData {
   bgImg?: string | null;
   bgVisible: boolean;
   marks?: CellMark[];
+  conns?: ConnectionMarker[];
   ts: number;
 }

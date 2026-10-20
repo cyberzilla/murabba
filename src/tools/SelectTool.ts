@@ -26,7 +26,7 @@
  */
 
 import { BaseTool, ToolContext } from './BaseTool';
-import type { ToolType, SelectionData, CellCoord, CellMark } from '../types/grid';
+import type { ToolType, SelectionData, CellCoord, CellMark, ConnectionMarker } from '../types/grid';
 import { screenToCell, screenToElement, elementToPixelRect } from '../core/CoordinateMapper';
 import type { ElementCoord } from '../core/CoordinateMapper';
 import type { GridModel } from '../core/GridModel';
@@ -508,6 +508,16 @@ export class SelectTool extends BaseTool {
       }
     }
 
+    // Extract connection markers (only if filled cell at same position is in selection)
+    const selConns: ConnectionMarker[] = [];
+    for (const conn of model.conns) {
+      const cx = conn.col, cy = conn.row;
+      // Check if cell at (cx,cy) is within element selection AND filled
+      if (cx*2 >= ex1 && cx*2 <= ex2 && cy*2 >= ey1 && cy*2 <= ey2 && model.getCell(cx, cy) !== 0) {
+        selConns.push({ ...conn, col: cx - cellX1, row: cy - cellY1 });
+      }
+    }
+
     // If region contains no elements at all, cancel selection
     if (cells.length === 0 && gH.length === 0 && gV.length === 0 && gD.length === 0 && selMarks.length === 0) {
       this.reset();
@@ -554,12 +564,18 @@ export class SelectTool extends BaseTool {
       model.removeMarksAt(mark.col, mark.row);
     }
 
+    // Remove extracted conns from original position (for move)
+    for (const conn of selConns) {
+      model.removeConnsAt(conn.el, conn.col + cellX1, conn.row + cellY1);
+    }
+
     this.floatData = {
       cells,
       gH,
       gV,
       gD,
       marks: selMarks.length > 0 ? selMarks : undefined,
+      conns: selConns.length > 0 ? selConns : undefined,
       ox: cellX1,
       oy: cellY1,
       w: cellX2 - cellX1 + 1,
@@ -637,6 +653,16 @@ export class SelectTool extends BaseTool {
 
     ctx.history.saveState(model);
 
+    // Collect conns to remove: only if a filled cell at same (col,row) is in the selection
+    const connsToErase: Array<{el: string, col: number, row: number}> = [];
+    for (const conn of model.conns) {
+      const cx = conn.col, cy = conn.row;
+      // Check if cell at (cx,cy) is within element selection bounds AND filled
+      if (cx*2 >= ex1 && cx*2 <= ex2 && cy*2 >= ey1 && cy*2 <= ey2 && model.getCell(cx, cy) !== 0) {
+        connsToErase.push({ el: conn.el, col: cx, row: cy });
+      }
+    }
+
     for (let y = cellY1; y <= cellY2; y++) {
       for (let x = cellX1; x <= cellX2; x++) {
         if (x * 2 >= ex1 && x * 2 <= ex2 && y * 2 >= ey1 && y * 2 <= ey2) {
@@ -660,6 +686,13 @@ export class SelectTool extends BaseTool {
       if (mark.col >= cellX1 && mark.col <= cellX2 && mark.row >= cellY1 && mark.row <= cellY2) {
         model.removeMarksAt(mark.col, mark.row);
       }
+    }
+
+
+
+    // Remove collected conns (checked before erasure)
+    for (const c of connsToErase) {
+      model.removeConnsAt(c.el, c.col, c.row);
     }
 
     this.reset();
@@ -976,6 +1009,17 @@ export class SelectTool extends BaseTool {
           col: d.ox + mark.col,
           row: d.oy + mark.row,
           c: mark.c || fallbackColor,
+        });
+      }
+    }
+
+    // Stamp connection markers with position offset
+    if (d.conns && d.conns.length > 0) {
+      for (const conn of d.conns) {
+        model.addConn({
+          ...conn,
+          col: d.ox + conn.col,
+          row: d.oy + conn.row,
         });
       }
     }

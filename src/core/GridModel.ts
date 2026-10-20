@@ -7,6 +7,7 @@ import {
   BgProps,
   BoundingBox,
   CellMark,
+  ConnectionMarker,
   GridState,
   HistorySnapshot,
   ProjectData,
@@ -32,6 +33,7 @@ export class GridModel {
   private _gapVColors: Map<number, string>;
   private _gapDColors: Map<number, string>;
   private _marks: CellMark[];
+  private _conns: ConnectionMarker[];
 
   /**
    * Initializes a new GridModel with the specified dimensions.
@@ -53,6 +55,7 @@ export class GridModel {
     this._gapVColors = new Map();
     this._gapDColors = new Map();
     this._marks = [];
+    this._conns = [];
   }
 
   // ──────────────────────── Getters ────────────────────────
@@ -112,6 +115,33 @@ export class GridModel {
     this._marks = [];
   }
 
+  /** Connection markers on the grid. */
+  public get conns(): ConnectionMarker[] {
+    return this._conns;
+  }
+
+  /** Add a connection marker to the grid. */
+  public addConn(conn: ConnectionMarker): void {
+    this._conns.push({ ...conn });
+  }
+
+  /** Add multiple connection markers. */
+  public addConns(conns: ConnectionMarker[]): void {
+    for (const c of conns) {
+      this._conns.push({ ...c });
+    }
+  }
+
+  /** Remove connection markers at a specific position. */
+  public removeConnsAt(el: string, col: number, row: number): void {
+    this._conns = this._conns.filter(c => !(c.el === el && c.col === col && c.row === row));
+  }
+
+  /** Clear all connection markers. */
+  public clearConns(): void {
+    this._conns = [];
+  }
+
   /**
    * Returns a copy of the raw grid state.
    */
@@ -128,6 +158,7 @@ export class GridModel {
       gapVColors: new Map(this._gapVColors),
       gapDColors: new Map(this._gapDColors),
       marks: this._marks.map(m => ({ ...m })),
+      conns: this._conns.map(c => ({ ...c })),
     };
   }
 
@@ -474,6 +505,7 @@ export class GridModel {
     this._gapVColors.clear();
     this._gapDColors.clear();
     this.clearMarks();
+    this.clearConns();
   }
 
   /**
@@ -571,6 +603,7 @@ export class GridModel {
 
     // Filter marks to only keep those within new bounds
     this._marks = this._marks.filter(m => m.col < newCols && m.row < newRows);
+    this._conns = this._conns.filter(c => c.col < newCols && c.row < newRows);
   }
 
   /**
@@ -589,6 +622,7 @@ export class GridModel {
       gapVColors: new Map(this._gapVColors),
       gapDColors: new Map(this._gapDColors),
       marks: this._marks.map(m => ({ ...m })),
+      conns: this._conns.map(c => ({ ...c })),
     };
   }
 
@@ -614,6 +648,7 @@ export class GridModel {
     this._gapVColors = new Map(snap.gapVColors);
     this._gapDColors = new Map(snap.gapDColors);
     this._marks = (snap.marks || []).map(m => ({ ...m }));
+    this._conns = (snap.conns || []).map((c: ConnectionMarker) => ({ ...c }));
   }
 
   /**
@@ -985,6 +1020,14 @@ export class GridModel {
       this._marks = rawMarks.map(m => ({ ...m }));
     } else {
       this._marks = [];
+    }
+
+    // Load conns
+    const rawConns = (data as { conns?: ConnectionMarker[] }).conns;
+    if (Array.isArray(rawConns)) {
+      this._conns = rawConns.map(c => ({ ...c }));
+    } else {
+      this._conns = [];
     }
   }
 }

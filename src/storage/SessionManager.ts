@@ -141,6 +141,7 @@ export function saveSession(
         cellRadius: config.cellRadius,
         axisEvery: config.axisEvery,
         showAxis: config.showAxis,
+        showConns: config.showConns,
         axisColor: config.axisColor,
         showRulers: config.showRulers,
         zoom: config.zoom,
@@ -153,6 +154,7 @@ export function saveSession(
       bgVisible: true,
       bgImg: bgImg || undefined,
       marks: snapshot.marks && snapshot.marks.length > 0 ? snapshot.marks : undefined,
+      conns: snapshot.conns && snapshot.conns.length > 0 ? snapshot.conns : undefined,
       ts: Date.now(),
     };
 
@@ -300,6 +302,7 @@ export function loadSession(): SessionData | null {
       bgVisible: parsed.bgVisible !== undefined ? parsed.bgVisible : true,
       bgImg: parsed.bgImg || undefined,
       marks: Array.isArray(parsed.marks) ? parsed.marks : undefined,
+      conns: Array.isArray(parsed.conns) ? parsed.conns : undefined,
       ts: Number(parsed.ts) || Date.now(),
     };
 
